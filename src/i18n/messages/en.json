@@ -1,0 +1,1247 @@
+{
+  "common": {
+    "brand": "Betolla Cosmetics",
+    "submit": "Submit",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "loading": "Loading...",
+    "search": "Search",
+    "viewDetails": "View Details",
+    "addToCart": "Add to Cart",
+    "close": "Close",
+    "confirm": "Confirm",
+    "back": "Back",
+    "next": "Next",
+    "yes": "Yes",
+    "no": "No",
+    "signIn": "Sign in",
+    "signOut": "Sign out",
+    "signingOut": "Signing out...",
+    "active": "Active",
+    "inactive": "Inactive",
+    "exportCsv": "Export CSV",
+    "unassigned": "Unassigned",
+    "currencyUnit": "JD",
+    "ticketStatus": {
+      "OPEN": "Open",
+      "ASSIGNED": "Assigned",
+      "IN_PROGRESS": "In Progress",
+      "RESOLVED": "Resolved",
+      "CLOSED": "Closed"
+    },
+    "orderStatus": {
+      "PENDING": "Pending",
+      "CONFIRMED": "Confirmed",
+      "ON_DELIVERY": "On Delivery",
+      "DELIVERED": "Delivered",
+      "CANCELLED": "Cancelled"
+    },
+    "deliveryStatus": {
+      "ASSIGNED": "Assigned",
+      "PICKED_UP": "Picked Up",
+      "EN_ROUTE": "En Route",
+      "DELIVERED": "Delivered",
+      "FAILED": "Failed"
+    },
+    "orderTracker": {
+      "cancelled": "Order Cancelled",
+      "steps": {
+        "PENDING": "Order Placed",
+        "CONFIRMED": "Confirmed",
+        "ON_DELIVERY": "On Delivery",
+        "DELIVERED": "Delivered"
+      }
+    },
+    "rfmSegment": {
+      "CHAMPIONS": "Champions",
+      "LOYAL": "Loyal",
+      "POTENTIAL_LOYALIST": "Potential Loyalist",
+      "NEW_CUSTOMER": "New Customer",
+      "NEEDS_ATTENTION": "Needs Attention",
+      "AT_RISK": "At Risk",
+      "LOST": "Lost"
+    },
+    "promoSegment": {
+      "ALL": "All customers",
+      "TOP_30": "Top 30% spenders",
+      "BOTTOM_30": "Bottom 30% spenders"
+    },
+    "deliveryProblemType": {
+      "CUSTOMER_UNREACHABLE": "Customer unreachable",
+      "WRONG_OR_INCOMPLETE_ADDRESS": "Wrong or incomplete address",
+      "CUSTOMER_REFUSED_DELIVERY": "Customer refused delivery",
+      "ITEM_DAMAGED": "Item damaged",
+      "PAYMENT_ISSUE_COD": "Payment issue (COD)",
+      "VEHICLE_OR_TRAFFIC_ISSUE": "Vehicle or traffic issue",
+      "SAFETY_CONCERN": "Safety concern",
+      "OTHER": "Other"
+    },
+    "deliveryUrgency": {
+      "NORMAL": "Normal",
+      "URGENT": "Urgent"
+    },
+    "customersCount": "{count, plural, one {# customer} other {# customers}}",
+    "ordersCount": "{count, plural, one {# order} other {# orders}}",
+    "roleLabel": {
+      "STAFF": "Staff",
+      "DELIVERY": "Delivery"
+    },
+    "paymentStatus": {
+      "UNPAID": "Unpaid",
+      "PAID": "Paid",
+      "REFUNDED": "Refunded"
+    }
+  },
+  "theme": {
+    "light": "Light",
+    "dark": "Dark",
+    "toggle": "Toggle theme"
+  },
+  "language": {
+    "en": "English",
+    "ar": "العربية",
+    "toggle": "Switch language"
+  },
+  "toast": {
+    "addedToCartTitle": "Added to cart",
+    "couldntSaveAddressTitle": "Couldn't save address",
+    "couldntPlaceOrderTitle": "Couldn't place order",
+    "couldntSubmitReviewTitle": "Couldn't submit review",
+    "reviewSubmittedTitle": "Review submitted",
+    "reviewSubmittedBody": "Thanks for sharing your feedback!"
+  },
+  "errors": {
+    "genericTryAgain": "Something went wrong. Please try again.",
+    "firstNameRequired": "First name is required",
+    "lastNameRequired": "Last name is required",
+    "validEmail": "Enter a valid email address",
+    "usernameMinLength": "Username must be at least 3 characters",
+    "usernameCharset": "Only letters, numbers, dots, dashes and underscores",
+    "passwordMinLength": "Password must be at least 8 characters",
+    "passwordRequired": "Password is required",
+    "currentPasswordRequired": "Current password is required",
+    "confirmPasswordRequired": "Please confirm your new password",
+    "passwordsDoNotMatch": "Passwords do not match"
+  },
+  "storefront": {
+    "header": {
+      "products": "Products",
+      "bundles": "Bundles",
+      "searchPlaceholder": "Search products...",
+      "myAccount": "My Account",
+      "myOrders": "My Orders"
+    },
+    "footer": {
+      "support": "Support",
+      "rightsReserved": "{brand}. All rights reserved."
+    },
+    "productCard": {
+      "sale": "Sale",
+      "outOfStock": "Out of Stock"
+    },
+    "home": {
+      "shopNow": "Shop Now",
+      "shopByCategory": "Shop by Category",
+      "featuredProducts": "Featured Products",
+      "viewAll": "View All"
+    },
+    "products": {
+      "metaTitle": "All Products - {brand}",
+      "allProducts": "All Products",
+      "resultsFor": "Results for \"{query}\"",
+      "productCount": "{count, plural, one {# product} other {# products}}",
+      "noProductsFound": "No products found",
+      "noProductsDescription": "Try a different search term or browse another category.",
+      "allCategoryFilter": "All"
+    },
+    "productDetail": {
+      "metaTitle": "{name} - {brand}",
+      "metaTitleFallback": "Product - {brand}",
+      "sale": "Sale",
+      "onlyLeftInStock": "{count, plural, one {Only # left in stock} other {Only # left in stock}}",
+      "outOfStock": "Out of Stock",
+      "decreaseQuantity": "Decrease quantity",
+      "increaseQuantity": "Increase quantity",
+      "addToCart": "Add to Cart",
+      "buyNow": "Buy Now",
+      "addToWishlist": "Add to wishlist",
+      "removeFromWishlist": "Remove from wishlist",
+      "rateOutOf5": "Rate {value} out of 5"
+    },
+    "reviews": {
+      "title": "Reviews",
+      "noReviews": "No reviews yet - be the first to share your experience.",
+      "verifiedPurchase": "Verified Purchase",
+      "writeReview": "Write a review",
+      "whichOrderPlaceholder": "Which order?",
+      "orderPrefix": "Order {orderNumber}",
+      "reviewPlaceholder": "Share your experience with this product...",
+      "submitting": "Submitting...",
+      "submitReview": "Submit Review"
+    },
+    "bundles": {
+      "metaTitle": "Bundles - {brand}",
+      "noBundlesAvailable": "No bundles available right now",
+      "bundlesAndSets": "Bundles & Sets",
+      "bundleAndSave": "Bundle & Save",
+      "addBundleToCart": "Add Bundle to Cart"
+    },
+    "bundleDetail": {
+      "metaTitle": "{name} - {brand}",
+      "metaTitleFallback": "Bundle - {brand}",
+      "whatsIncluded": "What's included:"
+    },
+    "cart": {
+      "emptyTitle": "Your cart is empty",
+      "emptyDescription": "Browse our products and add something you love.",
+      "shopProducts": "Shop Products",
+      "decreaseQuantity": "Decrease quantity",
+      "increaseQuantity": "Increase quantity",
+      "remove": "Remove",
+      "orderSummary": "Order Summary",
+      "subtotal": "Subtotal",
+      "shippingNote": "Shipping and promo codes are calculated at checkout.",
+      "proceedToCheckout": "Proceed to Checkout"
+    },
+    "checkout": {
+      "metaTitle": "Checkout - {brand}",
+      "defaultAddressLabel": "Home",
+      "redirecting": "Redirecting...",
+      "cartEmpty": "Your cart is empty.",
+      "shippingAddress": "Shipping Address",
+      "addNewAddress": "Add a new address",
+      "recipientName": "Recipient name",
+      "phone": "Phone",
+      "city": "City",
+      "area": "Area",
+      "streetBuilding": "Street / building",
+      "paymentMethod": "Payment Method",
+      "paymentMethodNote": "Mock payment for now - a real gateway (e.g. HyperPay/PayTabs) plugs in here later.",
+      "cashOnDelivery": "Cash on Delivery",
+      "cardMock": "Card (mock)",
+      "orderSummary": "Order Summary",
+      "promoCodePlaceholder": "Promo code",
+      "apply": "Apply",
+      "promoApplied": "Promo applied: -{amount}",
+      "useStoreCredit": "Use store credit ({balance} available)",
+      "redeemLoyaltyPoints": "{count, plural, one {Redeem loyalty points (# point available)} other {Redeem loyalty points (# points available)}}",
+      "pointsEqualsValue": "{count, plural, one {# point = {value}} other {# points = {value}}}",
+      "subtotal": "Subtotal",
+      "shipping": "Shipping",
+      "total": "Total",
+      "placingOrder": "Placing order...",
+      "placeOrder": "Place Order"
+    },
+    "confirmation": {
+      "metaTitle": "Order Confirmed - {brand}",
+      "orderPlaced": "Order placed!",
+      "thanksPrefix": "Thanks for shopping with Betolla. Your order",
+      "thanksSuffix": "is being processed.",
+      "total": "Total",
+      "trackOrder": "Track Order",
+      "continueShopping": "Continue Shopping"
+    }
+  },
+  "auth": {
+    "login": {
+      "metaTitle": "Sign in - {brand}",
+      "heading": "Sign in",
+      "welcomeBack": "Welcome back to {brand}.",
+      "email": "Email",
+      "password": "Password",
+      "signingIn": "Signing in...",
+      "signIn": "Sign in",
+      "newToBetolla": "New to Betolla?",
+      "createAccount": "Create an account"
+    },
+    "register": {
+      "metaTitle": "Create account - {brand}",
+      "heading": "Create your account",
+      "join": "Join {brand}.",
+      "firstName": "First name",
+      "lastName": "Last name",
+      "email": "Email",
+      "username": "Username",
+      "password": "Password",
+      "passwordHint": "At least 8 characters",
+      "creatingAccount": "Creating account...",
+      "createAccount": "Create account",
+      "alreadyHaveAccount": "Already have an account?",
+      "signIn": "Sign in"
+    }
+  },
+  "account": {
+    "layout": {
+      "title": "My Account",
+      "welcome": "Welcome, {name}"
+    },
+    "nav": {
+      "overview": "Overview",
+      "orders": "Orders",
+      "walletLoyalty": "Wallet & Loyalty",
+      "addresses": "Addresses",
+      "wishlists": "Wishlists",
+      "preferences": "Preferences",
+      "support": "Support",
+      "sessions": "Sessions",
+      "openMenu": "Open account menu",
+      "menuTitle": "Account menu"
+    },
+    "overview": {
+      "heading": "Overview",
+      "activeOrders": "Active Orders",
+      "loyaltyPoints": "Loyalty Points",
+      "storeCredit": "Store Credit",
+      "wishlists": "Wishlists",
+      "openSupportTickets": "Open Support Tickets"
+    },
+    "orders": {
+      "metaTitle": "My Orders - {brand}",
+      "noOrdersTitle": "No orders yet",
+      "noOrdersDescription": "Your order history will show up here.",
+      "heading": "My Orders",
+      "unpaid": "Unpaid",
+      "refunded": "Refunded",
+      "itemCount": "{count, plural, one {# item} other {# items}}",
+      "detail": {
+        "metaTitle": "Order Details - {brand}",
+        "orderPrefix": "Order {orderNumber}",
+        "placedPrefix": "Placed",
+        "delivery": "Delivery",
+        "statusPrefix": "- status:",
+        "qty": "Qty",
+        "each": "each",
+        "returnRequested": "Return requested",
+        "subtotal": "Subtotal",
+        "discount": "Discount",
+        "storeCreditApplied": "Store credit applied",
+        "shipping": "Shipping",
+        "total": "Total",
+        "shippingToPrefix": "Shipping to:",
+        "paymentPrefix": "Payment:",
+        "cancellationReasonPrefix": "Cancellation reason:"
+      },
+      "reorder": {
+        "couldntReorderTitle": "Couldn't reorder",
+        "nothingToReorderTitle": "Nothing to reorder",
+        "nothingToReorderBody": "Those items are no longer available.",
+        "itemsSkipped": "{count, plural, one {# item was unavailable and skipped.} other {# items were unavailable and skipped.}}",
+        "allItemsAdded": "All items added.",
+        "adding": "Adding...",
+        "reorder": "Reorder"
+      },
+      "returnRequest": {
+        "reasons": {
+          "wrongItem": "Wrong item received",
+          "damaged": "Item arrived damaged",
+          "changedMind": "Changed my mind",
+          "doesntMatch": "Doesn't match description",
+          "other": "Other"
+        },
+        "couldntStartTitle": "Couldn't start return",
+        "requestedTitle": "Return requested",
+        "requestedBody": "We'll review your request shortly.",
+        "trigger": "Return",
+        "dialogTitle": "Request a return",
+        "reasonLabel": "Reason",
+        "detailsLabel": "Additional details (optional)",
+        "submitting": "Submitting...",
+        "submit": "Submit Return Request"
+      }
+    },
+    "wallet": {
+      "metaTitle": "Wallet & Loyalty - {brand}",
+      "heading": "Wallet & Loyalty",
+      "storeCreditTitle": "Store Credit",
+      "autoAppliedNote": "Automatically applied at checkout when you opt in.",
+      "loyaltyPointsTitle": "Loyalty Points",
+      "pts": "{count, plural, one {# pt} other {# pts}}",
+      "tierSuffix": "{tier} tier",
+      "bronzeTierFallback": "Bronze tier",
+      "pointsToNextTier": "{count, plural, one {# point to {tier}} other {# points to {tier}}}",
+      "storeCreditHistoryTitle": "Store Credit History",
+      "loyaltyHistoryTitle": "Loyalty Points History",
+      "noTransactions": "No transactions yet.",
+      "txType": {
+        "earned": "Earned",
+        "redeemed": "Redeemed",
+        "adjusted": "Adjusted"
+      }
+    },
+    "addresses": {
+      "metaTitle": "Addresses - {brand}",
+      "heading": "Addresses",
+      "addAddress": "Add Address",
+      "noSavedTitle": "No saved addresses",
+      "noSavedDescription": "Add a delivery address to speed up checkout.",
+      "default": "Default",
+      "setAsDefault": "Set as Default",
+      "delete": "Delete",
+      "deleteConfirmTitle": "Delete this address?",
+      "deleteConfirmDescription": "This can't be undone. Past orders keep a snapshot of the address, so your order history won't be affected.",
+      "couldntDeleteTitle": "Couldn't delete address",
+      "form": {
+        "savedTitle": "Address saved",
+        "couldntSaveTitle": "Couldn't save address",
+        "addNew": "Add a new address",
+        "label": "Label",
+        "recipientName": "Recipient name",
+        "phone": "Phone",
+        "city": "City",
+        "area": "Area",
+        "streetBuilding": "Street / building",
+        "defaultLabelValue": "Home",
+        "setDefaultCheckbox": "Set as default shipping address",
+        "saving": "Saving...",
+        "save": "Save Address"
+      }
+    },
+    "wishlists": {
+      "metaTitle": "Wishlists - {brand}",
+      "couldntDeleteListTitle": "Couldn't delete list",
+      "heading": "Wishlists",
+      "newListPlaceholder": "New list name",
+      "createList": "Create List",
+      "noWishlistsTitle": "No wishlists yet",
+      "deleteList": "Delete list",
+      "deleteConfirmTitle": "Delete \"{name}\"?",
+      "deleteConfirmDescription": "This permanently deletes the list and every item saved in it. This can't be undone.",
+      "delete": "Delete",
+      "noItemsInList": "No items in this list yet.",
+      "priceDropped": "Price dropped",
+      "outOfStock": "Out of stock",
+      "remove": "Remove"
+    },
+    "preferences": {
+      "metaTitle": "Preferences - {brand}",
+      "heading": "Preferences",
+      "interfaceTitle": "Interface",
+      "theme": "Theme",
+      "language": "Language",
+      "communicationTitle": "Communication Preferences",
+      "categoryColumnHeader": "Category",
+      "categories": {
+        "ORDER_UPDATES": "Order Updates",
+        "PROMOTIONS": "Promotions",
+        "BACK_IN_STOCK": "Back in Stock",
+        "LOYALTY_AND_WALLET": "Loyalty & Wallet",
+        "SUPPORT": "Support"
+      },
+      "channels": {
+        "EMAIL": "Email",
+        "SMS": "SMS",
+        "PUSH": "Push",
+        "IN_APP": "In-App"
+      }
+    },
+    "sessions": {
+      "metaTitle": "Active sessions - {brand}",
+      "heading": "Active sessions",
+      "description": "Devices currently signed in to your account. Sign out of any you don't recognize.",
+      "device": {
+        "unknown": "Unknown device",
+        "mobile": "Mobile browser",
+        "windows": "Windows - browser",
+        "mac": "Mac - browser",
+        "browser": "Browser"
+      },
+      "thisDevice": "(this device)",
+      "lastActivePrefix": "Last active",
+      "signingOut": "Signing out...",
+      "signOut": "Sign out"
+    },
+    "support": {
+      "metaTitle": "Support - {brand}",
+      "heading": "Support Tickets",
+      "noTicketsTitle": "No support tickets",
+      "noTicketsDescription": "Need help? Start a new ticket.",
+      "detail": {
+        "metaTitle": "Support Ticket - {brand}",
+        "betollaSupportSuffix": "(Betolla Support)",
+        "you": "You",
+        "closedMessage": "This ticket is closed."
+      },
+      "newTicket": {
+        "categories": {
+          "orderIssue": "Order Issue",
+          "returnRefund": "Return / Refund",
+          "productQuestion": "Product Question",
+          "shipping": "Shipping",
+          "loyaltyWallet": "Loyalty & Wallet",
+          "general": "General"
+        },
+        "couldntCreateTitle": "Couldn't create ticket",
+        "trigger": "New Ticket",
+        "dialogTitle": "Contact Support",
+        "categoryLabel": "Category",
+        "subjectLabel": "Subject",
+        "messageLabel": "Message",
+        "sending": "Sending...",
+        "send": "Send"
+      },
+      "reply": {
+        "couldntSendTitle": "Couldn't send message",
+        "placeholder": "Type a reply...",
+        "sending": "Sending...",
+        "sendReply": "Send Reply"
+      }
+    }
+  },
+  "admin": {
+    "nav": {
+      "openMenuAriaLabel": "Open admin menu",
+      "drawerTitle": "Admin menu",
+      "dashboard": "Dashboard",
+      "orders": "Orders",
+      "products": "Products",
+      "bundles": "Bundles",
+      "staff": "Staff",
+      "customers": "Customers",
+      "promoCodes": "Promo Codes",
+      "abandonedCarts": "Abandoned Carts",
+      "support": "Support Inbox",
+      "deliverySupport": "Delivery Support",
+      "analytics": "Analytics",
+      "settings": "Settings"
+    },
+    "layout": {
+      "kicker": "Betolla",
+      "heading": "Admin Dashboard",
+      "welcome": "Welcome, {name}"
+    },
+    "home": {
+      "heading": "Dashboard",
+      "tiles": {
+        "pendingOrders": "Pending Orders",
+        "lowOutOfStock": "Low / Out of Stock",
+        "openSupportTickets": "Open Support Tickets",
+        "openDeliveryReports": "Open Delivery Reports",
+        "totalRevenue": "Total Revenue",
+        "customers": "Customers"
+      },
+      "analyticsNote": "Full charts and RFM/CLV analytics live under <badge>Analytics</badge>."
+    },
+    "ordersShared": {
+      "noMatch": "No orders match these filters.",
+      "headers": {
+        "order": "Order",
+        "customer": "Customer",
+        "status": "Status",
+        "payment": "Payment",
+        "items": "Items",
+        "total": "Total",
+        "date": "Date"
+      },
+      "allStatuses": "All statuses",
+      "searchPlaceholder": "Search customer or order #...",
+      "assignDriverPlaceholder": "Assign driver...",
+      "assign": "Assign",
+      "cancelOrder": "Cancel Order",
+      "cancelDialogTitle": "Cancel this order?",
+      "cancellationReasonLabel": "Cancellation reason (required)",
+      "neverMind": "Never mind",
+      "nextStatus": {
+        "PENDING": "Mark Confirmed",
+        "CONFIRMED": "Mark On Delivery",
+        "ON_DELIVERY": "Mark Delivered"
+      },
+      "couldntUpdateOrder": "Couldn't update order",
+      "orderUpdated": "Order updated",
+      "couldntCancelOrder": "Couldn't cancel order",
+      "orderCancelled": "Order cancelled",
+      "couldntAssignDriver": "Couldn't assign driver",
+      "driverAssigned": "Driver assigned"
+    },
+    "users": {
+      "metaTitle": "Customers - {brand} Admin",
+      "heading": "Customers",
+      "headers": {
+        "customer": "Customer",
+        "orders": "Orders",
+        "totalSpent": "Total Spent",
+        "storeCredit": "Store Credit",
+        "status": "Status"
+      },
+      "filters": {
+        "searchPlaceholder": "Search name, email, or username...",
+        "sortRecent": "Most recently joined",
+        "sortSpend": "Highest total spend",
+        "sortOrders": "Most orders"
+      },
+      "detail": {
+        "metaTitle": "Customer - {brand} Admin",
+        "noPhoneOnFile": "No phone on file",
+        "joinedPrefix": "Joined",
+        "totalSpent": "Total spent",
+        "orders": "Orders",
+        "storeCredit": "Store credit",
+        "loyaltyPoints": "Loyalty points",
+        "recentOrders": "Recent Orders",
+        "noOrdersYet": "No orders yet",
+        "orderHeaders": {
+          "order": "Order",
+          "status": "Status",
+          "payment": "Payment",
+          "total": "Total",
+          "placed": "Placed"
+        },
+        "addresses": "Addresses",
+        "noSavedAddresses": "No saved addresses",
+        "default": "Default",
+        "walletHistory": "Wallet History",
+        "noWalletActivity": "No wallet activity yet."
+      },
+      "storeCreditForm": {
+        "title": "Adjust Store Credit",
+        "amountRequired": "An amount and a reason are required",
+        "amountLabel": "Amount (JD)",
+        "amountHint": "Positive to add, negative to deduct",
+        "reasonLabel": "Reason",
+        "reasonPlaceholder": "e.g. Compensation for delayed order",
+        "saving": "Saving...",
+        "apply": "Apply",
+        "couldntAdjustTitle": "Couldn't adjust store credit",
+        "adjusted": "Store credit adjusted"
+      }
+    },
+    "orders": {
+      "metaTitle": "Orders - {brand} Admin",
+      "heading": "Orders",
+      "detail": {
+        "metaTitle": "Order Details - {brand} Admin",
+        "orderPrefix": "Order {orderNumber}",
+        "deliveryHistory": "Delivery History",
+        "attemptPrefix": "Attempt {n}: {driverName} -",
+        "qty": "Qty",
+        "each": "each",
+        "subtotal": "Subtotal",
+        "discount": "Discount",
+        "shipping": "Shipping",
+        "total": "Total",
+        "paymentPrefix": "Payment:",
+        "shipToPrefix": "Ship to:"
+      }
+    },
+    "products": {
+      "metaTitle": "Products - {brand} Admin",
+      "heading": "Products",
+      "lowStockFilterNote": "Showing low / out-of-stock products only",
+      "clearFilter": "Clear filter",
+      "addProduct": "Add Product",
+      "editProductMetaTitle": "Edit Product - {brand} Admin",
+      "editProduct": "Edit Product",
+      "headers": {
+        "product": "Product",
+        "category": "Category",
+        "price": "Price",
+        "stock": "Stock",
+        "status": "Status",
+        "actions": "Actions"
+      },
+      "outOfStock": "Out of stock",
+      "low": "Low",
+      "rowActions": {
+        "edit": "Edit",
+        "delete": "Delete",
+        "removeTitle": "Remove this product?",
+        "removeDescription": "This deactivates the product so it disappears from the storefront. Past orders keep their own snapshot of it either way.",
+        "couldntRemoveTitle": "Couldn't remove product",
+        "deactivated": "Product deactivated"
+      }
+    },
+    "productForm": {
+      "mainPhoto": "Main photo",
+      "galleryPhotos": "Gallery photos",
+      "sku": "SKU",
+      "category": "Category",
+      "nameEn": "Name (English)",
+      "nameAr": "Name (Arabic)",
+      "descriptionEn": "Description (English)",
+      "descriptionAr": "Description (Arabic)",
+      "priceJD": "Price (JD)",
+      "compareAtPrice": "Compare-at price (optional)",
+      "stock": "Stock",
+      "lowStockThreshold": "Low-stock threshold (optional)",
+      "lowStockThresholdHint": "Defaults to 15 if left blank",
+      "activeCheckbox": "Active (visible in the storefront)",
+      "mainPhotoRequired": "A main product photo is required",
+      "couldntSaveTitle": "Couldn't save product",
+      "updated": "Product updated",
+      "created": "Product created",
+      "saving": "Saving...",
+      "saveChanges": "Save Changes",
+      "createProduct": "Create Product"
+    },
+    "bundles": {
+      "metaTitle": "Bundles - {brand} Admin",
+      "heading": "Bundles",
+      "addBundle": "Add Bundle",
+      "editBundleMetaTitle": "Edit Bundle - {brand} Admin",
+      "editBundle": "Edit Bundle",
+      "headers": {
+        "bundle": "Bundle",
+        "items": "Items",
+        "price": "Price",
+        "status": "Status",
+        "actions": "Actions"
+      },
+      "rowActions": {
+        "edit": "Edit",
+        "delete": "Delete",
+        "removeTitle": "Remove this bundle?",
+        "removeDescription": "This deactivates the bundle so it disappears from the storefront. Past orders keep their own snapshot of it either way.",
+        "couldntRemoveTitle": "Couldn't remove bundle",
+        "deactivated": "Bundle deactivated"
+      }
+    },
+    "bundleForm": {
+      "mainPhoto": "Main photo",
+      "nameEn": "Name (English)",
+      "nameAr": "Name (Arabic)",
+      "descriptionEn": "Description (English)",
+      "descriptionAr": "Description (Arabic)",
+      "bundlePriceJD": "Bundle price (JD)",
+      "productsInBundle": "Products in this bundle",
+      "componentsSum": "(sum of components: {amount})",
+      "activeCheckbox": "Active (visible in the storefront)",
+      "requiredFields": "A main photo and at least one product are required",
+      "couldntSaveTitle": "Couldn't save bundle",
+      "updated": "Bundle updated",
+      "created": "Bundle created",
+      "saving": "Saving...",
+      "saveChanges": "Save Changes",
+      "createBundle": "Create Bundle"
+    },
+    "promoCodes": {
+      "metaTitle": "Promo Codes - {brand} Admin",
+      "heading": "Promo Codes",
+      "addPromoCode": "Add Promo Code",
+      "editPromoCodeMetaTitle": "Edit Promo Code - {brand} Admin",
+      "editPromoCode": "Edit Promo Code",
+      "headers": {
+        "code": "Code",
+        "discount": "Discount",
+        "segment": "Segment",
+        "usage": "Usage",
+        "status": "Status",
+        "actions": "Actions"
+      },
+      "detail": {
+        "metaTitle": "Promo Code Usage - {brand} Admin",
+        "totalUses": "Total uses",
+        "totalDiscountGiven": "Total discount given",
+        "perUserLimit": "Per-user limit",
+        "unlimited": "Unlimited",
+        "noUsesTitle": "No uses yet",
+        "noUsesDescription": "This promo code hasn't been applied to any orders yet.",
+        "headers": {
+          "customer": "Customer",
+          "order": "Order",
+          "discount": "Discount",
+          "usedAt": "Used at"
+        }
+      },
+      "rowActions": {
+        "usage": "Usage",
+        "edit": "Edit",
+        "delete": "Delete",
+        "removeTitle": "Remove this promo code?",
+        "removeDescription": "This deactivates the code so it can no longer be applied at checkout. Past usage history is kept.",
+        "couldntRemoveTitle": "Couldn't remove promo code",
+        "deactivated": "Promo code deactivated"
+      }
+    },
+    "promoCodeForm": {
+      "codeRequired": "A code and discount value are required",
+      "code": "Code",
+      "codePlaceholder": "e.g. WELCOME10",
+      "discountType": "Discount type",
+      "percentage": "Percentage",
+      "fixedAmount": "Fixed amount",
+      "discountPercent": "Discount (%)",
+      "discountJD": "Discount (JD)",
+      "minOrderTotal": "Minimum order total (JD)",
+      "targetSegment": "Target segment",
+      "startsAt": "Starts on (optional)",
+      "expiresAt": "Expires on (optional)",
+      "usageLimitTotal": "Total usage limit (optional)",
+      "usageLimitPerUser": "Per-user usage limit (optional)",
+      "unlimitedHint": "Leave blank for unlimited",
+      "activeCheckbox": "Active",
+      "couldntSaveTitle": "Couldn't save promo code",
+      "updated": "Promo code updated",
+      "created": "Promo code created",
+      "saving": "Saving...",
+      "saveChanges": "Save Changes",
+      "createPromoCode": "Create Promo Code"
+    },
+    "settings": {
+      "metaTitle": "Settings - {brand} Admin",
+      "heading": "Settings",
+      "tabs": {
+        "loyalty": "Loyalty Program",
+        "tiers": "Loyalty Tiers",
+        "shipping": "Shipping Zones"
+      },
+      "loyaltyConfig": {
+        "pointsPerJd": "Points earned per JD spent",
+        "redemptionValue": "Redemption value per point (JD)",
+        "redemptionValueHint": "E.g. 0.01 means 100 points = 1 JD",
+        "couldntSaveTitle": "Couldn't save loyalty settings",
+        "saved": "Loyalty settings saved",
+        "saving": "Saving...",
+        "save": "Save"
+      },
+      "loyaltyTiers": {
+        "headers": {
+          "nameEn": "Name (EN)",
+          "nameAr": "Name (AR)",
+          "minPoints": "Min Points",
+          "sortOrder": "Sort Order",
+          "actions": "Actions"
+        },
+        "namesRequired": "Both names are required",
+        "nameEnPlaceholder": "e.g. Gold",
+        "couldntSaveTitle": "Couldn't save tier",
+        "updated": "Tier updated",
+        "couldntRemoveTitle": "Couldn't remove tier",
+        "removed": "Tier removed",
+        "removeTitle": "Remove this tier?",
+        "removeDescription": "Customers currently at this tier will fall back to the next tier down.",
+        "couldntAddTitle": "Couldn't add tier",
+        "added": "Tier added",
+        "saving": "Saving...",
+        "save": "Save",
+        "delete": "Delete",
+        "adding": "Adding...",
+        "add": "Add"
+      },
+      "shippingZones": {
+        "headers": {
+          "cityEn": "City (EN)",
+          "cityAr": "City (AR)",
+          "feeJD": "Fee (JD)",
+          "estDays": "Est. Days",
+          "active": "Active",
+          "actions": "Actions"
+        },
+        "minPlaceholder": "min",
+        "maxPlaceholder": "max",
+        "cityEnPlaceholder": "e.g. Amman",
+        "couldntSaveTitle": "Couldn't save shipping zone",
+        "updated": "Shipping zone updated",
+        "couldntRemoveTitle": "Couldn't remove shipping zone",
+        "removed": "Shipping zone removed",
+        "removeTitle": "Remove this shipping zone?",
+        "removeDescription": "Checkout will fall back to the default shipping fee for this city.",
+        "namesAndFeeRequired": "City names and fee are required",
+        "couldntAddTitle": "Couldn't add shipping zone",
+        "added": "Shipping zone added",
+        "saving": "Saving...",
+        "save": "Save",
+        "delete": "Delete",
+        "adding": "Adding...",
+        "add": "Add"
+      }
+    },
+    "deliverySupport": {
+      "metaTitle": "Delivery Support - {brand} Admin",
+      "heading": "Delivery Support",
+      "filters": {
+        "allDrivers": "All drivers",
+        "allProblemTypes": "All problem types",
+        "allStatuses": "All statuses",
+        "fromDateAriaLabel": "From date",
+        "toDateAriaLabel": "To date"
+      },
+      "list": {
+        "noReportsTitle": "No reports",
+        "noReportsDescription": "Nothing matches this filter.",
+        "notTiedToDelivery": "Not tied to a delivery",
+        "filedPrefix": "Filed",
+        "urgent": "Urgent"
+      },
+      "detail": {
+        "metaTitle": "Report Detail - {brand} Admin",
+        "noPhoneOnFile": "No phone on file",
+        "description": "Description",
+        "photo": "Photo",
+        "photoAlt": "Reported issue",
+        "filedPrefix": "Filed"
+      },
+      "controls": {
+        "status": "Status",
+        "assignedTo": "Assigned to",
+        "noteLabel": "Note",
+        "saveNote": "Save Note",
+        "couldntUpdateStatusTitle": "Couldn't update status",
+        "statusUpdated": "Status updated",
+        "couldntSaveNoteTitle": "Couldn't save note",
+        "noteSaved": "Note saved",
+        "couldntUpdateAssignmentTitle": "Couldn't update assignment",
+        "assignmentUpdated": "Assignment updated"
+      }
+    },
+    "support": {
+      "metaTitle": "Support Inbox - {brand} Admin",
+      "heading": "Support Inbox",
+      "allStatuses": "All statuses",
+      "noTicketsTitle": "No tickets",
+      "noTicketsDescription": "Nothing matches this filter.",
+      "assignedToPrefix": "Assigned to",
+      "unassigned": "Unassigned",
+      "updatedPrefix": "Updated",
+      "detail": {
+        "metaTitle": "Support Ticket - {brand} Admin",
+        "customerSuffix": "(Customer)",
+        "supportSuffix": "(Support)",
+        "internalNote": "Internal note",
+        "closedMessage": "This ticket is closed. Reopen it above to reply."
+      },
+      "reply": {
+        "internalNotePlaceholder": "Internal note (not visible to the customer)...",
+        "replyPlaceholder": "Type a reply to the customer...",
+        "internalNoteCheckbox": "Internal note (staff only)",
+        "couldntSendTitle": "Couldn't send message",
+        "sending": "Sending...",
+        "addNote": "Add Note",
+        "sendReply": "Send Reply"
+      },
+      "controls": {
+        "status": "Status",
+        "assignedTo": "Assigned to",
+        "couldntUpdateStatusTitle": "Couldn't update status",
+        "statusUpdated": "Status updated",
+        "couldntUpdateAssignmentTitle": "Couldn't update assignment",
+        "assignmentUpdated": "Assignment updated"
+      }
+    },
+    "managedAccountsShared": {
+      "headers": {
+        "name": "Name",
+        "email": "Email",
+        "status": "Status",
+        "joined": "Joined",
+        "actions": "Actions"
+      }
+    },
+    "createManagedAccountDialog": {
+      "accountCreated": "{roleLabel} account created",
+      "sharePasswordNote": "Share this temporary password securely - they'll be required to change it on first login.",
+      "emailLabel": "Email:",
+      "tempPasswordLabel": "Temporary password:",
+      "done": "Done",
+      "addNewAccount": "Add a new {roleLabel} account",
+      "firstName": "First name",
+      "lastName": "Last name",
+      "email": "Email",
+      "username": "Username",
+      "phoneOptional": "Phone (optional)",
+      "couldntCreateAccount": "Couldn't create {roleLabel} account",
+      "creating": "Creating...",
+      "createAccount": "Create Account"
+    },
+    "staff": {
+      "metaTitle": "Staff - {brand} Admin",
+      "heading": "Staff",
+      "addStaff": "Add Staff",
+      "detail": {
+        "metaTitle": "Staff Member - {brand} Admin",
+        "joinedPrefix": "Joined",
+        "activityLog": "Activity Log ({count})",
+        "noActionsYet": "No recorded actions yet."
+      },
+      "rowActions": {
+        "deactivate": "Deactivate",
+        "reactivate": "Reactivate",
+        "delete": "Delete",
+        "removeTitle": "Remove this staff account?",
+        "removeDescription": "This deactivates the account (it can't sign in anymore) and keeps their audit history intact. This can't be undone from here.",
+        "couldntUpdateTitle": "Couldn't update staff account",
+        "couldntRemoveTitle": "Couldn't remove staff account",
+        "removed": "Staff account removed"
+      }
+    },
+    "abandonedCarts": {
+      "metaTitle": "Abandoned Carts - {brand} Admin",
+      "heading": "Abandoned Carts",
+      "summary": "{count, plural, one {# customer left items in their cart without checking out.} other {# customers left items in their cart without checking out.}}",
+      "noCartsTitle": "No abandoned carts",
+      "noCartsDescription": "Nothing to show right now.",
+      "lastActivity": "{days, plural, =0 {Last activity today} one {Last activity # day ago} other {Last activity # days ago}}",
+      "unknownItem": "Unknown item",
+      "remindButton": {
+        "couldntSendTitle": "Couldn't send reminder",
+        "sent": "Reminder sent",
+        "sending": "Sending...",
+        "send": "Send Reminder"
+      }
+    },
+    "analytics": {
+      "metaTitle": "Analytics - {brand} Admin",
+      "heading": "Analytics",
+      "extendedHeading": "Extended Analytics",
+      "dateRangeFilter": {
+        "from": "From",
+        "to": "To"
+      },
+      "vsPriorPeriod": "vs prior period",
+      "rfm": {
+        "title": "RFM Customer Segments",
+        "description": "Recency / Frequency / Monetary segmentation, population-relative.",
+        "unsegmentedNote": "{count, plural, one {# customer not yet scored.} other {# customers not yet scored.}}",
+        "noSegmentsTitle": "No segments computed yet",
+        "noSegmentsDescription": "Click Recalculate Segments to score every customer.",
+        "recalculate": {
+          "couldntRecalculateTitle": "Couldn't recalculate segments",
+          "recalculated": "Recalculated segments for {count, plural, one {# customer} other {# customers}}",
+          "recalculating": "Recalculating...",
+          "button": "Recalculate Segments"
+        }
+      },
+      "topCustomers": {
+        "title": "Top Customers by Lifetime Value",
+        "description": "Realized spend to date (sum of paid orders), not a forecast.",
+        "noOrdersTitle": "No paid orders yet",
+        "headers": {
+          "customer": "Customer",
+          "orders": "Orders",
+          "lifetimeValue": "Lifetime Value"
+        }
+      },
+      "frequentlyBought": {
+        "title": "Frequently Bought Together",
+        "description": "Product pairs that most often appear in the same order.",
+        "noHistoryTitle": "Not enough order history yet",
+        "headers": {
+          "pair": "Pair",
+          "ordersTogether": "Orders together"
+        }
+      },
+      "salesHeatmap": {
+        "title": "Sales Heatmap",
+        "description": "Paid order volume by day of week and time of day.",
+        "footnote": "Cell shade = revenue intensity; number = order count. Hover a cell for exact figures.",
+        "tooltip": "{weekday} {block}: {orderCount}, {revenue}",
+        "timeBlocks": {
+          "block0": "12–4am",
+          "block1": "4–8am",
+          "block2": "8am–12pm",
+          "block3": "12–4pm",
+          "block4": "4–8pm",
+          "block5": "8pm–12am"
+        }
+      },
+      "staffPerformance": {
+        "title": "Staff Performance",
+        "description": "Orders processed per staff member, with a per-staff timeline.",
+        "noActivityTitle": "No staff activity yet",
+        "noActivityDescription": "Order status changes made by Admin/Staff will show up here.",
+        "ordersProcessedTooltip": "{count, plural, one {# order processed} other {# orders processed}}",
+        "noTimelineData": "No timeline data for this staff member in this range."
+      },
+      "deliveryPerformance": {
+        "title": "Delivery Performance",
+        "description": "On-time rate, failed-delivery rate/reasons, and average delivery time per driver.",
+        "noActivityTitle": "No delivery activity yet",
+        "noActivityDescription": "Delivery assignments will show up here.",
+        "onTimeNote": "\"On-time\" = delivered within {hours}h of assignment (a defined threshold, not a claimed SLA).",
+        "headers": {
+          "driver": "Driver",
+          "delivered": "Delivered",
+          "failedRate": "Failed rate",
+          "onTimeRate": "On-time rate",
+          "avgDeliveryTime": "Avg delivery time"
+        },
+        "failedReasonsTitle": "Failed-delivery reasons",
+        "noProblemReports": "No delivery problem reports filed in this range."
+      },
+      "cohortRetention": {
+        "title": "Cohort Retention",
+        "description": "% of each signup-month cohort still ordering, by months since signup.",
+        "noSignupsYet": "No customer signups yet.",
+        "headers": {
+          "cohort": "Cohort",
+          "size": "Size"
+        },
+        "monthOffsetHeader": "+{n}mo",
+        "tooltip": "{cohort}, month +{offset}: {percent}% still ordering",
+        "footnote": "Cell shade = % of that signup-month cohort with at least one order that many months later. Hover for exact figures."
+      },
+      "cartFunnel": {
+        "title": "Cart Abandonment Funnel",
+        "description": "Cart created, order placed, order paid - plus recoverable revenue currently sitting in abandoned carts.",
+        "stages": {
+          "cartsCreated": "Users with a cart",
+          "ordersPlaced": "Users who placed an order",
+          "ordersPaid": "Users who paid"
+        },
+        "conversionOfPrevious": "({percent}% of previous stage)",
+        "footnote": "Each stage counts distinct users, not raw events - \"Visits\" and \"checkout started\" aren't tracked anywhere in this app yet, so this funnel starts at whether a user has ever had a cart, the earliest real, trackable signal today.",
+        "recoverableRevenueLabel": "Recoverable revenue in abandoned carts",
+        "abandonedCartCount": "{count, plural, one {# abandoned cart} other {# abandoned carts}}"
+      },
+      "geographic": {
+        "title": "Geographic Order Distribution",
+        "description": "Orders and revenue by shipping city.",
+        "noOrdersTitle": "No orders yet",
+        "headers": {
+          "city": "City",
+          "orders": "Orders",
+          "revenue": "Revenue"
+        }
+      }
+    }
+  },
+  "staff": {
+    "nav": {
+      "openMenuAriaLabel": "Open staff menu",
+      "drawerTitle": "Staff menu",
+      "dashboard": "Dashboard",
+      "orders": "Orders",
+      "products": "Products",
+      "deliveryAccounts": "Delivery Accounts",
+      "deliverySupport": "Delivery Support"
+    },
+    "layout": {
+      "kicker": "Betolla",
+      "heading": "Staff Dashboard",
+      "welcome": "Welcome, {name}"
+    },
+    "home": {
+      "heading": "Dashboard",
+      "tiles": {
+        "pendingOrders": "Pending Orders",
+        "lowOutOfStock": "Low / Out of Stock",
+        "awaitingDriverAssignment": "Awaiting Driver Assignment",
+        "openDeliveryReports": "Open Delivery Reports"
+      }
+    },
+    "deliveryAccounts": {
+      "metaTitle": "Delivery Accounts - {brand} Staff",
+      "heading": "Delivery Accounts",
+      "addDriver": "Add Delivery Driver",
+      "detail": {
+        "metaTitle": "Delivery Driver - {brand} Staff",
+        "noPhoneOnFile": "No phone on file",
+        "joinedPrefix": "Joined",
+        "delivered": "Delivered",
+        "failedAttempts": "Failed attempts",
+        "totalEarningsJD": "Total earnings (JD)",
+        "recentDeliveries": "Recent Deliveries ({count})",
+        "noAssignmentsYet": "No delivery assignments yet.",
+        "attemptPrefix": "Attempt",
+        "activityLog": "Activity Log ({count})",
+        "noActionsYet": "No recorded actions yet."
+      },
+      "rowActions": {
+        "deactivate": "Deactivate",
+        "reactivate": "Reactivate",
+        "delete": "Delete",
+        "removeTitle": "Remove this delivery account?",
+        "removeDescription": "This deactivates the account (it can't sign in anymore) and keeps their delivery/audit history intact. This can't be undone from here.",
+        "couldntUpdateTitle": "Couldn't update delivery account",
+        "couldntRemoveTitle": "Couldn't remove delivery account",
+        "removed": "Delivery account removed"
+      }
+    },
+    "deliverySupport": {
+      "metaTitle": "Delivery Support - {brand} Staff"
+    }
+  },
+  "delivery": {
+    "nav": {
+      "openMenuAriaLabel": "Open delivery menu",
+      "drawerTitle": "Delivery menu",
+      "activeDeliveries": "Active Deliveries",
+      "history": "History",
+      "earnings": "Earnings",
+      "myReports": "My Reports"
+    },
+    "layout": {
+      "kicker": "Betolla",
+      "heading": "Delivery Dashboard",
+      "welcome": "Welcome, {name}"
+    },
+    "active": {
+      "metaTitle": "Active Deliveries - {brand} Delivery",
+      "heading": "Active Deliveries",
+      "noActiveTitle": "No active deliveries",
+      "noActiveDescription": "New assignments from Staff will show up here."
+    },
+    "history": {
+      "metaTitle": "Delivery History - {brand} Delivery",
+      "heading": "History",
+      "noPastTitle": "No past deliveries",
+      "noPastDescription": "Completed and failed deliveries will show up here."
+    },
+    "earnings": {
+      "metaTitle": "Earnings - {brand} Delivery",
+      "heading": "Earnings",
+      "totalEarnings": "Total earnings",
+      "thisMonth": "This month",
+      "deliveriesCompleted": "Deliveries completed",
+      "noEarningsTitle": "No earnings yet",
+      "noEarningsDescription": "Completed deliveries and their payout will show up here."
+    },
+    "detail": {
+      "metaTitle": "Delivery - {brand} Delivery",
+      "noPhoneOnFile": "No phone on file",
+      "noMapPin": "No map pin saved for this address.",
+      "qty": "Qty",
+      "paymentMethod": "Payment method",
+      "paymentStatus": "Payment status",
+      "orderTotal": "Order total"
+    },
+    "reports": {
+      "metaTitle": "My Reports - {brand} Delivery",
+      "heading": "My Reports",
+      "noReportsTitle": "No reports filed",
+      "noReportsDescription": "Report a problem with a delivery or a general issue here.",
+      "notTiedToDelivery": "Not tied to a delivery",
+      "notTiedToSpecificDelivery": "Not tied to a specific delivery",
+      "urgent": "Urgent",
+      "noteFromSupport": "Note from Betolla Support",
+      "detailMetaTitle": "Report Detail - {brand} Delivery"
+    },
+    "statusActions": {
+      "nextStatus": {
+        "ASSIGNED": "Mark Picked Up",
+        "PICKED_UP": "Mark En Route",
+        "EN_ROUTE": "Mark Delivered"
+      },
+      "markFailed": "Mark Failed",
+      "markFailedDialogTitle": "Mark this delivery failed?",
+      "reasonRequired": "Reason (required)",
+      "neverMind": "Never mind",
+      "couldntUpdateTitle": "Couldn't update delivery",
+      "updated": "Delivery updated",
+      "markedFailed": "Delivery marked failed"
+    },
+    "reportProblemDialog": {
+      "trigger": "Report a Problem",
+      "dialogTitle": "Report a Problem",
+      "problemTypeLabel": "Problem type",
+      "urgencyLabel": "Urgency",
+      "descriptionRequired": "Description (required)",
+      "descriptionOptional": "Description (optional)",
+      "photoLabel": "Photo",
+      "couldntFileTitle": "Couldn't file report",
+      "submitting": "Submitting...",
+      "submit": "Submit Report"
+    }
+  },
+  "changePassword": {
+    "metaTitle": "Change password - {brand}",
+    "heading": "Set a new password",
+    "subtext": "For your security, please choose a new password before continuing.",
+    "currentPassword": "Current password",
+    "newPassword": "New password",
+    "passwordHint": "At least 8 characters",
+    "confirmNewPassword": "Confirm new password",
+    "saving": "Saving...",
+    "save": "Save new password"
+  }
+}

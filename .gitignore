@@ -32,6 +32,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel
@@ -39,3 +40,12 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+/src/generated/prisma
+
+# user-uploaded files (local storage backend)
+/public/uploads/*
+!/public/uploads/.gitkeep
+
+# local Postgres data directory (scripts/db-start.mjs)
+/.pgdata

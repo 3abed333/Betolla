@@ -1,0 +1,1247 @@
+{
+  "common": {
+    "brand": "بيتولا كوزماتيكس",
+    "submit": "إرسال",
+    "cancel": "إلغاء",
+    "save": "حفظ",
+    "delete": "حذف",
+    "edit": "تعديل",
+    "loading": "جارٍ التحميل...",
+    "search": "بحث",
+    "viewDetails": "عرض التفاصيل",
+    "addToCart": "أضف إلى السلة",
+    "close": "إغلاق",
+    "confirm": "تأكيد",
+    "back": "رجوع",
+    "next": "التالي",
+    "yes": "نعم",
+    "no": "لا",
+    "signIn": "تسجيل الدخول",
+    "signOut": "تسجيل الخروج",
+    "signingOut": "جارٍ تسجيل الخروج...",
+    "active": "نشط",
+    "inactive": "غير نشط",
+    "exportCsv": "تصدير CSV",
+    "unassigned": "غير مُسند",
+    "currencyUnit": "د.أ",
+    "ticketStatus": {
+      "OPEN": "مفتوحة",
+      "ASSIGNED": "مسندة",
+      "IN_PROGRESS": "قيد المعالجة",
+      "RESOLVED": "تم الحل",
+      "CLOSED": "مغلقة"
+    },
+    "orderStatus": {
+      "PENDING": "قيد الانتظار",
+      "CONFIRMED": "مؤكد",
+      "ON_DELIVERY": "قيد التوصيل",
+      "DELIVERED": "تم التوصيل",
+      "CANCELLED": "ملغى"
+    },
+    "deliveryStatus": {
+      "ASSIGNED": "مسندة",
+      "PICKED_UP": "تم الاستلام",
+      "EN_ROUTE": "في الطريق",
+      "DELIVERED": "تم التوصيل",
+      "FAILED": "فشلت"
+    },
+    "orderTracker": {
+      "cancelled": "تم إلغاء الطلب",
+      "steps": {
+        "PENDING": "تم تقديم الطلب",
+        "CONFIRMED": "تم التأكيد",
+        "ON_DELIVERY": "قيد التوصيل",
+        "DELIVERED": "تم التوصيل"
+      }
+    },
+    "rfmSegment": {
+      "CHAMPIONS": "الأبطال",
+      "LOYAL": "الموالون",
+      "POTENTIAL_LOYALIST": "موالٍ محتمل",
+      "NEW_CUSTOMER": "عميل جديد",
+      "NEEDS_ATTENTION": "يحتاج إلى متابعة",
+      "AT_RISK": "معرّض للخطر",
+      "LOST": "مفقود"
+    },
+    "promoSegment": {
+      "ALL": "جميع العملاء",
+      "TOP_30": "أعلى 30% إنفاقًا",
+      "BOTTOM_30": "أدنى 30% إنفاقًا"
+    },
+    "deliveryProblemType": {
+      "CUSTOMER_UNREACHABLE": "تعذّر الوصول إلى العميل",
+      "WRONG_OR_INCOMPLETE_ADDRESS": "عنوان خاطئ أو غير مكتمل",
+      "CUSTOMER_REFUSED_DELIVERY": "رفض العميل الاستلام",
+      "ITEM_DAMAGED": "المنتج تالف",
+      "PAYMENT_ISSUE_COD": "مشكلة في الدفع عند الاستلام",
+      "VEHICLE_OR_TRAFFIC_ISSUE": "مشكلة في المركبة أو الازدحام المروري",
+      "SAFETY_CONCERN": "مخاوف تتعلق بالسلامة",
+      "OTHER": "أخرى"
+    },
+    "deliveryUrgency": {
+      "NORMAL": "عادي",
+      "URGENT": "عاجل"
+    },
+    "customersCount": "{count, plural, zero {لا يوجد عملاء} one {عميل واحد} two {عميلان} few {# عملاء} many {# عميلاً} other {# عميل}}",
+    "ordersCount": "{count, plural, zero {لا توجد طلبات} one {طلب واحد} two {طلبان} few {# طلبات} many {# طلبًا} other {# طلب}}",
+    "roleLabel": {
+      "STAFF": "موظف",
+      "DELIVERY": "توصيل"
+    },
+    "paymentStatus": {
+      "UNPAID": "غير مدفوع",
+      "PAID": "مدفوع",
+      "REFUNDED": "مسترجع"
+    }
+  },
+  "theme": {
+    "light": "فاتح",
+    "dark": "داكن",
+    "toggle": "تبديل المظهر"
+  },
+  "language": {
+    "en": "English",
+    "ar": "العربية",
+    "toggle": "تبديل اللغة"
+  },
+  "toast": {
+    "addedToCartTitle": "أُضيف إلى السلة",
+    "couldntSaveAddressTitle": "تعذّر حفظ العنوان",
+    "couldntPlaceOrderTitle": "تعذّر إتمام الطلب",
+    "couldntSubmitReviewTitle": "تعذّر إرسال التقييم",
+    "reviewSubmittedTitle": "تم إرسال التقييم",
+    "reviewSubmittedBody": "شكرًا لمشاركتنا رأيك!"
+  },
+  "errors": {
+    "genericTryAgain": "حدث خطأ ما. الرجاء المحاولة مرة أخرى.",
+    "firstNameRequired": "الاسم الأول مطلوب",
+    "lastNameRequired": "اسم العائلة مطلوب",
+    "validEmail": "أدخل بريدًا إلكترونيًا صحيحًا",
+    "usernameMinLength": "يجب ألا يقل اسم المستخدم عن 3 أحرف",
+    "usernameCharset": "الأحرف والأرقام والنقاط والشرطات والشرطات السفلية فقط",
+    "passwordMinLength": "يجب ألا تقل كلمة المرور عن 8 أحرف",
+    "passwordRequired": "كلمة المرور مطلوبة",
+    "currentPasswordRequired": "كلمة المرور الحالية مطلوبة",
+    "confirmPasswordRequired": "يرجى تأكيد كلمة المرور الجديدة",
+    "passwordsDoNotMatch": "كلمتا المرور غير متطابقتين"
+  },
+  "storefront": {
+    "header": {
+      "products": "المنتجات",
+      "bundles": "الباقات",
+      "searchPlaceholder": "ابحث عن المنتجات...",
+      "myAccount": "حسابي",
+      "myOrders": "طلباتي"
+    },
+    "footer": {
+      "support": "الدعم",
+      "rightsReserved": "{brand}. جميع الحقوق محفوظة."
+    },
+    "productCard": {
+      "sale": "تخفيض",
+      "outOfStock": "غير متوفر"
+    },
+    "home": {
+      "shopNow": "تسوّق الآن",
+      "shopByCategory": "تسوّق حسب الفئة",
+      "featuredProducts": "منتجات مميزة",
+      "viewAll": "عرض الكل"
+    },
+    "products": {
+      "metaTitle": "جميع المنتجات - {brand}",
+      "allProducts": "جميع المنتجات",
+      "resultsFor": "نتائج البحث عن \"{query}\"",
+      "productCount": "{count, plural, zero {لا توجد منتجات} one {منتج واحد} two {منتجان} few {# منتجات} many {# منتجًا} other {# منتج}}",
+      "noProductsFound": "لم يتم العثور على منتجات",
+      "noProductsDescription": "جرّب كلمة بحث مختلفة أو تصفّح فئة أخرى.",
+      "allCategoryFilter": "الكل"
+    },
+    "productDetail": {
+      "metaTitle": "{name} - {brand}",
+      "metaTitleFallback": "منتج - {brand}",
+      "sale": "تخفيض",
+      "onlyLeftInStock": "{count, plural, zero {نفدت الكمية} one {تبقّت قطعة واحدة فقط} two {تبقّت قطعتان فقط} few {تبقّت # قطع فقط} many {تبقّت # قطعة فقط} other {تبقّت # قطعة فقط}}",
+      "outOfStock": "غير متوفر",
+      "decreaseQuantity": "إنقاص الكمية",
+      "increaseQuantity": "زيادة الكمية",
+      "addToCart": "أضف إلى السلة",
+      "buyNow": "اشترِ الآن",
+      "addToWishlist": "أضف إلى المفضلة",
+      "removeFromWishlist": "إزالة من المفضلة",
+      "rateOutOf5": "قيّم {value} من 5"
+    },
+    "reviews": {
+      "title": "التقييمات",
+      "noReviews": "لا توجد تقييمات بعد - كن أول من يشارك تجربته.",
+      "verifiedPurchase": "عملية شراء موثقة",
+      "writeReview": "أضف تقييمًا",
+      "whichOrderPlaceholder": "أي طلب؟",
+      "orderPrefix": "الطلب {orderNumber}",
+      "reviewPlaceholder": "شاركنا تجربتك مع هذا المنتج...",
+      "submitting": "جارٍ الإرسال...",
+      "submitReview": "إرسال التقييم"
+    },
+    "bundles": {
+      "metaTitle": "الباقات - {brand}",
+      "noBundlesAvailable": "لا توجد باقات متاحة حاليًا",
+      "bundlesAndSets": "الباقات والمجموعات",
+      "bundleAndSave": "باقة ووفّر",
+      "addBundleToCart": "أضف الباقة إلى السلة"
+    },
+    "bundleDetail": {
+      "metaTitle": "{name} - {brand}",
+      "metaTitleFallback": "باقة - {brand}",
+      "whatsIncluded": "المحتويات:"
+    },
+    "cart": {
+      "emptyTitle": "سلتك فارغة",
+      "emptyDescription": "تصفّح منتجاتنا وأضف ما يعجبك.",
+      "shopProducts": "تسوّق المنتجات",
+      "decreaseQuantity": "إنقاص الكمية",
+      "increaseQuantity": "زيادة الكمية",
+      "remove": "إزالة",
+      "orderSummary": "ملخص الطلب",
+      "subtotal": "المجموع الفرعي",
+      "shippingNote": "يتم احتساب الشحن وأكواد الخصم عند إتمام الطلب.",
+      "proceedToCheckout": "إتمام الطلب"
+    },
+    "checkout": {
+      "metaTitle": "إتمام الطلب - {brand}",
+      "defaultAddressLabel": "المنزل",
+      "redirecting": "جارٍ التحويل...",
+      "cartEmpty": "سلتك فارغة.",
+      "shippingAddress": "عنوان الشحن",
+      "addNewAddress": "إضافة عنوان جديد",
+      "recipientName": "اسم المستلم",
+      "phone": "رقم الهاتف",
+      "city": "المدينة",
+      "area": "المنطقة",
+      "streetBuilding": "الشارع / المبنى",
+      "paymentMethod": "طريقة الدفع",
+      "paymentMethodNote": "الدفع تجريبي حاليًا - سيتم ربط بوابة دفع حقيقية (مثل HyperPay أو PayTabs) لاحقًا.",
+      "cashOnDelivery": "الدفع عند الاستلام",
+      "cardMock": "بطاقة (تجريبي)",
+      "orderSummary": "ملخص الطلب",
+      "promoCodePlaceholder": "كود الخصم",
+      "apply": "تطبيق",
+      "promoApplied": "تم تطبيق الخصم: -{amount}",
+      "useStoreCredit": "استخدام الرصيد ({balance} متاح)",
+      "redeemLoyaltyPoints": "{count, plural, zero {استبدال نقاط الولاء (لا نقاط متاحة)} one {استبدال نقاط الولاء (نقطة واحدة متاحة)} two {استبدال نقاط الولاء (نقطتان متاحتان)} few {استبدال نقاط الولاء (# نقاط متاحة)} many {استبدال نقاط الولاء (# نقطة متاحة)} other {استبدال نقاط الولاء (# نقطة متاحة)}}",
+      "pointsEqualsValue": "{count, plural, zero {لا نقاط = {value}} one {نقطة واحدة = {value}} two {نقطتان = {value}} few {# نقاط = {value}} many {# نقطة = {value}} other {# نقطة = {value}}}",
+      "subtotal": "المجموع الفرعي",
+      "shipping": "الشحن",
+      "total": "الإجمالي",
+      "placingOrder": "جارٍ تأكيد الطلب...",
+      "placeOrder": "تأكيد الطلب"
+    },
+    "confirmation": {
+      "metaTitle": "تم تأكيد الطلب - {brand}",
+      "orderPlaced": "تم تقديم الطلب!",
+      "thanksPrefix": "شكرًا لتسوّقك مع بيتولا. طلبك",
+      "thanksSuffix": "قيد المعالجة الآن.",
+      "total": "الإجمالي",
+      "trackOrder": "تتبع الطلب",
+      "continueShopping": "متابعة التسوق"
+    }
+  },
+  "auth": {
+    "login": {
+      "metaTitle": "تسجيل الدخول - {brand}",
+      "heading": "تسجيل الدخول",
+      "welcomeBack": "مرحبًا بعودتك إلى {brand}.",
+      "email": "البريد الإلكتروني",
+      "password": "كلمة المرور",
+      "signingIn": "جارٍ تسجيل الدخول...",
+      "signIn": "تسجيل الدخول",
+      "newToBetolla": "جديد على بيتولا؟",
+      "createAccount": "إنشاء حساب"
+    },
+    "register": {
+      "metaTitle": "إنشاء حساب - {brand}",
+      "heading": "أنشئ حسابك",
+      "join": "انضم إلى {brand}.",
+      "firstName": "الاسم الأول",
+      "lastName": "اسم العائلة",
+      "email": "البريد الإلكتروني",
+      "username": "اسم المستخدم",
+      "password": "كلمة المرور",
+      "passwordHint": "8 أحرف على الأقل",
+      "creatingAccount": "جارٍ إنشاء الحساب...",
+      "createAccount": "إنشاء حساب",
+      "alreadyHaveAccount": "لديك حساب بالفعل؟",
+      "signIn": "تسجيل الدخول"
+    }
+  },
+  "account": {
+    "layout": {
+      "title": "حسابي",
+      "welcome": "مرحبًا، {name}"
+    },
+    "nav": {
+      "overview": "نظرة عامة",
+      "orders": "الطلبات",
+      "walletLoyalty": "المحفظة والولاء",
+      "addresses": "العناوين",
+      "wishlists": "قوائم الأمنيات",
+      "preferences": "التفضيلات",
+      "support": "الدعم",
+      "sessions": "الجلسات",
+      "openMenu": "فتح قائمة الحساب",
+      "menuTitle": "قائمة الحساب"
+    },
+    "overview": {
+      "heading": "نظرة عامة",
+      "activeOrders": "الطلبات النشطة",
+      "loyaltyPoints": "نقاط الولاء",
+      "storeCredit": "الرصيد",
+      "wishlists": "قوائم الأمنيات",
+      "openSupportTickets": "تذاكر الدعم المفتوحة"
+    },
+    "orders": {
+      "metaTitle": "طلباتي - {brand}",
+      "noOrdersTitle": "لا توجد طلبات بعد",
+      "noOrdersDescription": "سيظهر سجل طلباتك هنا.",
+      "heading": "طلباتي",
+      "unpaid": "غير مدفوع",
+      "refunded": "مسترد",
+      "itemCount": "{count, plural, zero {لا عناصر} one {عنصر واحد} two {عنصران} few {# عناصر} many {# عنصرًا} other {# عنصر}}",
+      "detail": {
+        "metaTitle": "تفاصيل الطلب - {brand}",
+        "orderPrefix": "الطلب {orderNumber}",
+        "placedPrefix": "تم الطلب في",
+        "delivery": "التوصيل",
+        "statusPrefix": "- الحالة:",
+        "qty": "الكمية",
+        "each": "لكل قطعة",
+        "returnRequested": "تم طلب الإرجاع",
+        "subtotal": "المجموع الفرعي",
+        "discount": "الخصم",
+        "storeCreditApplied": "الرصيد المستخدم",
+        "shipping": "الشحن",
+        "total": "الإجمالي",
+        "shippingToPrefix": "الشحن إلى:",
+        "paymentPrefix": "الدفع:",
+        "cancellationReasonPrefix": "سبب الإلغاء:"
+      },
+      "reorder": {
+        "couldntReorderTitle": "تعذّر إعادة الطلب",
+        "nothingToReorderTitle": "لا يوجد ما يمكن إعادة طلبه",
+        "nothingToReorderBody": "لم تعد هذه العناصر متوفرة.",
+        "itemsSkipped": "{count, plural, zero {} one {تم تخطي عنصر واحد لعدم توفره.} two {تم تخطي عنصرين لعدم توفرهما.} few {تم تخطي # عناصر لعدم توفرها.} many {تم تخطي # عنصرًا لعدم توفرها.} other {تم تخطي # عنصر لعدم توفره.}}",
+        "allItemsAdded": "تمت إضافة جميع العناصر.",
+        "adding": "جارٍ الإضافة...",
+        "reorder": "إعادة الطلب"
+      },
+      "returnRequest": {
+        "reasons": {
+          "wrongItem": "استلمت منتجًا خاطئًا",
+          "damaged": "وصل المنتج تالفًا",
+          "changedMind": "غيّرت رأيي",
+          "doesntMatch": "لا يطابق الوصف",
+          "other": "أخرى"
+        },
+        "couldntStartTitle": "تعذّر بدء الإرجاع",
+        "requestedTitle": "تم طلب الإرجاع",
+        "requestedBody": "سنراجع طلبك قريبًا.",
+        "trigger": "إرجاع",
+        "dialogTitle": "طلب إرجاع",
+        "reasonLabel": "السبب",
+        "detailsLabel": "تفاصيل إضافية (اختياري)",
+        "submitting": "جارٍ الإرسال...",
+        "submit": "إرسال طلب الإرجاع"
+      }
+    },
+    "wallet": {
+      "metaTitle": "المحفظة والولاء - {brand}",
+      "heading": "المحفظة والولاء",
+      "storeCreditTitle": "الرصيد",
+      "autoAppliedNote": "يُطبّق تلقائيًا عند إتمام الطلب إذا اخترت ذلك.",
+      "loyaltyPointsTitle": "نقاط الولاء",
+      "pts": "{count, plural, zero {# نقطة} one {نقطة واحدة} two {نقطتان} few {# نقاط} many {# نقطة} other {# نقطة}}",
+      "tierSuffix": "فئة {tier}",
+      "bronzeTierFallback": "الفئة البرونزية",
+      "pointsToNextTier": "{count, plural, zero {# نقطة حتى {tier}} one {نقطة واحدة حتى {tier}} two {نقطتان حتى {tier}} few {# نقاط حتى {tier}} many {# نقطة حتى {tier}} other {# نقطة حتى {tier}}}",
+      "storeCreditHistoryTitle": "سجل الرصيد",
+      "loyaltyHistoryTitle": "سجل نقاط الولاء",
+      "noTransactions": "لا توجد معاملات بعد.",
+      "txType": {
+        "earned": "مكتسبة",
+        "redeemed": "مستبدلة",
+        "adjusted": "معدّلة"
+      }
+    },
+    "addresses": {
+      "metaTitle": "العناوين - {brand}",
+      "heading": "العناوين",
+      "addAddress": "إضافة عنوان",
+      "noSavedTitle": "لا توجد عناوين محفوظة",
+      "noSavedDescription": "أضف عنوان توصيل لتسريع إتمام الطلب.",
+      "default": "افتراضي",
+      "setAsDefault": "تعيين كافتراضي",
+      "delete": "حذف",
+      "deleteConfirmTitle": "حذف هذا العنوان؟",
+      "deleteConfirmDescription": "لا يمكن التراجع عن هذا. تحتفظ الطلبات السابقة بنسخة من العنوان، لذا لن يتأثر سجل طلباتك.",
+      "couldntDeleteTitle": "تعذّر حذف العنوان",
+      "form": {
+        "savedTitle": "تم حفظ العنوان",
+        "couldntSaveTitle": "تعذّر حفظ العنوان",
+        "addNew": "إضافة عنوان جديد",
+        "label": "التسمية",
+        "recipientName": "اسم المستلم",
+        "phone": "رقم الهاتف",
+        "city": "المدينة",
+        "area": "المنطقة",
+        "streetBuilding": "الشارع / المبنى",
+        "defaultLabelValue": "المنزل",
+        "setDefaultCheckbox": "تعيين كعنوان الشحن الافتراضي",
+        "saving": "جارٍ الحفظ...",
+        "save": "حفظ العنوان"
+      }
+    },
+    "wishlists": {
+      "metaTitle": "قوائم الأمنيات - {brand}",
+      "couldntDeleteListTitle": "تعذّر حذف القائمة",
+      "heading": "قوائم الأمنيات",
+      "newListPlaceholder": "اسم القائمة الجديدة",
+      "createList": "إنشاء قائمة",
+      "noWishlistsTitle": "لا توجد قوائم أمنيات بعد",
+      "deleteList": "حذف القائمة",
+      "deleteConfirmTitle": "حذف \"{name}\"؟",
+      "deleteConfirmDescription": "سيؤدي هذا إلى حذف القائمة وكل العناصر المحفوظة فيها نهائيًا. لا يمكن التراجع عن هذا.",
+      "delete": "حذف",
+      "noItemsInList": "لا توجد عناصر في هذه القائمة بعد.",
+      "priceDropped": "انخفض السعر",
+      "outOfStock": "غير متوفر",
+      "remove": "إزالة"
+    },
+    "preferences": {
+      "metaTitle": "التفضيلات - {brand}",
+      "heading": "التفضيلات",
+      "interfaceTitle": "الواجهة",
+      "theme": "المظهر",
+      "language": "اللغة",
+      "communicationTitle": "تفضيلات التواصل",
+      "categoryColumnHeader": "الفئة",
+      "categories": {
+        "ORDER_UPDATES": "تحديثات الطلبات",
+        "PROMOTIONS": "العروض الترويجية",
+        "BACK_IN_STOCK": "التوفر مجددًا",
+        "LOYALTY_AND_WALLET": "الولاء والمحفظة",
+        "SUPPORT": "الدعم"
+      },
+      "channels": {
+        "EMAIL": "البريد الإلكتروني",
+        "SMS": "الرسائل النصية",
+        "PUSH": "الإشعارات الفورية",
+        "IN_APP": "داخل التطبيق"
+      }
+    },
+    "sessions": {
+      "metaTitle": "الجلسات النشطة - {brand}",
+      "heading": "الجلسات النشطة",
+      "description": "الأجهزة المسجّلة حاليًا في حسابك. سجّل الخروج من أي جهاز لا تتعرف عليه.",
+      "device": {
+        "unknown": "جهاز غير معروف",
+        "mobile": "متصفح جوال",
+        "windows": "ويندوز - متصفح",
+        "mac": "ماك - متصفح",
+        "browser": "متصفح"
+      },
+      "thisDevice": "(هذا الجهاز)",
+      "lastActivePrefix": "آخر نشاط",
+      "signingOut": "جارٍ تسجيل الخروج...",
+      "signOut": "تسجيل الخروج"
+    },
+    "support": {
+      "metaTitle": "الدعم - {brand}",
+      "heading": "تذاكر الدعم",
+      "noTicketsTitle": "لا توجد تذاكر دعم",
+      "noTicketsDescription": "بحاجة للمساعدة؟ ابدأ تذكرة جديدة.",
+      "detail": {
+        "metaTitle": "تذكرة الدعم - {brand}",
+        "betollaSupportSuffix": "(دعم بيتولا)",
+        "you": "أنت",
+        "closedMessage": "هذه التذكرة مغلقة."
+      },
+      "newTicket": {
+        "categories": {
+          "orderIssue": "مشكلة في الطلب",
+          "returnRefund": "إرجاع / استرداد",
+          "productQuestion": "سؤال عن منتج",
+          "shipping": "الشحن",
+          "loyaltyWallet": "الولاء والمحفظة",
+          "general": "عام"
+        },
+        "couldntCreateTitle": "تعذّر إنشاء التذكرة",
+        "trigger": "تذكرة جديدة",
+        "dialogTitle": "تواصل مع الدعم",
+        "categoryLabel": "الفئة",
+        "subjectLabel": "الموضوع",
+        "messageLabel": "الرسالة",
+        "sending": "جارٍ الإرسال...",
+        "send": "إرسال"
+      },
+      "reply": {
+        "couldntSendTitle": "تعذّر إرسال الرسالة",
+        "placeholder": "اكتب ردًا...",
+        "sending": "جارٍ الإرسال...",
+        "sendReply": "إرسال الرد"
+      }
+    }
+  },
+  "admin": {
+    "nav": {
+      "openMenuAriaLabel": "فتح قائمة الإدارة",
+      "drawerTitle": "قائمة الإدارة",
+      "dashboard": "لوحة التحكم",
+      "orders": "الطلبات",
+      "products": "المنتجات",
+      "bundles": "الباقات",
+      "staff": "الموظفون",
+      "customers": "العملاء",
+      "promoCodes": "أكواد الخصم",
+      "abandonedCarts": "السلال المتروكة",
+      "support": "صندوق الدعم",
+      "deliverySupport": "دعم التوصيل",
+      "analytics": "التحليلات",
+      "settings": "الإعدادات"
+    },
+    "layout": {
+      "kicker": "بيتولا",
+      "heading": "لوحة تحكم الإدارة",
+      "welcome": "أهلًا، {name}"
+    },
+    "home": {
+      "heading": "لوحة التحكم",
+      "tiles": {
+        "pendingOrders": "الطلبات المعلّقة",
+        "lowOutOfStock": "مخزون منخفض / نافد",
+        "openSupportTickets": "تذاكر الدعم المفتوحة",
+        "openDeliveryReports": "بلاغات التوصيل المفتوحة",
+        "totalRevenue": "إجمالي الإيرادات",
+        "customers": "العملاء"
+      },
+      "analyticsNote": "تجد الرسوم البيانية الكاملة وتحليلات RFM/CLV ضمن <badge>التحليلات</badge>."
+    },
+    "ordersShared": {
+      "noMatch": "لا توجد طلبات مطابقة لهذه الفلاتر.",
+      "headers": {
+        "order": "الطلب",
+        "customer": "العميل",
+        "status": "الحالة",
+        "payment": "الدفع",
+        "items": "العناصر",
+        "total": "الإجمالي",
+        "date": "التاريخ"
+      },
+      "allStatuses": "جميع الحالات",
+      "searchPlaceholder": "ابحث عن اسم العميل أو رقم الطلب...",
+      "assignDriverPlaceholder": "تعيين سائق...",
+      "assign": "تعيين",
+      "cancelOrder": "إلغاء الطلب",
+      "cancelDialogTitle": "هل تريد إلغاء هذا الطلب؟",
+      "cancellationReasonLabel": "سبب الإلغاء (مطلوب)",
+      "neverMind": "تراجع",
+      "nextStatus": {
+        "PENDING": "تأكيد الطلب",
+        "CONFIRMED": "بدء التوصيل",
+        "ON_DELIVERY": "تم التوصيل"
+      },
+      "couldntUpdateOrder": "تعذّر تحديث الطلب",
+      "orderUpdated": "تم تحديث الطلب",
+      "couldntCancelOrder": "تعذّر إلغاء الطلب",
+      "orderCancelled": "تم إلغاء الطلب",
+      "couldntAssignDriver": "تعذّر تعيين السائق",
+      "driverAssigned": "تم تعيين السائق"
+    },
+    "users": {
+      "metaTitle": "العملاء - إدارة {brand}",
+      "heading": "العملاء",
+      "headers": {
+        "customer": "العميل",
+        "orders": "الطلبات",
+        "totalSpent": "إجمالي الإنفاق",
+        "storeCredit": "الرصيد",
+        "status": "الحالة"
+      },
+      "filters": {
+        "searchPlaceholder": "ابحث بالاسم أو البريد الإلكتروني أو اسم المستخدم...",
+        "sortRecent": "الأحدث انضمامًا",
+        "sortSpend": "الأعلى إنفاقًا",
+        "sortOrders": "الأكثر طلبات"
+      },
+      "detail": {
+        "metaTitle": "العميل - إدارة {brand}",
+        "noPhoneOnFile": "لا يوجد رقم هاتف مسجّل",
+        "joinedPrefix": "انضم في",
+        "totalSpent": "إجمالي الإنفاق",
+        "orders": "الطلبات",
+        "storeCredit": "الرصيد",
+        "loyaltyPoints": "نقاط الولاء",
+        "recentOrders": "الطلبات الأخيرة",
+        "noOrdersYet": "لا توجد طلبات بعد",
+        "orderHeaders": {
+          "order": "الطلب",
+          "status": "الحالة",
+          "payment": "الدفع",
+          "total": "الإجمالي",
+          "placed": "تاريخ الطلب"
+        },
+        "addresses": "العناوين",
+        "noSavedAddresses": "لا توجد عناوين محفوظة",
+        "default": "افتراضي",
+        "walletHistory": "سجل المحفظة",
+        "noWalletActivity": "لا يوجد نشاط في المحفظة بعد."
+      },
+      "storeCreditForm": {
+        "title": "تعديل الرصيد",
+        "amountRequired": "المبلغ والسبب مطلوبان",
+        "amountLabel": "المبلغ (د.أ)",
+        "amountHint": "موجب للإضافة، سالب للخصم",
+        "reasonLabel": "السبب",
+        "reasonPlaceholder": "مثال: تعويض عن تأخر الطلب",
+        "saving": "جارٍ الحفظ...",
+        "apply": "تطبيق",
+        "couldntAdjustTitle": "تعذّر تعديل الرصيد",
+        "adjusted": "تم تعديل الرصيد"
+      }
+    },
+    "orders": {
+      "metaTitle": "الطلبات - إدارة {brand}",
+      "heading": "الطلبات",
+      "detail": {
+        "metaTitle": "تفاصيل الطلب - إدارة {brand}",
+        "orderPrefix": "الطلب {orderNumber}",
+        "deliveryHistory": "سجل التوصيل",
+        "attemptPrefix": "المحاولة {n}: {driverName} -",
+        "qty": "الكمية",
+        "each": "للقطعة",
+        "subtotal": "المجموع الفرعي",
+        "discount": "الخصم",
+        "shipping": "الشحن",
+        "total": "الإجمالي",
+        "paymentPrefix": "الدفع:",
+        "shipToPrefix": "الشحن إلى:"
+      }
+    },
+    "products": {
+      "metaTitle": "المنتجات - إدارة {brand}",
+      "heading": "المنتجات",
+      "lowStockFilterNote": "عرض المنتجات منخفضة المخزون أو النافدة فقط",
+      "clearFilter": "مسح الفلتر",
+      "addProduct": "إضافة منتج",
+      "editProductMetaTitle": "تعديل المنتج - إدارة {brand}",
+      "editProduct": "تعديل المنتج",
+      "headers": {
+        "product": "المنتج",
+        "category": "الفئة",
+        "price": "السعر",
+        "stock": "المخزون",
+        "status": "الحالة",
+        "actions": "الإجراءات"
+      },
+      "outOfStock": "نفدت الكمية",
+      "low": "منخفض",
+      "rowActions": {
+        "edit": "تعديل",
+        "delete": "حذف",
+        "removeTitle": "هل تريد إزالة هذا المنتج؟",
+        "removeDescription": "سيؤدي هذا إلى إلغاء تفعيل المنتج ليختفي من المتجر. الطلبات السابقة تحتفظ بنسختها الخاصة منه في كل الأحوال.",
+        "couldntRemoveTitle": "تعذّر إزالة المنتج",
+        "deactivated": "تم إلغاء تفعيل المنتج"
+      }
+    },
+    "productForm": {
+      "mainPhoto": "الصورة الرئيسية",
+      "galleryPhotos": "صور المعرض",
+      "sku": "رمز المنتج (SKU)",
+      "category": "الفئة",
+      "nameEn": "الاسم (بالإنجليزية)",
+      "nameAr": "الاسم (بالعربية)",
+      "descriptionEn": "الوصف (بالإنجليزية)",
+      "descriptionAr": "الوصف (بالعربية)",
+      "priceJD": "السعر (د.أ)",
+      "compareAtPrice": "سعر المقارنة (اختياري)",
+      "stock": "المخزون",
+      "lowStockThreshold": "حد المخزون المنخفض (اختياري)",
+      "lowStockThresholdHint": "القيمة الافتراضية 15 إذا تُرك فارغًا",
+      "activeCheckbox": "نشط (مرئي في المتجر)",
+      "mainPhotoRequired": "الصورة الرئيسية للمنتج مطلوبة",
+      "couldntSaveTitle": "تعذّر حفظ المنتج",
+      "updated": "تم تحديث المنتج",
+      "created": "تم إنشاء المنتج",
+      "saving": "جارٍ الحفظ...",
+      "saveChanges": "حفظ التغييرات",
+      "createProduct": "إنشاء منتج"
+    },
+    "bundles": {
+      "metaTitle": "الباقات - إدارة {brand}",
+      "heading": "الباقات",
+      "addBundle": "إضافة باقة",
+      "editBundleMetaTitle": "تعديل الباقة - إدارة {brand}",
+      "editBundle": "تعديل الباقة",
+      "headers": {
+        "bundle": "الباقة",
+        "items": "العناصر",
+        "price": "السعر",
+        "status": "الحالة",
+        "actions": "الإجراءات"
+      },
+      "rowActions": {
+        "edit": "تعديل",
+        "delete": "حذف",
+        "removeTitle": "هل تريد إزالة هذه الباقة؟",
+        "removeDescription": "سيؤدي هذا إلى إلغاء تفعيل الباقة لتختفي من المتجر. الطلبات السابقة تحتفظ بنسختها الخاصة منها في كل الأحوال.",
+        "couldntRemoveTitle": "تعذّر إزالة الباقة",
+        "deactivated": "تم إلغاء تفعيل الباقة"
+      }
+    },
+    "bundleForm": {
+      "mainPhoto": "الصورة الرئيسية",
+      "nameEn": "الاسم (بالإنجليزية)",
+      "nameAr": "الاسم (بالعربية)",
+      "descriptionEn": "الوصف (بالإنجليزية)",
+      "descriptionAr": "الوصف (بالعربية)",
+      "bundlePriceJD": "سعر الباقة (د.أ)",
+      "productsInBundle": "المنتجات ضمن هذه الباقة",
+      "componentsSum": "(مجموع المكوّنات: {amount})",
+      "activeCheckbox": "نشط (مرئي في المتجر)",
+      "requiredFields": "الصورة الرئيسية ومنتج واحد على الأقل مطلوبان",
+      "couldntSaveTitle": "تعذّر حفظ الباقة",
+      "updated": "تم تحديث الباقة",
+      "created": "تم إنشاء الباقة",
+      "saving": "جارٍ الحفظ...",
+      "saveChanges": "حفظ التغييرات",
+      "createBundle": "إنشاء باقة"
+    },
+    "promoCodes": {
+      "metaTitle": "أكواد الخصم - إدارة {brand}",
+      "heading": "أكواد الخصم",
+      "addPromoCode": "إضافة كود خصم",
+      "editPromoCodeMetaTitle": "تعديل كود الخصم - إدارة {brand}",
+      "editPromoCode": "تعديل كود الخصم",
+      "headers": {
+        "code": "الكود",
+        "discount": "الخصم",
+        "segment": "الفئة",
+        "usage": "الاستخدام",
+        "status": "الحالة",
+        "actions": "الإجراءات"
+      },
+      "detail": {
+        "metaTitle": "استخدام كود الخصم - إدارة {brand}",
+        "totalUses": "إجمالي مرات الاستخدام",
+        "totalDiscountGiven": "إجمالي الخصم الممنوح",
+        "perUserLimit": "الحد لكل مستخدم",
+        "unlimited": "غير محدود",
+        "noUsesTitle": "لا يوجد استخدام بعد",
+        "noUsesDescription": "لم يُطبَّق كود الخصم هذا على أي طلب بعد.",
+        "headers": {
+          "customer": "العميل",
+          "order": "الطلب",
+          "discount": "الخصم",
+          "usedAt": "تاريخ الاستخدام"
+        }
+      },
+      "rowActions": {
+        "usage": "الاستخدام",
+        "edit": "تعديل",
+        "delete": "حذف",
+        "removeTitle": "هل تريد إزالة كود الخصم هذا؟",
+        "removeDescription": "سيؤدي هذا إلى إلغاء تفعيل الكود بحيث لا يمكن تطبيقه بعد الآن عند الدفع. يُحتفظ بسجل الاستخدام السابق.",
+        "couldntRemoveTitle": "تعذّر إزالة كود الخصم",
+        "deactivated": "تم إلغاء تفعيل كود الخصم"
+      }
+    },
+    "promoCodeForm": {
+      "codeRequired": "الكود وقيمة الخصم مطلوبان",
+      "code": "الكود",
+      "codePlaceholder": "مثال: WELCOME10",
+      "discountType": "نوع الخصم",
+      "percentage": "نسبة مئوية",
+      "fixedAmount": "مبلغ ثابت",
+      "discountPercent": "الخصم (%)",
+      "discountJD": "الخصم (د.أ)",
+      "minOrderTotal": "الحد الأدنى لإجمالي الطلب (د.أ)",
+      "targetSegment": "الفئة المستهدفة",
+      "startsAt": "تاريخ البدء (اختياري)",
+      "expiresAt": "تاريخ الانتهاء (اختياري)",
+      "usageLimitTotal": "الحد الإجمالي للاستخدام (اختياري)",
+      "usageLimitPerUser": "الحد لكل مستخدم (اختياري)",
+      "unlimitedHint": "اتركه فارغًا لعدم التحديد",
+      "activeCheckbox": "نشط",
+      "couldntSaveTitle": "تعذّر حفظ كود الخصم",
+      "updated": "تم تحديث كود الخصم",
+      "created": "تم إنشاء كود الخصم",
+      "saving": "جارٍ الحفظ...",
+      "saveChanges": "حفظ التغييرات",
+      "createPromoCode": "إنشاء كود خصم"
+    },
+    "settings": {
+      "metaTitle": "الإعدادات - إدارة {brand}",
+      "heading": "الإعدادات",
+      "tabs": {
+        "loyalty": "برنامج الولاء",
+        "tiers": "مستويات الولاء",
+        "shipping": "مناطق الشحن"
+      },
+      "loyaltyConfig": {
+        "pointsPerJd": "النقاط المكتسبة لكل دينار يُنفق",
+        "redemptionValue": "قيمة استبدال النقطة (د.أ)",
+        "redemptionValueHint": "مثال: 0.01 تعني أن 100 نقطة = 1 د.أ",
+        "couldntSaveTitle": "تعذّر حفظ إعدادات الولاء",
+        "saved": "تم حفظ إعدادات الولاء",
+        "saving": "جارٍ الحفظ...",
+        "save": "حفظ"
+      },
+      "loyaltyTiers": {
+        "headers": {
+          "nameEn": "الاسم (بالإنجليزية)",
+          "nameAr": "الاسم (بالعربية)",
+          "minPoints": "الحد الأدنى للنقاط",
+          "sortOrder": "الترتيب",
+          "actions": "الإجراءات"
+        },
+        "namesRequired": "كلا الاسمين مطلوبان",
+        "nameEnPlaceholder": "مثال: Gold",
+        "couldntSaveTitle": "تعذّر حفظ المستوى",
+        "updated": "تم تحديث المستوى",
+        "couldntRemoveTitle": "تعذّر إزالة المستوى",
+        "removed": "تمت إزالة المستوى",
+        "removeTitle": "هل تريد إزالة هذا المستوى؟",
+        "removeDescription": "سيعود العملاء الحاليون في هذا المستوى إلى المستوى الأدنى التالي.",
+        "couldntAddTitle": "تعذّر إضافة المستوى",
+        "added": "تمت إضافة المستوى",
+        "saving": "جارٍ الحفظ...",
+        "save": "حفظ",
+        "delete": "حذف",
+        "adding": "جارٍ الإضافة...",
+        "add": "إضافة"
+      },
+      "shippingZones": {
+        "headers": {
+          "cityEn": "المدينة (بالإنجليزية)",
+          "cityAr": "المدينة (بالعربية)",
+          "feeJD": "الرسوم (د.أ)",
+          "estDays": "الأيام المتوقعة",
+          "active": "نشط",
+          "actions": "الإجراءات"
+        },
+        "minPlaceholder": "الحد الأدنى",
+        "maxPlaceholder": "الحد الأقصى",
+        "cityEnPlaceholder": "مثال: Amman",
+        "couldntSaveTitle": "تعذّر حفظ منطقة الشحن",
+        "updated": "تم تحديث منطقة الشحن",
+        "couldntRemoveTitle": "تعذّر إزالة منطقة الشحن",
+        "removed": "تمت إزالة منطقة الشحن",
+        "removeTitle": "هل تريد إزالة منطقة الشحن هذه؟",
+        "removeDescription": "سيعود الدفع إلى رسوم الشحن الافتراضية لهذه المدينة.",
+        "namesAndFeeRequired": "اسما المدينة والرسوم مطلوبة",
+        "couldntAddTitle": "تعذّر إضافة منطقة الشحن",
+        "added": "تمت إضافة منطقة الشحن",
+        "saving": "جارٍ الحفظ...",
+        "save": "حفظ",
+        "delete": "حذف",
+        "adding": "جارٍ الإضافة...",
+        "add": "إضافة"
+      }
+    },
+    "deliverySupport": {
+      "metaTitle": "دعم التوصيل - إدارة {brand}",
+      "heading": "دعم التوصيل",
+      "filters": {
+        "allDrivers": "جميع السائقين",
+        "allProblemTypes": "جميع أنواع المشاكل",
+        "allStatuses": "جميع الحالات",
+        "fromDateAriaLabel": "من تاريخ",
+        "toDateAriaLabel": "إلى تاريخ"
+      },
+      "list": {
+        "noReportsTitle": "لا توجد بلاغات",
+        "noReportsDescription": "لا يوجد ما يطابق هذا الفلتر.",
+        "notTiedToDelivery": "غير مرتبط بعملية توصيل",
+        "filedPrefix": "قُدِّم في",
+        "urgent": "عاجل"
+      },
+      "detail": {
+        "metaTitle": "تفاصيل البلاغ - إدارة {brand}",
+        "noPhoneOnFile": "لا يوجد رقم هاتف مسجّل",
+        "description": "الوصف",
+        "photo": "الصورة",
+        "photoAlt": "المشكلة المُبلَّغ عنها",
+        "filedPrefix": "قُدِّم في"
+      },
+      "controls": {
+        "status": "الحالة",
+        "assignedTo": "مُسند إلى",
+        "noteLabel": "ملاحظة",
+        "saveNote": "حفظ الملاحظة",
+        "couldntUpdateStatusTitle": "تعذّر تحديث الحالة",
+        "statusUpdated": "تم تحديث الحالة",
+        "couldntSaveNoteTitle": "تعذّر حفظ الملاحظة",
+        "noteSaved": "تم حفظ الملاحظة",
+        "couldntUpdateAssignmentTitle": "تعذّر تحديث الإسناد",
+        "assignmentUpdated": "تم تحديث الإسناد"
+      }
+    },
+    "support": {
+      "metaTitle": "صندوق الدعم - إدارة {brand}",
+      "heading": "صندوق الدعم",
+      "allStatuses": "جميع الحالات",
+      "noTicketsTitle": "لا توجد تذاكر",
+      "noTicketsDescription": "لا يوجد ما يطابق هذا الفلتر.",
+      "assignedToPrefix": "مُسندة إلى",
+      "unassigned": "غير مُسندة",
+      "updatedPrefix": "آخر تحديث",
+      "detail": {
+        "metaTitle": "تذكرة الدعم - إدارة {brand}",
+        "customerSuffix": "(عميل)",
+        "supportSuffix": "(الدعم)",
+        "internalNote": "ملاحظة داخلية",
+        "closedMessage": "هذه التذكرة مغلقة. أعد فتحها أعلاه للرد."
+      },
+      "reply": {
+        "internalNotePlaceholder": "ملاحظة داخلية (غير مرئية للعميل)...",
+        "replyPlaceholder": "اكتب ردًا للعميل...",
+        "internalNoteCheckbox": "ملاحظة داخلية (للموظفين فقط)",
+        "couldntSendTitle": "تعذّر إرسال الرسالة",
+        "sending": "جارٍ الإرسال...",
+        "addNote": "إضافة ملاحظة",
+        "sendReply": "إرسال الرد"
+      },
+      "controls": {
+        "status": "الحالة",
+        "assignedTo": "مُسند إلى",
+        "couldntUpdateStatusTitle": "تعذّر تحديث الحالة",
+        "statusUpdated": "تم تحديث الحالة",
+        "couldntUpdateAssignmentTitle": "تعذّر تحديث الإسناد",
+        "assignmentUpdated": "تم تحديث الإسناد"
+      }
+    },
+    "managedAccountsShared": {
+      "headers": {
+        "name": "الاسم",
+        "email": "البريد الإلكتروني",
+        "status": "الحالة",
+        "joined": "تاريخ الانضمام",
+        "actions": "الإجراءات"
+      }
+    },
+    "createManagedAccountDialog": {
+      "accountCreated": "تم إنشاء حساب {roleLabel}",
+      "sharePasswordNote": "شارك كلمة المرور المؤقتة هذه بأمان - سيُطلب منهم تغييرها عند أول تسجيل دخول.",
+      "emailLabel": "البريد الإلكتروني:",
+      "tempPasswordLabel": "كلمة المرور المؤقتة:",
+      "done": "تم",
+      "addNewAccount": "إضافة حساب {roleLabel} جديد",
+      "firstName": "الاسم الأول",
+      "lastName": "اسم العائلة",
+      "email": "البريد الإلكتروني",
+      "username": "اسم المستخدم",
+      "phoneOptional": "الهاتف (اختياري)",
+      "couldntCreateAccount": "تعذّر إنشاء حساب {roleLabel}",
+      "creating": "جارٍ الإنشاء...",
+      "createAccount": "إنشاء حساب"
+    },
+    "staff": {
+      "metaTitle": "الموظفون - إدارة {brand}",
+      "heading": "الموظفون",
+      "addStaff": "إضافة موظف",
+      "detail": {
+        "metaTitle": "الموظف - إدارة {brand}",
+        "joinedPrefix": "انضم في",
+        "activityLog": "سجل النشاط ({count})",
+        "noActionsYet": "لا توجد إجراءات مسجّلة بعد."
+      },
+      "rowActions": {
+        "deactivate": "إلغاء التفعيل",
+        "reactivate": "إعادة التفعيل",
+        "delete": "حذف",
+        "removeTitle": "هل تريد إزالة حساب الموظف هذا؟",
+        "removeDescription": "سيؤدي هذا إلى إلغاء تفعيل الحساب (لن يتمكن من تسجيل الدخول بعد الآن) مع الاحتفاظ بسجل تدقيقه كاملًا. لا يمكن التراجع عن هذا من هنا.",
+        "couldntUpdateTitle": "تعذّر تحديث حساب الموظف",
+        "couldntRemoveTitle": "تعذّر إزالة حساب الموظف",
+        "removed": "تمت إزالة حساب الموظف"
+      }
+    },
+    "abandonedCarts": {
+      "metaTitle": "السلال المتروكة - إدارة {brand}",
+      "heading": "السلال المتروكة",
+      "summary": "{count, plural, zero {لا يوجد عملاء تركوا عناصر في سلتهم دون إتمام الشراء.} one {عميل واحد ترك عناصر في سلته دون إتمام الشراء.} two {عميلان تركا عناصر في سلتيهما دون إتمام الشراء.} few {# عملاء تركوا عناصر في سلاتهم دون إتمام الشراء.} many {# عميلًا تركوا عناصر في سلاتهم دون إتمام الشراء.} other {# عميل تركوا عناصر في سلاتهم دون إتمام الشراء.}}",
+      "noCartsTitle": "لا توجد سلال متروكة",
+      "noCartsDescription": "لا يوجد ما يُعرض الآن.",
+      "lastActivity": "{days, plural, =0 {آخر نشاط اليوم} one {آخر نشاط قبل يوم واحد} two {آخر نشاط قبل يومين} few {آخر نشاط قبل # أيام} many {آخر نشاط قبل # يومًا} other {آخر نشاط قبل # يوم}}",
+      "unknownItem": "عنصر غير معروف",
+      "remindButton": {
+        "couldntSendTitle": "تعذّر إرسال التذكير",
+        "sent": "تم إرسال التذكير",
+        "sending": "جارٍ الإرسال...",
+        "send": "إرسال تذكير"
+      }
+    },
+    "analytics": {
+      "metaTitle": "التحليلات - إدارة {brand}",
+      "heading": "التحليلات",
+      "extendedHeading": "تحليلات موسّعة",
+      "dateRangeFilter": {
+        "from": "من",
+        "to": "إلى"
+      },
+      "vsPriorPeriod": "مقارنة بالفترة السابقة",
+      "rfm": {
+        "title": "شرائح العملاء RFM",
+        "description": "تصنيف حسب الحداثة / التكرار / القيمة النقدية، نسبةً إلى إجمالي العملاء.",
+        "unsegmentedNote": "{count, plural, zero {} one {عميل واحد لم يُصنَّف بعد.} two {عميلان لم يُصنَّفا بعد.} few {# عملاء لم يُصنَّفوا بعد.} many {# عميلًا لم يُصنَّفوا بعد.} other {# عميل لم يُصنَّفوا بعد.}}",
+        "noSegmentsTitle": "لم تُحسب أي شرائح بعد",
+        "noSegmentsDescription": "اضغط على \"إعادة حساب الشرائح\" لتصنيف كل عميل.",
+        "recalculate": {
+          "couldntRecalculateTitle": "تعذّر إعادة حساب الشرائح",
+          "recalculated": "{count, plural, zero {تمت إعادة حساب الشرائح لعدد صفر من العملاء} one {تمت إعادة حساب الشريحة لعميل واحد} two {تمت إعادة حساب الشرائح لعميلين} few {تمت إعادة حساب الشرائح لـ# عملاء} many {تمت إعادة حساب الشرائح لـ# عميلًا} other {تمت إعادة حساب الشرائح لـ# عميل}}",
+          "recalculating": "جارٍ إعادة الحساب...",
+          "button": "إعادة حساب الشرائح"
+        }
+      },
+      "topCustomers": {
+        "title": "أفضل العملاء حسب القيمة الدائمة",
+        "description": "الإنفاق الفعلي حتى الآن (مجموع الطلبات المدفوعة)، وليس توقعًا مستقبليًا.",
+        "noOrdersTitle": "لا توجد طلبات مدفوعة بعد",
+        "headers": {
+          "customer": "العميل",
+          "orders": "الطلبات",
+          "lifetimeValue": "القيمة الدائمة"
+        }
+      },
+      "frequentlyBought": {
+        "title": "غالبًا ما تُشترى معًا",
+        "description": "أزواج المنتجات التي تظهر معًا في نفس الطلب بأكبر تكرار.",
+        "noHistoryTitle": "لا يوجد سجل طلبات كافٍ بعد",
+        "headers": {
+          "pair": "الزوج",
+          "ordersTogether": "طلبات مشتركة"
+        }
+      },
+      "salesHeatmap": {
+        "title": "خريطة المبيعات الحرارية",
+        "description": "حجم الطلبات المدفوعة حسب يوم الأسبوع ووقت اليوم.",
+        "footnote": "درجة التظليل = كثافة الإيراد؛ الرقم = عدد الطلبات. مرر المؤشر فوق أي خانة لمعرفة الأرقام الدقيقة.",
+        "tooltip": "{weekday} {block}: {orderCount}، {revenue}",
+        "timeBlocks": {
+          "block0": "١٢–٤ص",
+          "block1": "٤–٨ص",
+          "block2": "٨ص–١٢ظ",
+          "block3": "١٢–٤ظ",
+          "block4": "٤–٨م",
+          "block5": "٨م–١٢ص"
+        }
+      },
+      "staffPerformance": {
+        "title": "أداء الموظفين",
+        "description": "الطلبات التي عالجها كل موظف، مع مخطط زمني لكل موظف.",
+        "noActivityTitle": "لا يوجد نشاط للموظفين بعد",
+        "noActivityDescription": "ستظهر هنا تغييرات حالة الطلبات التي يجريها الإدارة/الموظفون.",
+        "ordersProcessedTooltip": "{count, plural, zero {لم تُعالَج أي طلبات} one {تمت معالجة طلب واحد} two {تمت معالجة طلبين} few {تمت معالجة # طلبات} many {تمت معالجة # طلبًا} other {تمت معالجة # طلب}}",
+        "noTimelineData": "لا توجد بيانات زمنية لهذا الموظف ضمن هذا النطاق."
+      },
+      "deliveryPerformance": {
+        "title": "أداء التوصيل",
+        "description": "معدل الالتزام بالوقت، ومعدل/أسباب فشل التوصيل، ومتوسط زمن التوصيل لكل سائق.",
+        "noActivityTitle": "لا يوجد نشاط توصيل بعد",
+        "noActivityDescription": "ستظهر هنا عمليات إسناد التوصيل.",
+        "onTimeNote": "\"في الوقت المحدد\" = تم التوصيل خلال {hours} ساعة من الإسناد (حد زمني مُعرَّف، وليس اتفاقية مستوى خدمة معلَنة).",
+        "headers": {
+          "driver": "السائق",
+          "delivered": "تم التوصيل",
+          "failedRate": "معدل الفشل",
+          "onTimeRate": "معدل الالتزام بالوقت",
+          "avgDeliveryTime": "متوسط زمن التوصيل"
+        },
+        "failedReasonsTitle": "أسباب فشل التوصيل",
+        "noProblemReports": "لا توجد بلاغات مشاكل توصيل مُقدَّمة ضمن هذا النطاق."
+      },
+      "cohortRetention": {
+        "title": "استبقاء الأفواج",
+        "description": "نسبة كل فوج انضمام شهري ما زال يطلب، حسب عدد الأشهر منذ الانضمام.",
+        "noSignupsYet": "لا يوجد تسجيل عملاء جدد بعد.",
+        "headers": {
+          "cohort": "الفوج",
+          "size": "الحجم"
+        },
+        "monthOffsetHeader": "+{n}شهر",
+        "tooltip": "{cohort}، الشهر +{offset}: {percent}% ما زالوا يطلبون",
+        "footnote": "درجة التظليل = نسبة ذلك الفوج الشهري ممن لديهم طلب واحد على الأقل بعد ذلك العدد من الأشهر. مرر المؤشر لمعرفة الأرقام الدقيقة."
+      },
+      "cartFunnel": {
+        "title": "قمع تروك السلة",
+        "description": "إنشاء السلة، تقديم الطلب، دفع الطلب - بالإضافة إلى الإيراد القابل للاسترداد الموجود حاليًا في السلال المتروكة.",
+        "stages": {
+          "cartsCreated": "المستخدمون الذين لديهم سلة",
+          "ordersPlaced": "المستخدمون الذين قدّموا طلبًا",
+          "ordersPaid": "المستخدمون الذين دفعوا"
+        },
+        "conversionOfPrevious": "(‏{percent}% من المرحلة السابقة)",
+        "footnote": "تُحسب كل مرحلة بعدد المستخدمين الفريدين، لا الأحداث الخام - لا يوجد تتبّع لـ\"الزيارات\" أو \"بدء الدفع\" في هذا التطبيق حتى الآن، لذا يبدأ هذا القمع من وجود سلة للمستخدم، وهو أول إشارة حقيقية وقابلة للتتبع اليوم.",
+        "recoverableRevenueLabel": "الإيراد القابل للاسترداد في السلال المتروكة",
+        "abandonedCartCount": "{count, plural, zero {لا توجد سلال متروكة} one {سلة متروكة واحدة} two {سلتان متروكتان} few {# سلال متروكة} many {# سلة متروكة} other {# سلة متروكة}}"
+      },
+      "geographic": {
+        "title": "التوزيع الجغرافي للطلبات",
+        "description": "الطلبات والإيرادات حسب مدينة الشحن.",
+        "noOrdersTitle": "لا توجد طلبات بعد",
+        "headers": {
+          "city": "المدينة",
+          "orders": "الطلبات",
+          "revenue": "الإيراد"
+        }
+      }
+    }
+  },
+  "staff": {
+    "nav": {
+      "openMenuAriaLabel": "فتح قائمة الموظفين",
+      "drawerTitle": "قائمة الموظفين",
+      "dashboard": "لوحة التحكم",
+      "orders": "الطلبات",
+      "products": "المنتجات",
+      "deliveryAccounts": "حسابات التوصيل",
+      "deliverySupport": "دعم التوصيل"
+    },
+    "layout": {
+      "kicker": "بيتولا",
+      "heading": "لوحة تحكم الموظفين",
+      "welcome": "أهلًا، {name}"
+    },
+    "home": {
+      "heading": "لوحة التحكم",
+      "tiles": {
+        "pendingOrders": "الطلبات المعلّقة",
+        "lowOutOfStock": "مخزون منخفض / نافد",
+        "awaitingDriverAssignment": "بانتظار تعيين سائق",
+        "openDeliveryReports": "بلاغات التوصيل المفتوحة"
+      }
+    },
+    "deliveryAccounts": {
+      "metaTitle": "حسابات التوصيل - موظفو {brand}",
+      "heading": "حسابات التوصيل",
+      "addDriver": "إضافة سائق توصيل",
+      "detail": {
+        "metaTitle": "سائق التوصيل - موظفو {brand}",
+        "noPhoneOnFile": "لا يوجد رقم هاتف مسجّل",
+        "joinedPrefix": "انضم في",
+        "delivered": "تم التوصيل",
+        "failedAttempts": "المحاولات الفاشلة",
+        "totalEarningsJD": "إجمالي الأرباح (د.أ)",
+        "recentDeliveries": "عمليات التوصيل الأخيرة ({count})",
+        "noAssignmentsYet": "لا توجد مهام توصيل بعد.",
+        "attemptPrefix": "المحاولة",
+        "activityLog": "سجل النشاط ({count})",
+        "noActionsYet": "لا توجد إجراءات مسجّلة بعد."
+      },
+      "rowActions": {
+        "deactivate": "إلغاء التفعيل",
+        "reactivate": "إعادة التفعيل",
+        "delete": "حذف",
+        "removeTitle": "هل تريد إزالة حساب التوصيل هذا؟",
+        "removeDescription": "سيؤدي هذا إلى إلغاء تفعيل الحساب (لن يتمكن من تسجيل الدخول بعد الآن) مع الاحتفاظ بسجل توصيلاته وتدقيقه كاملًا. لا يمكن التراجع عن هذا من هنا.",
+        "couldntUpdateTitle": "تعذّر تحديث حساب التوصيل",
+        "couldntRemoveTitle": "تعذّر إزالة حساب التوصيل",
+        "removed": "تمت إزالة حساب التوصيل"
+      }
+    },
+    "deliverySupport": {
+      "metaTitle": "دعم التوصيل - موظفو {brand}"
+    }
+  },
+  "delivery": {
+    "nav": {
+      "openMenuAriaLabel": "فتح قائمة التوصيل",
+      "drawerTitle": "قائمة التوصيل",
+      "activeDeliveries": "التوصيلات النشطة",
+      "history": "السجل",
+      "earnings": "الأرباح",
+      "myReports": "بلاغاتي"
+    },
+    "layout": {
+      "kicker": "بيتولا",
+      "heading": "لوحة تحكم التوصيل",
+      "welcome": "أهلًا، {name}"
+    },
+    "active": {
+      "metaTitle": "التوصيلات النشطة - توصيل {brand}",
+      "heading": "التوصيلات النشطة",
+      "noActiveTitle": "لا توجد توصيلات نشطة",
+      "noActiveDescription": "ستظهر هنا المهام الجديدة من الموظفين."
+    },
+    "history": {
+      "metaTitle": "سجل التوصيل - توصيل {brand}",
+      "heading": "السجل",
+      "noPastTitle": "لا توجد توصيلات سابقة",
+      "noPastDescription": "ستظهر هنا التوصيلات المكتملة والفاشلة."
+    },
+    "earnings": {
+      "metaTitle": "الأرباح - توصيل {brand}",
+      "heading": "الأرباح",
+      "totalEarnings": "إجمالي الأرباح",
+      "thisMonth": "هذا الشهر",
+      "deliveriesCompleted": "التوصيلات المكتملة",
+      "noEarningsTitle": "لا توجد أرباح بعد",
+      "noEarningsDescription": "ستظهر هنا التوصيلات المكتملة ومستحقاتها."
+    },
+    "detail": {
+      "metaTitle": "التوصيل - توصيل {brand}",
+      "noPhoneOnFile": "لا يوجد رقم هاتف مسجّل",
+      "noMapPin": "لا يوجد موقع محفوظ لهذا العنوان.",
+      "qty": "الكمية",
+      "paymentMethod": "طريقة الدفع",
+      "paymentStatus": "حالة الدفع",
+      "orderTotal": "إجمالي الطلب"
+    },
+    "reports": {
+      "metaTitle": "بلاغاتي - توصيل {brand}",
+      "heading": "بلاغاتي",
+      "noReportsTitle": "لا توجد بلاغات مقدَّمة",
+      "noReportsDescription": "أبلغ هنا عن مشكلة في توصيلة أو مشكلة عامة.",
+      "notTiedToDelivery": "غير مرتبط بعملية توصيل",
+      "notTiedToSpecificDelivery": "غير مرتبط بتوصيلة محددة",
+      "urgent": "عاجل",
+      "noteFromSupport": "ملاحظة من دعم بيتولا",
+      "detailMetaTitle": "تفاصيل البلاغ - توصيل {brand}"
+    },
+    "statusActions": {
+      "nextStatus": {
+        "ASSIGNED": "تحديد كمُستلَم",
+        "PICKED_UP": "تحديد كفي الطريق",
+        "EN_ROUTE": "تحديد كتم التوصيل"
+      },
+      "markFailed": "تحديد كفشل",
+      "markFailedDialogTitle": "هل تريد تحديد هذا التوصيل كفاشل؟",
+      "reasonRequired": "السبب (مطلوب)",
+      "neverMind": "تراجع",
+      "couldntUpdateTitle": "تعذّر تحديث التوصيل",
+      "updated": "تم تحديث التوصيل",
+      "markedFailed": "تم تحديد التوصيل كفاشل"
+    },
+    "reportProblemDialog": {
+      "trigger": "الإبلاغ عن مشكلة",
+      "dialogTitle": "الإبلاغ عن مشكلة",
+      "problemTypeLabel": "نوع المشكلة",
+      "urgencyLabel": "الأولوية",
+      "descriptionRequired": "الوصف (مطلوب)",
+      "descriptionOptional": "الوصف (اختياري)",
+      "photoLabel": "الصورة",
+      "couldntFileTitle": "تعذّر تقديم البلاغ",
+      "submitting": "جارٍ الإرسال...",
+      "submit": "إرسال البلاغ"
+    }
+  },
+  "changePassword": {
+    "metaTitle": "تغيير كلمة المرور - {brand}",
+    "heading": "تعيين كلمة مرور جديدة",
+    "subtext": "لأمانك، يرجى اختيار كلمة مرور جديدة قبل المتابعة.",
+    "currentPassword": "كلمة المرور الحالية",
+    "newPassword": "كلمة المرور الجديدة",
+    "passwordHint": "8 أحرف على الأقل",
+    "confirmNewPassword": "تأكيد كلمة المرور الجديدة",
+    "saving": "جارٍ الحفظ...",
+    "save": "حفظ كلمة المرور الجديدة"
+  }
+}

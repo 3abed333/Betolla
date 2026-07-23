@@ -1,0 +1,64 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { notFound, redirect } from "next/navigation";
+import { getTranslations, getLocale } from "next-intl/server";
+import { getCurrentSession } from "@/lib/auth/session";
+import { prisma } from "@/lib/db";
+import { Button, Card, CardContent } from "@/components/ui";
+import { Money } from "@/components/Money";
+import type { AppLocale } from "@/i18n/config";
+
+export const metadata: Metadata = { title: "Order Confirmed - Betolla Cosmetics" };
+
+export default async function OrderConfirmationPage({ params }: { params: Promise<{ orderId: string }> }) {
+  const { orderId } = await params;
+  const session = await getCurrentSession();
+  if (!session) redirect("/login");
+  const t = await getTranslations("storefront.confirmation");
+  const locale = (await getLocale()) as AppLocale;
+
+  const order = await prisma.order.findUnique({ where: { id: orderId }, include: { items: true } });
+  if (!order || order.userId !== session.userId) notFound();
+
+  return (
+    <div className="mx-auto max-w-lg text-center">
+      <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-success">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.5} className="h-8 w-8">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+        </svg>
+      </div>
+      <h1 className="font-heading text-2xl font-semibold text-ink">{t("orderPlaced")}</h1>
+      <p className="mt-2 text-ink-muted">
+        {t("thanksPrefix")} <strong>{order.orderNumber}</strong> {t("thanksSuffix")}
+      </p>
+      <Card className="mt-6 text-start">
+        <CardContent className="flex flex-col gap-2">
+          {order.items.map((item) => (
+            <div key={item.id} className="flex justify-between text-sm">
+              <span className="text-ink">
+                {item.nameSnapshot} x{item.quantity}
+              </span>
+              <span className="text-ink-muted">
+                <Money value={Number(item.priceSnapshot) * item.quantity} locale={locale} />
+              </span>
+            </div>
+          ))}
+          <div className="flex justify-between border-t border-border pt-2 font-semibold text-ink">
+            <span>{t("total")}</span>
+            <span>
+              <Money value={Number(order.total)} locale={locale} />
+            </span>
+          </div>
+        </CardContent>
+      </Card>
+      <div className="mt-6 flex justify-center gap-3">
+        <Button asChild variant="outline">
+          <Link href="/account/orders">{t("trackOrder")}</Link>
+        </Button>
+        <Button asChild>
+          <Link href="/products">{t("continueShopping")}</Link>
+        </Button>
+      </div>
+    </div>
+  );
+}

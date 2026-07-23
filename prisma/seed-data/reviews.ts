@@ -1,0 +1,17 @@
+export const reviewPool = [
+  { rating: 5, textEn: "Absolutely love this, repurchasing already. The quality is so much better than I expected.", textAr: "أحببته جدًا وسأعيد شراءه بالتأكيد. الجودة أفضل بكثير مما توقعت." },
+  { rating: 5, textEn: "My new holy grail. Lasts all day and feels light on the skin.", textAr: "أصبح المفضل لدي بلا منازع. يدوم طوال اليوم وملمسه خفيف على البشرة." },
+  { rating: 4, textEn: "Really good product, just wish the packaging was a bit sturdier.", textAr: "منتج جيد جدًا، أتمنى فقط لو كانت العبوة أكثر متانة." },
+  { rating: 5, textEn: "Shipping was fast and the product exceeded my expectations.", textAr: "التوصيل كان سريعًا والمنتج فاق توقعاتي." },
+  { rating: 4, textEn: "Great color payoff, though it took a couple of tries to get the application right.", textAr: "اللون رائع رغم أنني احتجت لعدة محاولات لإتقان طريقة الاستخدام." },
+  { rating: 3, textEn: "It's fine, does the job, but nothing special compared to what I've used before.", textAr: "المنتج جيد ويؤدي الغرض، لكنه ليس مميزًا مقارنة بما استخدمته سابقًا." },
+  { rating: 5, textEn: "Beautiful scent that isn't overpowering. Gets compliments every time.", textAr: "رائحة جميلة وغير قوية بشكل مزعج. أحصل على إطراءات في كل مرة أرتديه." },
+  { rating: 2, textEn: "Didn't work well for my skin type, broke me out a little.", textAr: "لم يناسب نوع بشرتي وسبب لي بعض البثور." },
+  { rating: 5, textEn: "Worth every dinar. Will be buying this as gifts too.", textAr: "يستحق كل دينار دفعته فيه. سأشتريه كهدايا أيضًا." },
+  { rating: 4, textEn: "Very happy with this, my skin looks noticeably brighter after two weeks.", textAr: "راضية جدًا عنه، بشرتي أصبحت أكثر إشراقًا بعد أسبوعين من الاستخدام." },
+  { rating: 5, textEn: "Texture is amazing, absorbs quickly and doesn't feel greasy.", textAr: "الملمس رائع، يمتص بسرعة ولا يترك إحساسًا دهنيًا." },
+  { rating: 3, textEn: "Good but a little pricey for the size of the bottle.", textAr: "جيد لكنه مرتفع الثمن قليلاً بالنسبة لحجم العبوة." },
+  { rating: 5, textEn: "Perfect match for my skin tone right out of the box.", textAr: "اللون طابق بشرتي تمامًا من أول استخدام." },
+  { rating: 4, textEn: "Solid everyday product, will reorder when I run out.", textAr: "منتج ممتاز للاستخدام اليومي، سأعيد الطلب عند نفاده." },
+  { rating: 5, textEn: "Customer service and product quality were both excellent.", textAr: "خدمة العملاء وجودة المنتج كانتا ممتازتين." },
+] as const;

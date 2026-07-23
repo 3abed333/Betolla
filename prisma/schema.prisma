@@ -1,0 +1,791 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ==================== Enums ====================
+
+enum Role {
+  CUSTOMER
+  STAFF
+  DELIVERY
+  ADMIN
+}
+
+enum Locale {
+  EN
+  AR
+}
+
+enum ThemePreference {
+  LIGHT
+  DARK
+  SYSTEM
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  ON_DELIVERY
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  UNPAID
+  PAID
+  REFUNDED
+}
+
+enum DeliveryStatus {
+  ASSIGNED
+  PICKED_UP
+  EN_ROUTE
+  DELIVERED
+  FAILED
+}
+
+enum ReturnStatus {
+  REQUESTED
+  APPROVED
+  REJECTED
+  RECEIVED
+  REFUNDED
+}
+
+enum TicketStatus {
+  OPEN
+  ASSIGNED
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum DeliveryProblemType {
+  CUSTOMER_UNREACHABLE
+  WRONG_OR_INCOMPLETE_ADDRESS
+  CUSTOMER_REFUSED_DELIVERY
+  ITEM_DAMAGED
+  PAYMENT_ISSUE_COD
+  VEHICLE_OR_TRAFFIC_ISSUE
+  SAFETY_CONCERN
+  OTHER
+}
+
+enum ReportUrgency {
+  NORMAL
+  URGENT
+}
+
+enum PromoDiscountType {
+  PERCENTAGE
+  FIXED
+}
+
+enum PromoTargetSegment {
+  ALL
+  TOP_30
+  BOTTOM_30
+}
+
+enum NotificationChannel {
+  EMAIL
+  SMS
+  PUSH
+  IN_APP
+}
+
+enum NotificationStatus {
+  SENT
+  FAILED
+}
+
+enum NotificationCategory {
+  ORDER_UPDATES
+  PROMOTIONS
+  BACK_IN_STOCK
+  LOYALTY_AND_WALLET
+  SUPPORT
+}
+
+enum PaymentMethodType {
+  CASH_ON_DELIVERY
+  MOCK_CARD
+}
+
+enum CartStatus {
+  ACTIVE
+  ABANDONED
+  CONVERTED
+}
+
+enum LoyaltyTransactionType {
+  EARN
+  REDEEM
+  ADJUST
+}
+
+enum RfmSegment {
+  CHAMPIONS
+  LOYAL
+  POTENTIAL_LOYALIST
+  NEW_CUSTOMER
+  AT_RISK
+  NEEDS_ATTENTION
+  LOST
+}
+
+// ==================== Identity ====================
+
+model User {
+  id           String  @id @default(cuid())
+  email        String  @unique
+  username     String  @unique
+  passwordHash String
+  role         Role    @default(CUSTOMER)
+  firstName    String
+  lastName     String
+  phone        String?
+
+  locale          Locale          @default(EN)
+  themePreference ThemePreference @default(SYSTEM)
+
+  loyaltyPointsBalance Int     @default(0)
+  storeCreditBalance   Decimal @default(0) @db.Decimal(10, 2)
+
+  isActive           Boolean @default(true)
+  mustChangePassword Boolean @default(false)
+
+  // Provenance: which Admin created this Staff account, or which Staff created this Delivery account.
+  createdById     String?
+  createdBy       User?   @relation("UserCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAccounts User[]  @relation("UserCreatedBy")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sessions                Session[]
+  addresses               Address[]
+  paymentMethods          PaymentMethod[]
+  orders                  Order[]
+  reviews                 Review[]
+  wishlists               Wishlist[]
+  loyaltyTransactions     LoyaltyTransaction[]
+  storeCreditTransactions StoreCreditTransaction[]
+  supportTickets          SupportTicket[]          @relation("TicketCustomer")
+  assignedTickets         SupportTicket[]          @relation("TicketAssignee")
+  supportMessages         SupportTicketMessage[]
+  deliveryReports         DeliverySupportTicket[]  @relation("DeliveryReportDriver")
+  assignedDeliveryReports DeliverySupportTicket[]  @relation("DeliveryReportAssignee")
+  notificationPreferences NotificationPreference[]
+  notifications           Notification[]
+  cart                    Cart?
+  deliveryAssignments     DeliveryAssignment[]
+  activityLogs            ActivityLog[]
+  customerStats           CustomerStats?
+  returnRequests          ReturnRequest[]
+  promoCodeUsages         PromoCodeUsage[]
+
+  @@index([role])
+}
+
+model Session {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userAgent    String?
+  ip           String?
+  createdAt    DateTime  @default(now())
+  lastActiveAt DateTime  @default(now())
+  expiresAt    DateTime
+  revokedAt    DateTime?
+
+  @@index([userId])
+}
+
+model Address {
+  id                String   @id @default(cuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label             String
+  recipientName     String
+  phone             String
+  city              String
+  area              String
+  street            String
+  buildingInfo      String?
+  lat               Float?
+  lng               Float?
+  isDefaultShipping Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  orders Order[]
+
+  @@index([userId])
+}
+
+model PaymentMethod {
+  id            String            @id @default(cuid())
+  userId        String
+  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type          PaymentMethodType
+  label         String
+  maskedDisplay String?
+  isDefault     Boolean           @default(false)
+  createdAt     DateTime          @default(now())
+
+  orders Order[]
+
+  @@index([userId])
+}
+
+// ==================== Catalog ====================
+
+model Category {
+  id        String     @id @default(cuid())
+  nameEn    String
+  nameAr    String
+  slug      String     @unique
+  parentId  String?
+  parent    Category?  @relation("CategoryParent", fields: [parentId], references: [id], onDelete: SetNull)
+  children  Category[] @relation("CategoryParent")
+  imageUrl  String?
+  sortOrder Int        @default(0)
+  isActive  Boolean    @default(true)
+
+  products Product[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Product {
+  id                String   @id @default(cuid())
+  sku               String   @unique
+  slug              String   @unique
+  nameEn            String
+  nameAr            String
+  descriptionEn     String
+  descriptionAr     String
+  price             Decimal  @db.Decimal(10, 2)
+  compareAtPrice    Decimal? @db.Decimal(10, 2)
+  stock             Int      @default(0)
+  lowStockThreshold Int?
+  categoryId        String
+  category          Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  mainImageUrl      String
+  isActive          Boolean  @default(true)
+  avgRating         Decimal  @default(0) @db.Decimal(2, 1)
+  reviewCount       Int      @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  images        ProductImage[]
+  bundleItems   ProductBundleItem[]
+  reviews       Review[]
+  wishlistItems WishlistItem[]
+  orderItems    OrderItem[]
+  cartItems     CartItem[]
+
+  @@index([categoryId])
+}
+
+model ProductImage {
+  id        String  @id @default(cuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  url       String
+  altEn     String?
+  altAr     String?
+  sortOrder Int     @default(0)
+
+  @@index([productId])
+}
+
+model ProductBundle {
+  id            String  @id @default(cuid())
+  slug          String  @unique
+  nameEn        String
+  nameAr        String
+  descriptionEn String
+  descriptionAr String
+  bundlePrice   Decimal @db.Decimal(10, 2)
+  mainImageUrl  String
+  isActive      Boolean @default(true)
+
+  items      ProductBundleItem[]
+  orderItems OrderItem[]
+  cartItems  CartItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ProductBundleItem {
+  id        String        @id @default(cuid())
+  bundleId  String
+  bundle    ProductBundle @relation(fields: [bundleId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product       @relation(fields: [productId], references: [id], onDelete: Restrict)
+  quantity  Int           @default(1)
+
+  @@unique([bundleId, productId])
+}
+
+model Banner {
+  id        String    @id @default(cuid())
+  titleEn   String
+  titleAr   String
+  imageUrl  String
+  linkUrl   String?
+  sortOrder Int       @default(0)
+  isActive  Boolean   @default(true)
+  startsAt  DateTime?
+  endsAt    DateTime?
+
+  createdAt DateTime @default(now())
+}
+
+// ==================== Commerce ====================
+
+model Cart {
+  id             String     @id @default(cuid())
+  userId         String     @unique
+  user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status         CartStatus @default(ACTIVE)
+  lastActivityAt DateTime   @default(now())
+
+  items CartItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+}
+
+// Exactly one of productId / bundleId is set - enforced in the cart service, not at the DB level.
+model CartItem {
+  id         String         @id @default(cuid())
+  cartId     String
+  cart       Cart           @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  productId  String?
+  product    Product?       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  bundleId   String?
+  bundle     ProductBundle? @relation(fields: [bundleId], references: [id], onDelete: Cascade)
+  quantity   Int            @default(1)
+  priceAtAdd Decimal        @db.Decimal(10, 2)
+  addedAt    DateTime       @default(now())
+
+  @@index([cartId])
+}
+
+model Order {
+  id                 String        @id @default(cuid())
+  orderNumber        String        @unique
+  userId             String
+  user               User          @relation(fields: [userId], references: [id], onDelete: Restrict)
+  status             OrderStatus   @default(PENDING)
+  paymentStatus      PaymentStatus @default(UNPAID)
+  cancellationReason String?
+  refundedAmount     Decimal       @default(0) @db.Decimal(10, 2)
+
+  subtotal      Decimal @db.Decimal(10, 2)
+  discountTotal Decimal @default(0) @db.Decimal(10, 2)
+  shippingFee   Decimal @default(0) @db.Decimal(10, 2)
+  total         Decimal @db.Decimal(10, 2)
+
+  storeCreditUsed     Decimal @default(0) @db.Decimal(10, 2)
+  loyaltyPointsUsed   Int     @default(0)
+  loyaltyPointsEarned Int     @default(0)
+
+  promoCodeId String?
+  promoCode   PromoCode? @relation(fields: [promoCodeId], references: [id], onDelete: SetNull)
+
+  // Address/payment method are snapshotted so historical orders stay accurate even if the
+  // customer later edits or deletes the live Address/PaymentMethod row.
+  shippingAddressId       String?
+  shippingAddress         Address? @relation(fields: [shippingAddressId], references: [id], onDelete: SetNull)
+  shippingAddressSnapshot String
+  shippingCity            String
+
+  paymentMethodId    String?
+  paymentMethod      PaymentMethod? @relation(fields: [paymentMethodId], references: [id], onDelete: SetNull)
+  paymentMethodLabel String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items               OrderItem[]
+  statusHistory       OrderStatusHistory[]
+  returnRequests      ReturnRequest[]
+  deliveryAssignments DeliveryAssignment[]
+  promoUsage          PromoCodeUsage?
+  supportTickets      SupportTicket[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([paymentStatus])
+  @@index([createdAt])
+  @@index([shippingCity])
+}
+
+// Exactly one of productId / bundleId is set - enforced in the order service, not at the DB level.
+model OrderItem {
+  id            String         @id @default(cuid())
+  orderId       String
+  order         Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId     String?
+  product       Product?       @relation(fields: [productId], references: [id], onDelete: SetNull)
+  bundleId      String?
+  bundle        ProductBundle? @relation(fields: [bundleId], references: [id], onDelete: SetNull)
+  nameSnapshot  String
+  imageSnapshot String
+  priceSnapshot Decimal        @db.Decimal(10, 2)
+  quantity      Int
+
+  reviews     Review[]
+  returnItems ReturnRequestItem[]
+
+  @@index([orderId])
+}
+
+// Customer/admin-facing fulfillment timeline. `changedById` is an unrelated plain id (no FK) -
+// ActivityLog is the authoritative "who did what" audit surface, this is just display history.
+model OrderStatusHistory {
+  id          String      @id @default(cuid())
+  orderId     String
+  order       Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  status      OrderStatus
+  note        String?
+  changedById String?
+  createdAt   DateTime    @default(now())
+
+  @@index([orderId])
+}
+
+model ReturnRequest {
+  id                  String       @id @default(cuid())
+  orderId             String
+  order               Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  userId              String
+  user                User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status              ReturnStatus @default(REQUESTED)
+  refundAmount        Decimal?     @db.Decimal(10, 2)
+  refundToStoreCredit Boolean      @default(true)
+  staffNote           String?
+  createdAt           DateTime     @default(now())
+  resolvedAt          DateTime?
+
+  items ReturnRequestItem[]
+
+  @@index([orderId])
+  @@index([userId])
+}
+
+model ReturnRequestItem {
+  id              String        @id @default(cuid())
+  returnRequestId String
+  returnRequest   ReturnRequest @relation(fields: [returnRequestId], references: [id], onDelete: Cascade)
+  orderItemId     String
+  orderItem       OrderItem     @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  quantity        Int
+  reason          String
+  reasonNote      String?
+
+  @@index([returnRequestId])
+}
+
+// ==================== Engagement ====================
+
+model Review {
+  id                 String     @id @default(cuid())
+  productId          String
+  product            Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  userId             String
+  user               User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orderItemId        String?
+  orderItem          OrderItem? @relation(fields: [orderItemId], references: [id], onDelete: SetNull)
+  rating             Int
+  comment            String?
+  isVerifiedPurchase Boolean    @default(false)
+  createdAt          DateTime   @default(now())
+
+  @@index([productId])
+  @@index([userId])
+}
+
+model Wishlist {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  createdAt DateTime @default(now())
+
+  items WishlistItem[]
+
+  @@index([userId])
+}
+
+model WishlistItem {
+  id                String   @id @default(cuid())
+  wishlistId        String
+  wishlist          Wishlist @relation(fields: [wishlistId], references: [id], onDelete: Cascade)
+  productId         String
+  product           Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  priceAtAdd        Decimal  @db.Decimal(10, 2)
+  notifyOnPriceDrop Boolean  @default(true)
+  notifyOnRestock   Boolean  @default(true)
+  addedAt           DateTime @default(now())
+
+  @@unique([wishlistId, productId])
+}
+
+model LoyaltyTransaction {
+  id        String                 @id @default(cuid())
+  userId    String
+  user      User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      LoyaltyTransactionType
+  points    Int
+  orderId   String?
+  note      String?
+  createdAt DateTime               @default(now())
+
+  @@index([userId])
+}
+
+// Single-row config table; the app enforces there is only ever one row (seeded once, updated by Admin).
+model LoyaltyConfig {
+  id                      String   @id @default(cuid())
+  pointsPerJdSpent        Decimal  @db.Decimal(6, 2)
+  redemptionValuePerPoint Decimal  @db.Decimal(6, 4)
+  updatedAt               DateTime @updatedAt
+}
+
+model LoyaltyTier {
+  id        String @id @default(cuid())
+  nameEn    String
+  nameAr    String
+  minPoints Int
+  sortOrder Int    @default(0)
+}
+
+model StoreCreditTransaction {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount      Decimal  @db.Decimal(10, 2)
+  reason      String
+  orderId     String?
+  createdById String?
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+}
+
+// ==================== Support ====================
+
+model SupportTicket {
+  id           String       @id @default(cuid())
+  userId       String
+  user         User         @relation("TicketCustomer", fields: [userId], references: [id], onDelete: Cascade)
+  orderId      String?
+  order        Order?       @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  subject      String
+  category     String
+  status       TicketStatus @default(OPEN)
+  assignedToId String?
+  assignedTo   User?        @relation("TicketAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  messages SupportTicketMessage[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([assignedToId])
+}
+
+model SupportTicketMessage {
+  id             String        @id @default(cuid())
+  ticketId       String
+  ticket         SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  senderId       String
+  sender         User          @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  message        String
+  isInternalNote Boolean       @default(false)
+  createdAt      DateTime      @default(now())
+
+  @@index([ticketId])
+}
+
+model NotificationPreference {
+  id       String               @id @default(cuid())
+  userId   String
+  user     User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category NotificationCategory
+  channel  NotificationChannel
+  enabled  Boolean              @default(true)
+
+  @@unique([userId, category, channel])
+}
+
+// Log of every simulated send (no real provider wired up yet - see the storefront's notification service).
+model Notification {
+  id             String               @id @default(cuid())
+  userId         String?
+  user           User?                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category       NotificationCategory
+  channel        NotificationChannel
+  status         NotificationStatus   @default(SENT)
+  title          String
+  body           String
+  relatedOrderId String?
+  isRead         Boolean              @default(false)
+  createdAt      DateTime             @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+// ==================== Marketing / Ops ====================
+
+model PromoCode {
+  id                String             @id @default(cuid())
+  code              String             @unique
+  discountType      PromoDiscountType
+  discountValue     Decimal            @db.Decimal(10, 2)
+  minOrderTotal     Decimal            @default(0) @db.Decimal(10, 2)
+  targetSegment     PromoTargetSegment @default(ALL)
+  startsAt          DateTime?
+  expiresAt         DateTime?
+  usageLimitTotal   Int?
+  usageLimitPerUser Int?
+  isActive          Boolean            @default(true)
+  createdAt         DateTime           @default(now())
+
+  orders Order[]
+  usages PromoCodeUsage[]
+}
+
+model PromoCodeUsage {
+  id             String    @id @default(cuid())
+  promoCodeId    String
+  promoCode      PromoCode @relation(fields: [promoCodeId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orderId        String    @unique
+  order          Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  discountAmount Decimal   @db.Decimal(10, 2)
+  usedAt         DateTime  @default(now())
+
+  @@index([promoCodeId])
+  @@index([userId])
+}
+
+model ShippingZone {
+  id               String  @id @default(cuid())
+  cityEn           String  @unique
+  cityAr           String
+  fee              Decimal @db.Decimal(10, 2)
+  estimatedDaysMin Int?
+  estimatedDaysMax Int?
+  isActive         Boolean @default(true)
+}
+
+// One row per delivery *attempt* - a failed delivery reassigned to another driver gets a new
+// row (attemptNumber + 1) so the failure history and per-driver earnings both stay accurate.
+model DeliveryAssignment {
+  id             String         @id @default(cuid())
+  orderId        String
+  order          Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  driverId       String
+  driver         User           @relation(fields: [driverId], references: [id], onDelete: Restrict)
+  attemptNumber  Int            @default(1)
+  status         DeliveryStatus @default(ASSIGNED)
+  failedReason   String?
+  earningsAmount Decimal        @default(0) @db.Decimal(10, 2)
+  assignedAt     DateTime       @default(now())
+  pickedUpAt     DateTime?
+  deliveredAt    DateTime?
+
+  supportTickets DeliverySupportTicket[]
+
+  @@index([orderId])
+  @@index([driverId])
+}
+
+// Driver-reported operational issues ("Report a Problem"), a queue deliberately kept separate
+// from the customer-facing SupportTicket inbox - different queues, different consumers. Reuses
+// TicketStatus since the lifecycle (OPEN/ASSIGNED/IN_PROGRESS/RESOLVED/CLOSED) is identical.
+// staffNote is a single free-text field, not a threaded conversation - deliberately lighter scope
+// than SupportTicket's message model.
+model DeliverySupportTicket {
+  id                   String              @id @default(cuid())
+  driverId             String
+  driver               User                @relation("DeliveryReportDriver", fields: [driverId], references: [id], onDelete: Cascade)
+  deliveryAssignmentId String?
+  deliveryAssignment   DeliveryAssignment? @relation(fields: [deliveryAssignmentId], references: [id], onDelete: SetNull)
+  problemType          DeliveryProblemType
+  // Required when problemType is OTHER - enforced in src/lib/validation/deliverySupport.ts, not
+  // at the DB level, matching this schema's own convention for cross-field rules.
+  description          String?
+  photoUrl             String?
+  urgency              ReportUrgency       @default(NORMAL)
+  status               TicketStatus        @default(OPEN)
+  assignedToId         String?
+  assignedTo           User?               @relation("DeliveryReportAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  staffNote            String?
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+
+  @@index([driverId])
+  @@index([status])
+  @@index([assignedToId])
+  @@index([deliveryAssignmentId])
+}
+
+// Actor-role-agnostic audit trail: covers Admin actions too (not just Staff), so there is one
+// audit surface instead of parallel logs per role.
+model ActivityLog {
+  id         String   @id @default(cuid())
+  actorId    String
+  actor      User     @relation(fields: [actorId], references: [id], onDelete: Cascade)
+  actorRole  Role
+  action     String
+  entityType String
+  entityId   String?
+  beforeData Json?
+  afterData  Json?
+  createdAt  DateTime @default(now())
+
+  @@index([actorId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
+
+// ==================== Analytics cache ====================
+
+// Materialized-view-style cache, recomputed on the order-payment-PAID transition (single
+// recomputation path - see lib/server/services/customerStats.ts) plus a manual admin recalculate.
+model CustomerStats {
+  id             String      @id @default(cuid())
+  userId         String      @unique
+  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  totalSpent     Decimal     @default(0) @db.Decimal(12, 2)
+  orderCount     Int         @default(0)
+  lastOrderAt    DateTime?
+  recencyScore   Int?
+  frequencyScore Int?
+  monetaryScore  Int?
+  segment        RfmSegment?
+  updatedAt      DateTime    @updatedAt
+
+  @@index([totalSpent])
+  @@index([segment])
+}
