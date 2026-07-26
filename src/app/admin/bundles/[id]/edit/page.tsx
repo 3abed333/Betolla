@@ -14,7 +14,7 @@ export default async function EditBundlePage({ params }: { params: Promise<{ id:
     prisma.product.findMany({
       where: { isActive: true },
       orderBy: { nameEn: "asc" },
-      select: { id: true, nameEn: true, price: true },
+      select: { id: true, nameEn: true, nameAr: true, price: true },
     }),
   ]);
   if (!bundle) notFound();
@@ -23,7 +23,7 @@ export default async function EditBundlePage({ params }: { params: Promise<{ id:
     <div className="flex flex-col gap-4">
       <h2 className="font-heading text-2xl font-semibold text-ink">{t("editBundle")}</h2>
       <BundleForm
-        products={products.map((p) => ({ id: p.id, nameEn: p.nameEn, price: p.price.toString() }))}
+        products={products.map((p) => ({ id: p.id, nameEn: p.nameEn, nameAr: p.nameAr, price: p.price.toString() }))}
         bundleId={bundle.id}
         initialValues={{
           nameEn: bundle.nameEn,

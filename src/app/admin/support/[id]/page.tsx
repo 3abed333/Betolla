@@ -7,8 +7,8 @@ import { Card, CardContent, Badge } from "@/components/ui";
 import { FormattedDate } from "@/components/FormattedDate";
 import type { AppLocale } from "@/i18n/config";
 import { supportCategoryKey } from "@/lib/supportCategories";
-import { TicketControls } from "./TicketControls";
-import { AdminReplyForm } from "./AdminReplyForm";
+import { TicketControls } from "@/components/support/TicketControls";
+import { AdminReplyForm } from "@/components/support/AdminReplyForm";
 
 export const metadata: Metadata = { title: "Support Ticket - Betolla Admin" };
 

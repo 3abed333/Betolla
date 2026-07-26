@@ -11,6 +11,8 @@ type DeliveryPerformance = {
     failedRate: number;
     onTimeRate: number;
     avgDeliveryHours: number | null;
+    avgRating: number | null;
+    ratingCount: number;
   }[];
   onTimeThresholdHours: number;
   problemBreakdown: { problemType: string; count: number }[];
@@ -44,7 +46,7 @@ export async function DeliveryPerformanceSection({
 
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-xs text-ink-muted">{t("onTimeNote", { hours: current.onTimeThresholdHours })}</p>
+      <p className="text-xs text-analytics-muted">{t("onTimeNote", { hours: current.onTimeThresholdHours })}</p>
       <Table>
         <TableHeader>
           <TableRow>
@@ -53,6 +55,7 @@ export async function DeliveryPerformanceSection({
             <TableHead>{t("headers.failedRate")}</TableHead>
             <TableHead>{t("headers.onTimeRate")}</TableHead>
             <TableHead>{t("headers.avgDeliveryTime")}</TableHead>
+            <TableHead>{t("headers.avgRating")}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -61,16 +64,27 @@ export async function DeliveryPerformanceSection({
             return (
               <TableRow key={d.driverId}>
                 <TableCell>{d.name}</TableCell>
-                <TableCell>{d.delivered}</TableCell>
                 <TableCell>
-                  {(d.failedRate * 100).toFixed(0)}%
+                  <span className="text-neutral">{d.delivered}</span>
+                </TableCell>
+                <TableCell>
+                  <span className="text-bad">{(d.failedRate * 100).toFixed(0)}%</span>
                   {formatDelta(d.failedRate * 100, prev ? prev.failedRate * 100 : undefined, vsPriorPeriod, "pp")}
                 </TableCell>
                 <TableCell>
-                  {(d.onTimeRate * 100).toFixed(0)}%
+                  <span className="text-good">{(d.onTimeRate * 100).toFixed(0)}%</span>
                   {formatDelta(d.onTimeRate * 100, prev ? prev.onTimeRate * 100 : undefined, vsPriorPeriod, "pp")}
                 </TableCell>
                 <TableCell>{d.avgDeliveryHours != null ? `${d.avgDeliveryHours.toFixed(1)}h` : "—"}</TableCell>
+                <TableCell>
+                  {d.avgRating != null ? (
+                    <span className={d.avgRating >= 4 ? "text-good" : d.avgRating < 3 ? "text-bad" : "text-neutral"}>
+                      {d.avgRating.toFixed(1)} ({d.ratingCount})
+                    </span>
+                  ) : (
+                    "—"
+                  )}
+                </TableCell>
               </TableRow>
             );
           })}
@@ -78,11 +92,11 @@ export async function DeliveryPerformanceSection({
       </Table>
 
       <div>
-        <p className="mb-2 text-sm font-medium text-ink">{t("failedReasonsTitle")}</p>
+        <p className="mb-2 text-sm font-medium text-analytics">{t("failedReasonsTitle")}</p>
         {current.problemBreakdown.length === 0 ? (
-          <p className="text-sm text-ink-muted">{t("noProblemReports")}</p>
+          <p className="text-sm text-analytics-muted">{t("noProblemReports")}</p>
         ) : (
-          <ul className="flex flex-col gap-1 text-sm text-ink-muted">
+          <ul className="flex flex-col gap-1 text-sm text-analytics-muted">
             {current.problemBreakdown.map((p) => (
               <li key={p.problemType} className="flex justify-between">
                 <span>{tProblemType.has(p.problemType) ? tProblemType(p.problemType) : p.problemType}</span>

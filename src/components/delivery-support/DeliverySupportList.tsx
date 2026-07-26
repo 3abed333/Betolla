@@ -42,7 +42,7 @@ export async function DeliverySupportList({ reports, basePath }: { reports: Repo
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                {report.urgency === "URGENT" && <Badge variant="destructive">{t("urgent")}</Badge>}
+                {report.urgency === "URGENT" && <Badge variant="critical">{t("urgent")}</Badge>}
                 <TicketStatusBadge status={report.status} />
               </div>
             </CardContent>

@@ -15,6 +15,7 @@ export type OrderRow = {
   createdAt: Date;
   customerName: string;
   itemCount: number;
+  needsDriver?: boolean;
 };
 
 export async function OrdersTable({ orders, basePath }: { orders: OrderRow[]; basePath: string }) {
@@ -49,7 +50,10 @@ export async function OrdersTable({ orders, basePath }: { orders: OrderRow[]; ba
             </TableCell>
             <TableCell>{order.customerName}</TableCell>
             <TableCell>
-              <OrderStatusBadge status={order.status} />
+              <div className="flex flex-wrap items-center gap-1.5">
+                <OrderStatusBadge status={order.status} />
+                {order.needsDriver && <Badge variant="critical">{t("noDriverBadge")}</Badge>}
+              </div>
             </TableCell>
             <TableCell>
               <Badge variant={order.paymentStatus === "PAID" ? "success" : order.paymentStatus === "REFUNDED" ? "accent" : "neutral"}>

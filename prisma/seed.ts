@@ -20,6 +20,32 @@ const DEMO_PASSWORD = "Betolla123!";
 const DAY_MS = 24 * 60 * 60 * 1000;
 const NOW = new Date();
 
+// ---------------- image helpers ----------------
+
+const HAIR_CARE_IMAGES = [
+  "/seed-images/hair-care/shampoo-03.jpg",
+  "/seed-images/hair-care/shampoo-04.jpg",
+  "/seed-images/hair-care/shampoo-05.jpg",
+  "/seed-images/hair-care/shampoo-06.jpg",
+  "/seed-images/hair-care/shampoo-08.jpg",
+  "/seed-images/hair-care/shampoo-10.jpg",
+  "/seed-images/hair-care/shampoo-11.jpg",
+  "/seed-images/hair-care/serum-01.jpg",
+  "/seed-images/hair-care/serum-02.jpg",
+  "/seed-images/hair-care/serum-03.jpg",
+  "/seed-images/hair-care/serum-04.jpg",
+  "/seed-images/hair-care/serum-05.jpg",
+  "/seed-images/hair-care/serum-06.jpg",
+  "/seed-images/hair-care/serum-07.jpg",
+];
+
+function hairCareImageUrl(seed: string) {
+  const hash = Math.abs(
+    [...seed].reduce((h, c) => (h * 31 + c.charCodeAt(0)) | 0, 0)
+  );
+  return HAIR_CARE_IMAGES[hash % HAIR_CARE_IMAGES.length];
+}
+
 // ---------------- small random helpers ----------------
 
 function randInt(min: number, max: number) {
@@ -193,7 +219,7 @@ async function main() {
   const productBySku = new Map<string, { id: string; price: number }>();
   for (const p of products) {
     const category = categoryBySlug.get(p.categorySlug)!;
-    const mainImageUrl = `https://picsum.photos/seed/${p.imageSeed}/800/800`;
+    const mainImageUrl = hairCareImageUrl(p.imageSeed);
     const created = await prisma.product.create({
       data: {
         sku: p.sku,
@@ -210,7 +236,7 @@ async function main() {
         mainImageUrl,
         images: {
           create: [2, 3, 4].map((n) => ({
-            url: `https://picsum.photos/seed/${p.imageSeed}-${n}/800/800`,
+            url: hairCareImageUrl(`${p.imageSeed}-${n}`),
             sortOrder: n - 1,
           })),
         },
@@ -229,7 +255,7 @@ async function main() {
         descriptionEn: b.descriptionEn,
         descriptionAr: b.descriptionAr,
         bundlePrice: b.bundlePrice,
-        mainImageUrl: `https://picsum.photos/seed/${b.imageSeed}/800/800`,
+        mainImageUrl: hairCareImageUrl(b.imageSeed),
         items: {
           create: b.itemSkus.map((sku) => ({
             productId: productBySku.get(sku)!.id,
@@ -416,7 +442,7 @@ async function main() {
         return {
           productId: productBySku.get(sku)!.id,
           nameSnapshot: product.nameEn,
-          imageSnapshot: `https://picsum.photos/seed/${product.imageSeed}/800/800`,
+          imageSnapshot: hairCareImageUrl(product.imageSeed),
           priceSnapshot: price,
           quantity,
         };
@@ -723,6 +749,25 @@ async function main() {
     }
   }
   console.log("Seeded notification preferences for all customers");
+
+  const roleNotificationTargets = [
+    { user: admin, categories: ["SUPPORT", "OPERATIONS"] as const },
+    ...staff.map((s) => ({ user: s, categories: ["SUPPORT", "OPERATIONS"] as const })),
+    ...drivers.map((d) => ({ user: d, categories: ["DELIVERY_ASSIGNMENTS"] as const })),
+  ];
+  for (const { user, categories } of roleNotificationTargets) {
+    for (const category of categories) {
+      await prisma.notificationPreference.createMany({
+        data: [
+          { userId: user.id, category, channel: "EMAIL", enabled: true },
+          { userId: user.id, category, channel: "IN_APP", enabled: true },
+          { userId: user.id, category, channel: "SMS", enabled: false },
+          { userId: user.id, category, channel: "PUSH", enabled: false },
+        ],
+      });
+    }
+  }
+  console.log("Seeded notification preferences for admin/staff/delivery accounts");
 
   // ---------------- abandoned carts ----------------
 

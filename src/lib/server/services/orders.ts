@@ -1,7 +1,7 @@
 import "server-only";
 import { prisma } from "@/lib/db";
-import { recomputeCustomerStatsForUser } from "./customerStats";
-import { notify } from "./notifications";
+import { recomputeCustomerStatsForUser, confirmCodPaymentOnDelivery } from "./customerStats";
+import { notify, notifyRoles } from "./notifications";
 import type { OrderStatus } from "@/generated/prisma/client";
 
 export class OrderError extends Error {}
@@ -47,6 +47,22 @@ export async function updateOrderStatus(params: {
   if (params.nextStatus === "CANCELLED" && !params.cancellationReason?.trim()) {
     throw new OrderError("A cancellation reason is required");
   }
+  // A driver must be actively assigned before an order can be sent out for delivery or marked
+  // delivered - checked on both transitions since a FAILED assignment leaves Order.status at
+  // ON_DELIVERY (see syncOrderStatusFromDelivery below), which would otherwise let staff push
+  // straight to DELIVERED with no active driver.
+  if (params.nextStatus === "ON_DELIVERY" || params.nextStatus === "DELIVERED") {
+    const activeAssignments = await prisma.deliveryAssignment.count({
+      where: { orderId: params.orderId, status: { not: "FAILED" } },
+    });
+    if (activeAssignments === 0) {
+      throw new OrderError(
+        params.nextStatus === "ON_DELIVERY"
+          ? "Assign a delivery driver before starting delivery"
+          : "Assign a delivery driver before marking this order delivered",
+      );
+    }
+  }
 
   const updated = await prisma.$transaction(async (tx) => {
     const result = await tx.order.update({
@@ -64,7 +80,10 @@ export async function updateOrderStatus(params: {
         changedById: params.changedById,
       },
     });
-    // Cancelling restores stock that was reserved at checkout.
+    // Cancelling restores stock that was reserved at checkout, and reverses any wallet balance the
+    // customer spent on an order that never actually completed - same reasoning for both: an order
+    // that's cancelled shouldn't leave the customer permanently out the store credit/points they
+    // put toward it, matching how a refunded payment would be reversed.
     if (params.nextStatus === "CANCELLED") {
       const items = await tx.orderItem.findMany({ where: { orderId: params.orderId } });
       for (const item of items) {
@@ -72,17 +91,53 @@ export async function updateOrderStatus(params: {
           await tx.product.update({ where: { id: item.productId }, data: { stock: { increment: item.quantity } } });
         }
       }
+      if (Number(order.storeCreditUsed) > 0) {
+        await tx.storeCreditTransaction.create({
+          data: { userId: order.userId, amount: Number(order.storeCreditUsed), reason: "Refunded - order cancelled", orderId: order.id },
+        });
+        await tx.user.update({ where: { id: order.userId }, data: { storeCreditBalance: { increment: Number(order.storeCreditUsed) } } });
+      }
+      if (order.loyaltyPointsUsed > 0) {
+        await tx.loyaltyTransaction.create({
+          data: { userId: order.userId, type: "ADJUST", points: order.loyaltyPointsUsed, orderId: order.id, note: "Refunded - order cancelled" },
+        });
+        await tx.user.update({ where: { id: order.userId }, data: { loyaltyPointsBalance: { increment: order.loyaltyPointsUsed } } });
+      }
     }
     return result;
   });
 
-  if (order.paymentStatus === "PAID") {
+  // A Cash-on-Delivery order reaching DELIVERED is this business's payment-confirmation event
+  // (cash changes hands at the door) - see confirmCodPaymentOnDelivery's docstring. Any other
+  // already-PAID order still gets its stats recomputed on every transition, as before.
+  if (params.nextStatus === "DELIVERED" && order.paymentMethodLabel === "Cash on Delivery" && order.paymentStatus === "UNPAID") {
+    await confirmCodPaymentOnDelivery(params.orderId);
+  } else if (order.paymentStatus === "PAID") {
     await recomputeCustomerStatsForUser(order.userId);
   }
 
   const notification = orderStatusNotification(params.nextStatus, updated.orderNumber, params.cancellationReason);
   if (notification) {
     await notify({ userId: order.userId, category: "ORDER_UPDATES", ...notification, relatedOrderId: order.id });
+  }
+
+  // Staff/Admin operational alert: a driver still needs to be assigned. In practice this branch
+  // is rarely reached with zero assignments - assigning a driver to a PENDING/CONFIRMED order
+  // bumps Order.status to CONFIRMED directly (see assign-driver/route.ts) without going through
+  // this function - but the check is kept as a real correctness guard, not dead code, in case
+  // that other path ever changes.
+  if (params.nextStatus === "CONFIRMED") {
+    const activeAssignments = await prisma.deliveryAssignment.count({
+      where: { orderId: params.orderId, status: { not: "FAILED" } },
+    });
+    if (activeAssignments === 0) {
+      await notifyRoles(["STAFF", "ADMIN"], {
+        category: "OPERATIONS",
+        title: "Order confirmed without a driver",
+        body: `Order ${updated.orderNumber} is confirmed but has no delivery driver assigned yet.`,
+        relatedOrderId: order.id,
+      });
+    }
   }
 
   return updated;
@@ -109,8 +164,12 @@ export async function syncOrderStatusFromDelivery(orderId: string, deliveryStatu
   await prisma.order.update({ where: { id: orderId }, data: { status: nextOrderStatus } });
   await prisma.orderStatusHistory.create({ data: { orderId, status: nextOrderStatus } });
 
-  if (nextOrderStatus === "DELIVERED" && order.paymentStatus === "PAID") {
-    await recomputeCustomerStatsForUser(order.userId);
+  if (nextOrderStatus === "DELIVERED") {
+    if (order.paymentMethodLabel === "Cash on Delivery" && order.paymentStatus === "UNPAID") {
+      await confirmCodPaymentOnDelivery(orderId);
+    } else if (order.paymentStatus === "PAID") {
+      await recomputeCustomerStatsForUser(order.userId);
+    }
   }
 
   const notification = orderStatusNotification(nextOrderStatus, order.orderNumber);

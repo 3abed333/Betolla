@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireApiRole } from "@/lib/auth/api-guard";
 import { logActivity } from "@/lib/server/services/activityLog";
+import { notify } from "@/lib/server/services/notifications";
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await requireApiRole("ADMIN", "STAFF");
@@ -45,6 +46,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     entityType: "Order",
     entityId: orderId,
     afterData: { driverId, attemptNumber: assignment.attemptNumber },
+  });
+
+  await notify({
+    userId: driverId,
+    category: "DELIVERY_ASSIGNMENTS",
+    title: "New delivery assigned",
+    body: `You've been assigned to deliver order ${order.orderNumber}.`,
+    relatedOrderId: orderId,
   });
 
   return NextResponse.json({ assignment });

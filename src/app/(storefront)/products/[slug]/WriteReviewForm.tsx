@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Button, Textarea, Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui";
 import { StarRatingInput } from "@/components/ui/StarRating";
+import { ReviewPhotoUploader } from "@/components/ImageUploader";
 import { toast } from "@/lib/toast";
 
 export function WriteReviewForm({
@@ -18,6 +19,7 @@ export function WriteReviewForm({
   const [orderItemId, setOrderItemId] = useState(reviewableOrderItems[0]?.id ?? "");
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   async function submit() {
@@ -26,7 +28,7 @@ export function WriteReviewForm({
     const res = await fetch("/api/reviews", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ orderItemId, rating, comment }),
+      body: JSON.stringify({ orderItemId, rating, comment, photoUrl: photoUrl ?? undefined }),
     });
     const data = await res.json();
     setSubmitting(false);
@@ -61,6 +63,12 @@ export function WriteReviewForm({
         value={comment}
         onChange={(e) => setComment(e.target.value)}
       />
+      <div>
+        <label className="text-sm font-medium text-ink">{t("photoLabel")}</label>
+        <div className="mt-1.5">
+          <ReviewPhotoUploader value={photoUrl} onChange={setPhotoUrl} />
+        </div>
+      </div>
       <Button onClick={submit} disabled={submitting} className="self-start">
         {submitting ? t("submitting") : t("submitReview")}
       </Button>

@@ -61,7 +61,7 @@ export default async function AdminDeliverySupportDetailPage({ params }: { param
             )}
           </p>
         </div>
-        {report.urgency === "URGENT" && <Badge variant="destructive">{tUrgency("URGENT")}</Badge>}
+        {report.urgency === "URGENT" && <Badge variant="critical">{tUrgency("URGENT")}</Badge>}
       </div>
 
       {report.description && (
@@ -78,7 +78,12 @@ export default async function AdminDeliverySupportDetailPage({ params }: { param
           <CardContent>
             <p className="mb-2 text-sm font-medium text-ink">{t("photo")}</p>
             <div className="relative h-48 w-48 overflow-hidden rounded-xl bg-surface-secondary">
-              <Image src={report.photoUrl} alt={t("photoAlt")} fill sizes="192px" className="object-cover" />
+              {/* unoptimized: this photo is served through an authenticated route (see
+                  src/app/api/uploads/delivery-reports/[filename]/route.ts), not a public static
+                  file - Next's image optimizer would fetch it server-side without the viewer's
+                  session cookie and get a 401, so optimization is skipped and the browser fetches
+                  it directly with its own cookies instead. */}
+              <Image src={report.photoUrl} alt={t("photoAlt")} fill sizes="192px" className="object-cover" unoptimized />
             </div>
           </CardContent>
         </Card>

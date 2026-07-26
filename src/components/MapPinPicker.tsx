@@ -3,6 +3,7 @@
 import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { useTranslations } from "next-intl";
 
 // Leaflet's default marker image paths don't resolve correctly through bundlers - use a plain
 // inline SVG pin instead of fighting that well-known issue.
@@ -35,6 +36,7 @@ export function MapPinPicker({
   lng: number | null;
   onChange: (lat: number, lng: number) => void;
 }) {
+  const t = useTranslations("account.addresses.form");
   const position: [number, number] = lat !== null && lng !== null ? [lat, lng] : AMMAN;
 
   return (
@@ -48,7 +50,7 @@ export function MapPinPicker({
         {lat !== null && lng !== null && <Marker position={[lat, lng]} icon={pinIcon} />}
       </MapContainer>
       <p className="bg-surface-secondary p-2 text-center text-xs text-ink-muted">
-        Click the map to drop a pin at the delivery location.
+        {t("mapInstructions")}
       </p>
     </div>
   );

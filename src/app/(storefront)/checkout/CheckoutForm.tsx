@@ -8,6 +8,7 @@ import { Button, Input, Card, CardContent, Checkbox } from "@/components/ui";
 import { toast } from "@/lib/toast";
 import { Money } from "@/components/Money";
 import { localizedCity } from "@/lib/cityAr";
+import { localizedField } from "@/lib/localizedField";
 import type { AppLocale } from "@/i18n/config";
 
 type Address = {
@@ -28,11 +29,13 @@ export function CheckoutForm({
   paymentMethods: initialPaymentMethods,
   storeCreditBalance,
   loyaltyPointsBalance,
+  loyaltyRedemptionRate,
 }: {
   addresses: Address[];
   paymentMethods: PaymentMethod[];
   storeCreditBalance: number;
   loyaltyPointsBalance: number;
+  loyaltyRedemptionRate: number;
 }) {
   const t = useTranslations("storefront.checkout");
   const tToast = useTranslations("toast");
@@ -71,7 +74,10 @@ export function CheckoutForm({
   const subtotal = Number(subtotalRaw.toFixed(2));
   const discountAmount = promoResult && "discountAmount" in promoResult ? promoResult.discountAmount : 0;
   const storeCreditApplied = useStoreCredit ? Math.min(storeCreditBalance, subtotal - discountAmount) : 0;
-  const loyaltyValue = useMemo(() => loyaltyPointsToRedeem * 0.01, [loyaltyPointsToRedeem]);
+  const loyaltyValue = useMemo(
+    () => loyaltyPointsToRedeem * loyaltyRedemptionRate,
+    [loyaltyPointsToRedeem, loyaltyRedemptionRate],
+  );
   const selectedAddress = addresses.find((a) => a.id === selectedAddressId);
   const shippingFee = selectedAddress?.city === "Amman" ? 0 : selectedAddress ? 3 : 0;
   const estimatedTotal = Math.max(0, subtotal - discountAmount - storeCreditApplied - loyaltyValue) + shippingFee;
@@ -257,7 +263,7 @@ export function CheckoutForm({
             {items.map((i) => (
               <div key={i.key} className="flex justify-between text-ink-muted">
                 <span>
-                  {i.nameEn} x{i.quantity}
+                  {localizedField(locale, i.nameEn, i.nameAr)} x{i.quantity}
                 </span>
                 <span>
                   <Money value={i.price * i.quantity} locale={locale} />
@@ -327,6 +333,30 @@ export function CheckoutForm({
                 <Money value={subtotal} locale={locale} />
               </span>
             </div>
+            {discountAmount > 0 && (
+              <div className="flex justify-between text-ink-muted">
+                <span>{t("discount")}</span>
+                <span>
+                  -<Money value={discountAmount} locale={locale} />
+                </span>
+              </div>
+            )}
+            {storeCreditApplied > 0 && (
+              <div className="flex justify-between text-ink-muted">
+                <span>{t("storeCreditApplied")}</span>
+                <span>
+                  -<Money value={storeCreditApplied} locale={locale} />
+                </span>
+              </div>
+            )}
+            {loyaltyValue > 0 && (
+              <div className="flex justify-between text-ink-muted">
+                <span>{t("loyaltyPointsRedeemed")}</span>
+                <span>
+                  -<Money value={loyaltyValue} locale={locale} />
+                </span>
+              </div>
+            )}
             <div className="flex justify-between text-ink-muted">
               <span>{t("shipping")}</span>
               <span>

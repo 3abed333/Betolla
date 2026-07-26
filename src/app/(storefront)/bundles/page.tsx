@@ -5,6 +5,7 @@ import { getTranslations, getLocale } from "next-intl/server";
 import { prisma } from "@/lib/db";
 import { Badge, EmptyState } from "@/components/ui";
 import { Money } from "@/components/Money";
+import { localizedField } from "@/lib/localizedField";
 import type { AppLocale } from "@/i18n/config";
 
 export const metadata: Metadata = { title: "Bundles - Betolla Cosmetics" };
@@ -30,6 +31,8 @@ export default async function BundlesPage() {
             (sum, i) => sum + Number(i.product.price) * i.quantity,
             0,
           );
+          const bundleName = localizedField(locale, bundle.nameEn, bundle.nameAr);
+          const bundleDescription = localizedField(locale, bundle.descriptionEn, bundle.descriptionAr);
           return (
             <Link
               key={bundle.id}
@@ -39,7 +42,7 @@ export default async function BundlesPage() {
               <div className="relative aspect-square w-full overflow-hidden bg-surface">
                 <Image
                   src={bundle.mainImageUrl}
-                  alt={bundle.nameEn}
+                  alt={bundleName}
                   fill
                   sizes="(max-width: 768px) 100vw, 33vw"
                   className="object-cover transition-transform duration-300 group-hover:scale-105"
@@ -49,8 +52,8 @@ export default async function BundlesPage() {
                 </Badge>
               </div>
               <div className="flex flex-col gap-2 p-4">
-                <h3 className="font-medium text-ink">{bundle.nameEn}</h3>
-                <p className="line-clamp-2 text-sm text-ink-muted">{bundle.descriptionEn}</p>
+                <h3 className="font-medium text-ink">{bundleName}</h3>
+                <p className="line-clamp-2 text-sm text-ink-muted">{bundleDescription}</p>
                 <div className="flex items-baseline gap-2 pt-1">
                   <span className="font-semibold text-ink">
                     <Money value={Number(bundle.bundlePrice)} locale={locale} />

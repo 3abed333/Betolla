@@ -37,7 +37,7 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ i
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {report.urgency === "URGENT" && <Badge variant="destructive">{tUrgency("URGENT")}</Badge>}
+          {report.urgency === "URGENT" && <Badge variant="critical">{tUrgency("URGENT")}</Badge>}
           <TicketStatusBadge status={report.status} />
         </div>
       </div>
@@ -56,7 +56,8 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ i
           <CardContent>
             <p className="mb-2 text-sm font-medium text-ink">{tDetail("photo")}</p>
             <div className="relative h-48 w-48 overflow-hidden rounded-xl bg-surface-secondary">
-              <Image src={report.photoUrl} alt={tDetail("photoAlt")} fill sizes="192px" className="object-cover" />
+              {/* unoptimized: served through an authenticated route, see the admin equivalent page. */}
+              <Image src={report.photoUrl} alt={tDetail("photoAlt")} fill sizes="192px" className="object-cover" unoptimized />
             </div>
           </CardContent>
         </Card>

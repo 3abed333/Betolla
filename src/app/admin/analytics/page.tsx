@@ -4,6 +4,7 @@ import { getTranslations, getLocale } from "next-intl/server";
 import { prisma } from "@/lib/db";
 import { Card, CardContent, EmptyState, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Badge } from "@/components/ui";
 import { Money } from "@/components/Money";
+import { localizedField } from "@/lib/localizedField";
 import type { AppLocale } from "@/i18n/config";
 import {
   getFrequentlyBoughtTogether,
@@ -14,12 +15,17 @@ import {
   getCohortRetention,
   getCartAbandonmentFunnel,
   getGeographicOrderDistribution,
+  getTotalRevenue,
+  getNetRevenueOverTime,
   type DateRange,
 } from "@/lib/server/services/analytics";
+import { KpiStrip } from "./KpiStrip";
+import { RfmStatTiles } from "./RfmStatTiles";
 import { RfmSegmentChart } from "./RfmSegmentChart";
 import { RecalculateRfmButton } from "./RecalculateRfmButton";
 import { SalesHeatmap } from "./SalesHeatmap";
 import { AnalyticsDateRangeFilter } from "./AnalyticsDateRangeFilter";
+import { NetRevenueChart } from "./NetRevenueChart";
 import { StaffPerformanceChart } from "./StaffPerformanceChart";
 import { DeliveryPerformanceSection } from "./DeliveryPerformanceSection";
 import { CohortRetentionHeatmap } from "./CohortRetentionHeatmap";
@@ -27,6 +33,9 @@ import { CartFunnelChart } from "./CartFunnelChart";
 import { GeographicOrderTable } from "./GeographicOrderTable";
 
 export const metadata: Metadata = { title: "Analytics - Betolla Admin" };
+
+const CARD_CLASS = "rounded-lg";
+const CONTENT_CLASS = "p-3.5";
 
 // Same-length window immediately preceding the current range, for period-over-period deltas.
 // Needs both ends of the current range to know how long it is - falls back to no comparison
@@ -54,41 +63,85 @@ export default async function AdminAnalyticsPage({
   };
   const previousRange = getPreviousRange(currentRange);
 
-  const [segmentGroups, unsegmentedCount, topCustomers, frequentPairs, heatmap] = await Promise.all([
-    prisma.customerStats.groupBy({ by: ["segment"], _count: { _all: true }, where: { segment: { not: null } } }),
-    prisma.customerStats.count({ where: { segment: null } }),
-    getTopCustomersByLifetimeValue(10),
-    getFrequentlyBoughtTogether(10),
-    getSalesHeatmap(),
-  ]);
-
-  const [staffCurrent, staffPrevious, deliveryCurrent, deliveryPrevious, cohorts, funnelCurrent, funnelPrevious, geoRows] =
+  // RFM segment counts are deliberately NOT date-filtered: a segment is a whole-customer-lifetime
+  // label recomputed all-at-once by the Recalculate button (recency/frequency/monetary against a
+  // customer's entire order history), not a per-event fact with its own date - "Champions between
+  // March 1-31" isn't a coherent question the way "top spenders in March" is. Flagged to the user
+  // rather than forcing a fake window onto it.
+  const [segmentGroups, unsegmentedCount, topCustomers, frequentPairs, heatmap, totalRevenue, openDeliveryTickets] =
     await Promise.all([
-      getStaffPerformance(currentRange),
-      previousRange ? getStaffPerformance(previousRange) : Promise.resolve(undefined),
-      getDeliveryPerformance(currentRange),
-      previousRange ? getDeliveryPerformance(previousRange) : Promise.resolve(undefined),
-      getCohortRetention(),
-      getCartAbandonmentFunnel(currentRange),
-      previousRange ? getCartAbandonmentFunnel(previousRange) : Promise.resolve(undefined),
-      getGeographicOrderDistribution(currentRange),
+      prisma.customerStats.groupBy({ by: ["segment"], _count: { _all: true }, where: { segment: { not: null } } }),
+      prisma.customerStats.count({ where: { segment: null } }),
+      getTopCustomersByLifetimeValue(10, currentRange),
+      getFrequentlyBoughtTogether(10, currentRange),
+      getSalesHeatmap(currentRange),
+      getTotalRevenue(currentRange),
+      prisma.deliverySupportTicket.count({ where: { status: { in: ["OPEN", "ASSIGNED", "IN_PROGRESS"] } } }),
     ]);
+
+  const [
+    staffCurrent,
+    staffPrevious,
+    deliveryCurrent,
+    deliveryPrevious,
+    cohorts,
+    funnelCurrent,
+    funnelPrevious,
+    geoRows,
+    previousHeatmap,
+    previousRevenue,
+    netRevenueCurrent,
+    netRevenuePrevious,
+  ] = await Promise.all([
+    getStaffPerformance(currentRange),
+    previousRange ? getStaffPerformance(previousRange) : Promise.resolve(undefined),
+    getDeliveryPerformance(currentRange),
+    previousRange ? getDeliveryPerformance(previousRange) : Promise.resolve(undefined),
+    getCohortRetention(),
+    getCartAbandonmentFunnel(currentRange),
+    previousRange ? getCartAbandonmentFunnel(previousRange) : Promise.resolve(undefined),
+    getGeographicOrderDistribution(currentRange),
+    previousRange ? getSalesHeatmap(previousRange) : Promise.resolve(undefined),
+    previousRange ? getTotalRevenue(previousRange) : Promise.resolve(undefined),
+    getNetRevenueOverTime(currentRange),
+    previousRange ? getNetRevenueOverTime(previousRange) : Promise.resolve(undefined),
+  ]);
 
   const segmentCounts: Record<string, number> = {};
   for (const g of segmentGroups) {
     if (g.segment) segmentCounts[g.segment] = g._count._all;
   }
+  const atRiskLostCount = (segmentCounts.AT_RISK ?? 0) + (segmentCounts.LOST ?? 0);
 
   return (
-    <div className="flex flex-col gap-6">
-      <h2 className="font-heading text-2xl font-semibold text-ink">{t("heading")}</h2>
+    <div className="analytics-theme -m-6 min-h-[calc(100%+3rem)] bg-[var(--analytics-bg)] p-6 text-analytics">
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="font-heading text-2xl font-semibold text-analytics">{t("heading")}</h2>
+        <AnalyticsDateRangeFilter />
+      </div>
 
-      <Card>
-        <CardContent className="flex flex-col gap-4">
+      <KpiStrip
+        values={[
+          { labelKey: "totalRevenue", current: totalRevenue, previous: previousRevenue, isCurrency: true, goodDirection: "up" },
+          { labelKey: "atRiskLostCustomers", current: atRiskLostCount, isCurrency: false, goodDirection: null },
+          { labelKey: "openDeliveryTickets", current: openDeliveryTickets, isCurrency: false, goodDirection: null },
+          {
+            labelKey: "recoverableCartRevenue",
+            current: funnelCurrent.recoverableRevenue,
+            previous: funnelPrevious?.recoverableRevenue,
+            isCurrency: true,
+            goodDirection: "down",
+          },
+        ]}
+      />
+
+      <Card className={CARD_CLASS}>
+        <CardContent className={`flex flex-col gap-3 ${CONTENT_CLASS}`}>
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-medium text-ink">{t("rfm.title")}</p>
-              <p className="text-sm text-ink-muted">
+              <p className="font-medium text-analytics">{t("rfm.title")}</p>
+              <p className="text-sm text-analytics-muted">
                 {t("rfm.description")}
                 {unsegmentedCount > 0 && ` ${t("rfm.unsegmentedNote", { count: unsegmentedCount })}`}
               </p>
@@ -98,16 +151,19 @@ export default async function AdminAnalyticsPage({
           {Object.keys(segmentCounts).length === 0 ? (
             <EmptyState title={t("rfm.noSegmentsTitle")} description={t("rfm.noSegmentsDescription")} />
           ) : (
-            <RfmSegmentChart counts={segmentCounts} />
+            <>
+              <RfmStatTiles counts={segmentCounts} />
+              <RfmSegmentChart counts={segmentCounts} />
+            </>
           )}
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <Card>
-          <CardContent>
-            <p className="mb-1 font-medium text-ink">{t("topCustomers.title")}</p>
-            <p className="mb-3 text-sm text-ink-muted">{t("topCustomers.description")}</p>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <Card className={CARD_CLASS}>
+          <CardContent className={CONTENT_CLASS}>
+            <p className="mb-1 font-medium text-analytics">{t("topCustomers.title")}</p>
+            <p className="mb-3 text-sm text-analytics-muted">{t("topCustomers.description")}</p>
             {topCustomers.length === 0 ? (
               <EmptyState title={t("topCustomers.noOrdersTitle")} />
             ) : (
@@ -123,7 +179,7 @@ export default async function AdminAnalyticsPage({
                   {topCustomers.map((c) => (
                     <TableRow key={c.userId}>
                       <TableCell>
-                        <Link href={`/admin/users/${c.userId}`} className="text-cta hover:underline">
+                        <Link href={`/admin/users/${c.userId}`} className="text-neutral hover:underline">
                           {c.name}
                         </Link>
                         {c.segment && (
@@ -144,10 +200,10 @@ export default async function AdminAnalyticsPage({
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent>
-            <p className="mb-1 font-medium text-ink">{t("frequentlyBought.title")}</p>
-            <p className="mb-3 text-sm text-ink-muted">{t("frequentlyBought.description")}</p>
+        <Card className={CARD_CLASS}>
+          <CardContent className={CONTENT_CLASS}>
+            <p className="mb-1 font-medium text-analytics">{t("frequentlyBought.title")}</p>
+            <p className="mb-3 text-sm text-analytics-muted">{t("frequentlyBought.description")}</p>
             {frequentPairs.length === 0 ? (
               <EmptyState title={t("frequentlyBought.noHistoryTitle")} />
             ) : (
@@ -162,7 +218,7 @@ export default async function AdminAnalyticsPage({
                   {frequentPairs.map((p) => (
                     <TableRow key={`${p.aId}-${p.bId}`}>
                       <TableCell>
-                        {p.aName} + {p.bName}
+                        {localizedField(locale, p.aNameEn, p.aNameAr)} + {localizedField(locale, p.bNameEn, p.bNameAr)}
                       </TableCell>
                       <TableCell>{p.count}</TableCell>
                     </TableRow>
@@ -174,62 +230,68 @@ export default async function AdminAnalyticsPage({
         </Card>
       </div>
 
-      <Card>
-        <CardContent>
-          <p className="mb-1 font-medium text-ink">{t("salesHeatmap.title")}</p>
-          <p className="mb-3 text-sm text-ink-muted">{t("salesHeatmap.description")}</p>
-          <SalesHeatmap grid={heatmap} />
+      <Card className={CARD_CLASS}>
+        <CardContent className={CONTENT_CLASS}>
+          <p className="mb-1 font-medium text-analytics">{t("salesHeatmap.title")}</p>
+          <p className="mb-3 text-sm text-analytics-muted">{t("salesHeatmap.description")}</p>
+          <SalesHeatmap grid={heatmap} previousGrid={previousHeatmap} />
         </CardContent>
       </Card>
 
-      <div className="border-t border-border pt-6">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <h3 className="font-heading text-lg font-semibold text-ink">{t("extendedHeading")}</h3>
-          <AnalyticsDateRangeFilter />
-        </div>
+      <div className="border-t border-analytics pt-4">
+        <h3 className="mb-3 font-heading text-lg font-semibold text-analytics">{t("extendedHeading")}</h3>
 
-        <div className="flex flex-col gap-6">
-          <Card>
-            <CardContent>
-              <p className="mb-1 font-medium text-ink">{t("staffPerformance.title")}</p>
-              <p className="mb-3 text-sm text-ink-muted">{t("staffPerformance.description")}</p>
+        <div className="flex flex-col gap-4">
+          <Card className={CARD_CLASS}>
+            <CardContent className={CONTENT_CLASS}>
+              <p className="mb-1 font-medium text-analytics">{t("netRevenue.title")}</p>
+              <p className="mb-3 text-sm text-analytics-muted">{t("netRevenue.description")}</p>
+              <NetRevenueChart current={netRevenueCurrent} previous={netRevenuePrevious} />
+            </CardContent>
+          </Card>
+
+          <Card className={CARD_CLASS}>
+            <CardContent className={CONTENT_CLASS}>
+              <p className="mb-1 font-medium text-analytics">{t("staffPerformance.title")}</p>
+              <p className="mb-3 text-sm text-analytics-muted">{t("staffPerformance.description")}</p>
               <StaffPerformanceChart current={staffCurrent} previous={staffPrevious} />
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent>
-              <p className="mb-1 font-medium text-ink">{t("deliveryPerformance.title")}</p>
-              <p className="mb-3 text-sm text-ink-muted">{t("deliveryPerformance.description")}</p>
+          <Card className={CARD_CLASS}>
+            <CardContent className={CONTENT_CLASS}>
+              <p className="mb-1 font-medium text-analytics">{t("deliveryPerformance.title")}</p>
+              <p className="mb-3 text-sm text-analytics-muted">{t("deliveryPerformance.description")}</p>
               <DeliveryPerformanceSection current={deliveryCurrent} previous={deliveryPrevious} />
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent>
-              <p className="mb-1 font-medium text-ink">{t("cohortRetention.title")}</p>
-              <p className="mb-3 text-sm text-ink-muted">{t("cohortRetention.description")}</p>
+          <Card className={CARD_CLASS}>
+            <CardContent className={CONTENT_CLASS}>
+              <p className="mb-1 font-medium text-analytics">{t("cohortRetention.title")}</p>
+              <p className="mb-3 text-sm text-analytics-muted">{t("cohortRetention.description")}</p>
               <CohortRetentionHeatmap cohorts={cohorts} />
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent>
-              <p className="mb-1 font-medium text-ink">{t("cartFunnel.title")}</p>
-              <p className="mb-3 text-sm text-ink-muted">{t("cartFunnel.description")}</p>
+          <Card className={CARD_CLASS}>
+            <CardContent className={CONTENT_CLASS}>
+              <p className="mb-1 font-medium text-analytics">{t("cartFunnel.title")}</p>
+              <p className="mb-3 text-sm text-analytics-muted">{t("cartFunnel.description")}</p>
               <CartFunnelChart current={funnelCurrent} previous={funnelPrevious} />
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent>
-              <p className="mb-1 font-medium text-ink">{t("geographic.title")}</p>
-              <p className="mb-3 text-sm text-ink-muted">{t("geographic.description")}</p>
+          <Card className={CARD_CLASS}>
+            <CardContent className={CONTENT_CLASS}>
+              <p className="mb-1 font-medium text-analytics">{t("geographic.title")}</p>
+              <p className="mb-3 text-sm text-analytics-muted">{t("geographic.description")}</p>
               <GeographicOrderTable rows={geoRows} />
             </CardContent>
           </Card>
         </div>
       </div>
+    </div>
     </div>
   );
 }

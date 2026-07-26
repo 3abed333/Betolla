@@ -12,6 +12,40 @@ function dateRangeWhere(range?: DateRange) {
   };
 }
 
+/** Total PAID-order revenue in a range (or all-time when no range is given) - the KPI-strip figure. */
+export async function getTotalRevenue(range?: DateRange) {
+  const result = await prisma.order.aggregate({
+    where: { paymentStatus: "PAID", createdAt: dateRangeWhere(range) },
+    _sum: { total: true },
+  });
+  return Number(result._sum.total ?? 0);
+}
+
+/**
+ * Net revenue (subtotal minus discounts minus refunds) bucketed by day, for a profit-proxy time
+ * series. True profit needs a per-product cost-basis figure this schema doesn't track (confirmed:
+ * no costPrice/cogs field anywhere on Product/ProductBundle) - net revenue after discounts and
+ * refunds is the closest honest proxy, and is labeled as such rather than "Profit", matching the
+ * same honesty precedent as the realized-spend-only lifetime-value figure above.
+ */
+export async function getNetRevenueOverTime(range?: DateRange) {
+  const orders = await prisma.order.findMany({
+    where: { paymentStatus: "PAID", createdAt: dateRangeWhere(range) },
+    select: { createdAt: true, subtotal: true, discountTotal: true, refundedAmount: true },
+  });
+
+  const byDate = new Map<string, number>();
+  for (const o of orders) {
+    const dateKey = o.createdAt.toISOString().slice(0, 10);
+    const net = Number(o.subtotal) - Number(o.discountTotal) - Number(o.refundedAmount);
+    byDate.set(dateKey, (byDate.get(dateKey) ?? 0) + net);
+  }
+
+  return [...byDate.entries()]
+    .map(([date, netRevenue]) => ({ date, netRevenue }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+}
+
 /**
  * Top co-purchased product pairs across every order, overall (not per-product) - a dashboard-
  * level "frequently bought together" view. Computed in JS over all order items rather than a
@@ -19,21 +53,28 @@ function dateRangeWhere(range?: DateRange) {
  * fast, and avoids a fragile hand-written pairwise SQL query for a report that only needs to
  * run when an admin opens the analytics page.
  */
-export async function getFrequentlyBoughtTogether(limit = 10) {
+export async function getFrequentlyBoughtTogether(limit = 10, range?: DateRange) {
+  const createdAtWhere = dateRangeWhere(range);
   const items = await prisma.orderItem.findMany({
-    where: { productId: { not: null } },
-    select: { orderId: true, productId: true, product: { select: { nameEn: true } } },
+    where: {
+      productId: { not: null },
+      ...(createdAtWhere ? { order: { createdAt: createdAtWhere } } : {}),
+    },
+    select: { orderId: true, productId: true, product: { select: { nameEn: true, nameAr: true } } },
   });
 
-  const basketsByOrder = new Map<string, Map<string, string>>();
+  const basketsByOrder = new Map<string, Map<string, { nameEn: string; nameAr: string }>>();
   for (const item of items) {
     if (!item.productId || !item.product) continue;
-    const basket = basketsByOrder.get(item.orderId) ?? new Map<string, string>();
-    basket.set(item.productId, item.product.nameEn);
+    const basket = basketsByOrder.get(item.orderId) ?? new Map<string, { nameEn: string; nameAr: string }>();
+    basket.set(item.productId, { nameEn: item.product.nameEn, nameAr: item.product.nameAr });
     basketsByOrder.set(item.orderId, basket);
   }
 
-  const pairCounts = new Map<string, { aId: string; aName: string; bId: string; bName: string; count: number }>();
+  const pairCounts = new Map<
+    string,
+    { aId: string; aNameEn: string; aNameAr: string; bId: string; bNameEn: string; bNameAr: string; count: number }
+  >();
   for (const basket of basketsByOrder.values()) {
     const products = [...basket.entries()];
     for (let i = 0; i < products.length; i++) {
@@ -44,7 +85,15 @@ export async function getFrequentlyBoughtTogether(limit = 10) {
         if (existing) {
           existing.count++;
         } else {
-          pairCounts.set(key, { aId: first[0], aName: first[1], bId: second[0], bName: second[1], count: 1 });
+          pairCounts.set(key, {
+            aId: first[0],
+            aNameEn: first[1].nameEn,
+            aNameAr: first[1].nameAr,
+            bId: second[0],
+            bNameEn: second[1].nameEn,
+            bNameAr: second[1].nameAr,
+            count: 1,
+          });
         }
       }
     }
@@ -58,22 +107,60 @@ export async function getFrequentlyBoughtTogether(limit = 10) {
  * same number CustomerStats.totalSpent already tracks. Deliberately not a predictive/forecasted
  * CLV: any forward-looking formula needs a retention-period assumption this app has no real
  * basis for, and a fabricated multiplier would read as more rigorous than it is.
+ *
+ * Without a range, reads the pre-aggregated CustomerStats.totalSpent/orderCount directly (fast,
+ * matches the all-time figure shown elsewhere). With a range, that pre-aggregate can't answer
+ * "top spenders in this window" - so it re-aggregates PAID orders within the range via groupBy
+ * instead. `segment` always reflects the customer's current (not date-scoped) RFM label, same
+ * as the no-range case, since segments aren't computed per-window (see the RFM note in
+ * getRfmSegmentCounts below).
  */
-export async function getTopCustomersByLifetimeValue(limit = 10) {
-  const stats = await prisma.customerStats.findMany({
-    where: { totalSpent: { gt: 0 } },
-    orderBy: { totalSpent: "desc" },
+export async function getTopCustomersByLifetimeValue(limit = 10, range?: DateRange) {
+  const createdAtWhere = dateRangeWhere(range);
+  if (!createdAtWhere) {
+    const stats = await prisma.customerStats.findMany({
+      where: { totalSpent: { gt: 0 } },
+      orderBy: { totalSpent: "desc" },
+      take: limit,
+      include: { user: { select: { firstName: true, lastName: true, email: true } } },
+    });
+    return stats.map((s) => ({
+      userId: s.userId,
+      name: `${s.user.firstName} ${s.user.lastName}`,
+      email: s.user.email,
+      totalSpent: Number(s.totalSpent),
+      orderCount: s.orderCount,
+      segment: s.segment,
+    }));
+  }
+
+  const groups = await prisma.order.groupBy({
+    by: ["userId"],
+    where: { paymentStatus: "PAID", createdAt: createdAtWhere },
+    _sum: { total: true },
+    _count: { _all: true },
+    orderBy: { _sum: { total: "desc" } },
     take: limit,
-    include: { user: { select: { firstName: true, lastName: true, email: true } } },
   });
-  return stats.map((s) => ({
-    userId: s.userId,
-    name: `${s.user.firstName} ${s.user.lastName}`,
-    email: s.user.email,
-    totalSpent: Number(s.totalSpent),
-    orderCount: s.orderCount,
-    segment: s.segment,
-  }));
+  const userIds = groups.map((g) => g.userId);
+  const [users, statsRows] = await Promise.all([
+    prisma.user.findMany({ where: { id: { in: userIds } }, select: { id: true, firstName: true, lastName: true, email: true } }),
+    prisma.customerStats.findMany({ where: { userId: { in: userIds } }, select: { userId: true, segment: true } }),
+  ]);
+  const userById = new Map(users.map((u) => [u.id, u]));
+  const segmentByUserId = new Map(statsRows.map((s) => [s.userId, s.segment]));
+
+  return groups.map((g) => {
+    const u = userById.get(g.userId);
+    return {
+      userId: g.userId,
+      name: u ? `${u.firstName} ${u.lastName}` : "Unknown",
+      email: u?.email ?? "",
+      totalSpent: Number(g._sum.total ?? 0),
+      orderCount: g._count._all,
+      segment: segmentByUserId.get(g.userId) ?? null,
+    };
+  });
 }
 
 // dayIndex matches JS Date.getDay() (0=Sun..6=Sat) - the UI localizes the weekday name from this
@@ -88,9 +175,9 @@ const TIME_BLOCKS = [
 ];
 
 /** Day-of-week x 4-hour-block grid of paid-order volume/revenue, for a sales heatmap. */
-export async function getSalesHeatmap() {
+export async function getSalesHeatmap(range?: DateRange) {
   const orders = await prisma.order.findMany({
-    where: { paymentStatus: "PAID" },
+    where: { paymentStatus: "PAID", createdAt: dateRangeWhere(range) },
     select: { createdAt: true, total: true },
   });
 
@@ -173,13 +260,14 @@ export async function getDeliveryPerformance(range?: DateRange) {
       status: true,
       assignedAt: true,
       deliveredAt: true,
+      rating: true,
       driver: { select: { firstName: true, lastName: true } },
     },
   });
 
   const byDriver = new Map<
     string,
-    { name: string; total: number; delivered: number; failed: number; onTime: number; deliveryHours: number[] }
+    { name: string; total: number; delivered: number; failed: number; onTime: number; deliveryHours: number[]; ratings: number[] }
   >();
   for (const a of assignments) {
     const entry = byDriver.get(a.driverId) ?? {
@@ -189,6 +277,7 @@ export async function getDeliveryPerformance(range?: DateRange) {
       failed: 0,
       onTime: 0,
       deliveryHours: [],
+      ratings: [],
     };
     entry.total++;
     if (a.status === "DELIVERED" && a.deliveredAt) {
@@ -196,6 +285,7 @@ export async function getDeliveryPerformance(range?: DateRange) {
       const hours = (a.deliveredAt.getTime() - a.assignedAt.getTime()) / (1000 * 60 * 60);
       entry.deliveryHours.push(hours);
       if (hours <= ON_TIME_THRESHOLD_HOURS) entry.onTime++;
+      if (a.rating !== null) entry.ratings.push(a.rating);
     } else if (a.status === "FAILED") {
       entry.failed++;
     }
@@ -212,6 +302,8 @@ export async function getDeliveryPerformance(range?: DateRange) {
       failedRate: e.total > 0 ? e.failed / e.total : 0,
       onTimeRate: e.delivered > 0 ? e.onTime / e.delivered : 0,
       avgDeliveryHours: e.deliveryHours.length > 0 ? e.deliveryHours.reduce((s, h) => s + h, 0) / e.deliveryHours.length : null,
+      avgRating: e.ratings.length > 0 ? e.ratings.reduce((s, r) => s + r, 0) / e.ratings.length : null,
+      ratingCount: e.ratings.length,
     }))
     .sort((a, b) => b.delivered - a.delivered);
 

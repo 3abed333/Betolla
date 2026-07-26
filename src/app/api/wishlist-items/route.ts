@@ -1,15 +1,26 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getCurrentSession } from "@/lib/auth/session";
 import { getOrCreateDefaultWishlist } from "@/lib/server/services/wishlists";
+
+const addWishlistItemSchema = z.object({
+  productId: z.string().min(1),
+  wishlistId: z.string().min(1).optional(),
+});
+const removeWishlistItemSchema = z.object({ productId: z.string().min(1) });
 
 export async function POST(request: NextRequest) {
   const session = await getCurrentSession();
   if (!session) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
-  const { productId, wishlistId } = await request.json().catch(() => ({ productId: null, wishlistId: null }));
-  if (!productId) return NextResponse.json({ error: "productId is required" }, { status: 400 });
+  const body = await request.json().catch(() => null);
+  const parsed = addWishlistItemSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
+  }
+  const { productId, wishlistId } = parsed.data;
 
   const product = await prisma.product.findUnique({ where: { id: productId } });
   if (!product) return NextResponse.json({ error: "Product not found" }, { status: 404 });
@@ -33,8 +44,12 @@ export async function DELETE(request: NextRequest) {
   const session = await getCurrentSession();
   if (!session) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
-  const { productId } = await request.json().catch(() => ({ productId: null }));
-  if (!productId) return NextResponse.json({ error: "productId is required" }, { status: 400 });
+  const body = await request.json().catch(() => null);
+  const parsed = removeWishlistItemSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
+  }
+  const { productId } = parsed.data;
 
   await prisma.wishlistItem.deleteMany({
     where: { productId, wishlist: { userId: session.userId } },

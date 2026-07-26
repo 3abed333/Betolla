@@ -16,7 +16,11 @@ export default async function AdminStaffPage() {
   const tHeaders = await getTranslations("admin.managedAccountsShared.headers");
   const tRoleLabel = await getTranslations("common.roleLabel");
   const locale = (await getLocale()) as AppLocale;
-  const staff = await prisma.user.findMany({ where: { role: "STAFF" }, orderBy: { createdAt: "desc" } });
+  const staff = await prisma.user.findMany({
+    where: { role: "STAFF" },
+    orderBy: { createdAt: "desc" },
+    select: { id: true, firstName: true, lastName: true, email: true, isActive: true, createdAt: true },
+  });
 
   return (
     <div className="flex flex-col gap-4">

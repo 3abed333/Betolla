@@ -5,6 +5,7 @@ import { getTranslations, getLocale } from "next-intl/server";
 import { prisma } from "@/lib/db";
 import { Button, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Badge } from "@/components/ui";
 import { Money } from "@/components/Money";
+import { localizedField } from "@/lib/localizedField";
 import type { AppLocale } from "@/i18n/config";
 import { isLowStock } from "@/lib/server/services/inventory";
 import { ProductRowActions } from "@/components/products/ProductRowActions";
@@ -53,20 +54,23 @@ export default async function AdminProductsPage({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {visible.map((product) => (
+          {visible.map((product) => {
+            const productName = localizedField(locale, product.nameEn, product.nameAr);
+            const categoryName = localizedField(locale, product.category.nameEn, product.category.nameAr);
+            return (
             <TableRow key={product.id}>
               <TableCell>
                 <div className="flex items-center gap-3">
                   <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-surface-secondary">
-                    <Image src={product.mainImageUrl} alt={product.nameEn} fill sizes="40px" className="object-cover" />
+                    <Image src={product.mainImageUrl} alt={productName} fill sizes="40px" className="object-cover" />
                   </div>
                   <div>
-                    <p className="font-medium text-ink">{product.nameEn}</p>
+                    <p className="font-medium text-ink">{productName}</p>
                     <p className="text-xs text-ink-muted">{product.sku}</p>
                   </div>
                 </div>
               </TableCell>
-              <TableCell>{product.category.nameEn}</TableCell>
+              <TableCell>{categoryName}</TableCell>
               <TableCell>
                 <Money value={Number(product.price)} locale={locale} />
               </TableCell>
@@ -87,7 +91,8 @@ export default async function AdminProductsPage({
                 <ProductRowActions productId={product.id} editHref={`/admin/products/${product.id}/edit`} />
               </TableCell>
             </TableRow>
-          ))}
+            );
+          })}
         </TableBody>
       </Table>
     </div>

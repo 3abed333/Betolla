@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui";
 import { Money } from "@/components/Money";
 import { FormattedDate } from "@/components/FormattedDate";
+import { localizedField } from "@/lib/localizedField";
 import type { AppLocale } from "@/i18n/config";
 
 export const metadata: Metadata = { title: "Wallet & Loyalty - Betolla Cosmetics" };
@@ -55,8 +56,11 @@ export default async function WalletPage() {
           <CardContent>
             <p className="text-3xl font-semibold text-ink">{t("pts", { count: balance })}</p>
             <p className="mt-1 text-sm text-ink-muted">
-              {currentTier ? t("tierSuffix", { tier: currentTier.nameEn }) : t("bronzeTierFallback")}
-              {nextTier && ` – ${t("pointsToNextTier", { count: nextTier.minPoints - balance, tier: nextTier.nameEn })}`}
+              {currentTier
+                ? t("tierSuffix", { tier: localizedField(locale, currentTier.nameEn, currentTier.nameAr) })
+                : t("bronzeTierFallback")}
+              {nextTier &&
+                ` – ${t("pointsToNextTier", { count: nextTier.minPoints - balance, tier: localizedField(locale, nextTier.nameEn, nextTier.nameAr) })}`}
             </p>
             {nextTier && (
               <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-surface-secondary">

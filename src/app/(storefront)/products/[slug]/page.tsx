@@ -9,6 +9,7 @@ import { AddToCartForm } from "./AddToCartForm";
 import { ReviewsSection } from "./ReviewsSection";
 import { AddToWishlistButton } from "@/components/AddToWishlistButton";
 import { Money } from "@/components/Money";
+import { localizedField } from "@/lib/localizedField";
 import type { AppLocale } from "@/i18n/config";
 
 export async function generateMetadata({
@@ -20,9 +21,10 @@ export async function generateMetadata({
   const product = await prisma.product.findUnique({ where: { slug } });
   const t = await getTranslations("storefront.productDetail");
   const tCommon = await getTranslations("common");
+  const locale = (await getLocale()) as AppLocale;
   return {
     title: product
-      ? t("metaTitle", { name: product.nameEn, brand: tCommon("brand") })
+      ? t("metaTitle", { name: localizedField(locale, product.nameEn, product.nameAr), brand: tCommon("brand") })
       : t("metaTitleFallback", { brand: tCommon("brand") }),
   };
 }
@@ -39,14 +41,17 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
 
   const images = [product.mainImageUrl, ...product.images.map((i) => i.url)];
   const onSale = product.compareAtPrice && Number(product.compareAtPrice) > Number(product.price);
+  const productName = localizedField(locale, product.nameEn, product.nameAr);
+  const categoryName = localizedField(locale, product.category.nameEn, product.category.nameAr);
+  const description = localizedField(locale, product.descriptionEn, product.descriptionAr);
 
   return (
     <div className="flex flex-col gap-16">
       <div className="grid grid-cols-1 gap-10 lg:grid-cols-2">
-        <Gallery images={images} alt={product.nameEn} />
+        <Gallery images={images} alt={productName} />
         <div className="flex flex-col gap-4">
-          <p className="text-sm text-ink-muted">{product.category.nameEn}</p>
-          <h1 className="font-heading text-3xl font-semibold text-ink">{product.nameEn}</h1>
+          <p className="text-sm text-ink-muted">{categoryName}</p>
+          <h1 className="font-heading text-3xl font-semibold text-ink">{productName}</h1>
           {product.reviewCount > 0 && (
             <StarRatingDisplay rating={Number(product.avgRating)} count={product.reviewCount} />
           )}
@@ -61,7 +66,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
             )}
             {onSale && <Badge variant="accent">{t("sale")}</Badge>}
           </div>
-          <p className="text-ink-muted">{product.descriptionEn}</p>
+          <p className="text-ink-muted">{description}</p>
           {product.stock > 0 && product.stock <= (product.lowStockThreshold ?? 15) && (
             <p className="text-sm text-accent">{t("onlyLeftInStock", { count: product.stock })}</p>
           )}

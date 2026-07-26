@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireApiRole } from "@/lib/auth/api-guard";
 import { logActivity } from "@/lib/server/services/activityLog";
+import { updateManagedAccountSchema } from "@/lib/validation/managedAccount";
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await requireApiRole("ADMIN");
@@ -14,15 +15,20 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     return NextResponse.json({ error: "Staff account not found" }, { status: 404 });
   }
 
-  const { isActive, firstName, lastName, phone } = await request.json().catch(() => ({}));
+  const body = await request.json().catch(() => null);
+  const parsed = updateManagedAccountSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
+  }
+  const { isActive, firstName, lastName, phone } = parsed.data;
   const before = { isActive: staffMember.isActive, firstName: staffMember.firstName, lastName: staffMember.lastName };
   const updated = await prisma.user.update({
     where: { id },
     data: {
-      isActive: typeof isActive === "boolean" ? isActive : undefined,
-      firstName: firstName || undefined,
-      lastName: lastName || undefined,
-      phone: phone || undefined,
+      isActive,
+      firstName,
+      lastName,
+      phone,
     },
     select: { id: true, email: true, username: true, firstName: true, lastName: true, phone: true, isActive: true, createdAt: true },
   });

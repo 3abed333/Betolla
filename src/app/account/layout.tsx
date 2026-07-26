@@ -4,15 +4,16 @@ import { requireRole } from "@/lib/auth/guards";
 import { prisma } from "@/lib/db";
 import { LogoutButton } from "@/components/LogoutButton";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { AccountNav } from "./AccountNav";
 
 export default async function AccountLayout({ children }: { children: React.ReactNode }) {
   const session = await requireRole("CUSTOMER");
   const t = await getTranslations("account");
-  const user = await prisma.user.findUniqueOrThrow({
-    where: { id: session.userId },
-    select: { firstName: true },
-  });
+  const [user, unreadNotifications] = await Promise.all([
+    prisma.user.findUniqueOrThrow({ where: { id: session.userId }, select: { firstName: true } }),
+    prisma.notification.count({ where: { userId: session.userId, isRead: false } }),
+  ]);
 
   return (
     <div className="flex flex-1 flex-col">
@@ -25,12 +26,13 @@ export default async function AccountLayout({ children }: { children: React.Reac
         </div>
         <div className="flex items-center gap-4">
           <p className="text-sm text-ink-muted">{t("layout.welcome", { name: user.firstName })}</p>
+          <LanguageSwitcher />
           <ThemeToggle />
           <LogoutButton />
         </div>
       </header>
       <div className="flex flex-1 flex-col sm:flex-row">
-        <AccountNav />
+        <AccountNav unreadNotifications={unreadNotifications} />
         <main className="flex-1 p-6">{children}</main>
       </div>
     </div>

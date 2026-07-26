@@ -10,12 +10,14 @@ export default async function NewBundlePage() {
   const products = await prisma.product.findMany({
     where: { isActive: true },
     orderBy: { nameEn: "asc" },
-    select: { id: true, nameEn: true, price: true },
+    select: { id: true, nameEn: true, nameAr: true, price: true },
   });
   return (
     <div className="flex flex-col gap-4">
       <h2 className="font-heading text-2xl font-semibold text-ink">{t("addBundle")}</h2>
-      <BundleForm products={products.map((p) => ({ id: p.id, nameEn: p.nameEn, price: p.price.toString() }))} />
+      <BundleForm
+        products={products.map((p) => ({ id: p.id, nameEn: p.nameEn, nameAr: p.nameAr, price: p.price.toString() }))}
+      />
     </div>
   );
 }

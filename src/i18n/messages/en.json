@@ -23,6 +23,18 @@
     "inactive": "Inactive",
     "exportCsv": "Export CSV",
     "unassigned": "Unassigned",
+    "working": "Working...",
+    "imageUploader": {
+      "uploadFailedTitle": "Upload failed",
+      "uploading": "Uploading...",
+      "uploadMainPhoto": "Upload main photo",
+      "mainProductImageAlt": "Main product image",
+      "addGalleryPhotos": "Add gallery photos",
+      "galleryImageAlt": "Gallery image",
+      "replacePhoto": "Replace photo",
+      "addPhotoOptional": "Add photo (optional)",
+      "attachedPhotoAlt": "Attached photo"
+    },
     "currencyUnit": "JD",
     "ticketStatus": {
       "OPEN": "Open",
@@ -82,7 +94,6 @@
       "NORMAL": "Normal",
       "URGENT": "Urgent"
     },
-    "customersCount": "{count, plural, one {# customer} other {# customers}}",
     "ordersCount": "{count, plural, one {# order} other {# orders}}",
     "roleLabel": {
       "STAFF": "Staff",
@@ -92,12 +103,33 @@
       "UNPAID": "Unpaid",
       "PAID": "Paid",
       "REFUNDED": "Refunded"
+    },
+    "notificationCategory": {
+      "ORDER_UPDATES": "Order Updates",
+      "PROMOTIONS": "Promotions",
+      "BACK_IN_STOCK": "Back in Stock",
+      "LOYALTY_AND_WALLET": "Loyalty & Wallet",
+      "SUPPORT": "Support",
+      "DELIVERY_ASSIGNMENTS": "Delivery Assignments",
+      "OPERATIONS": "Operations"
+    },
+    "notifications": {
+      "heading": "Notifications",
+      "allCategories": "All",
+      "markAllRead": "Mark all as read",
+      "markRead": "Mark as read",
+      "unread": "Unread",
+      "viewOrder": "View order",
+      "noNotificationsTitle": "No notifications yet",
+      "noNotificationsDescription": "You're all caught up."
     }
   },
   "theme": {
     "light": "Light",
     "dark": "Dark",
-    "toggle": "Toggle theme"
+    "toggle": "Toggle theme",
+    "switchToLight": "Switch to light theme",
+    "switchToDark": "Switch to dark theme"
   },
   "language": {
     "en": "English",
@@ -178,6 +210,8 @@
       "whichOrderPlaceholder": "Which order?",
       "orderPrefix": "Order {orderNumber}",
       "reviewPlaceholder": "Share your experience with this product...",
+      "photoLabel": "Photo (optional)",
+      "reviewPhotoAlt": "Photo attached to review",
       "submitting": "Submitting...",
       "submitReview": "Submit Review"
     },
@@ -224,11 +258,14 @@
       "orderSummary": "Order Summary",
       "promoCodePlaceholder": "Promo code",
       "apply": "Apply",
-      "promoApplied": "Promo applied: -{amount}",
-      "useStoreCredit": "Use store credit ({balance} available)",
+      "promoApplied": "Promo applied: -<amount></amount>",
+      "useStoreCredit": "Use store credit (<balance></balance> available)",
       "redeemLoyaltyPoints": "{count, plural, one {Redeem loyalty points (# point available)} other {Redeem loyalty points (# points available)}}",
-      "pointsEqualsValue": "{count, plural, one {# point = {value}} other {# points = {value}}}",
+      "pointsEqualsValue": "{count, plural, one {# point = <value></value>} other {# points = <value></value>}}",
       "subtotal": "Subtotal",
+      "discount": "Discount",
+      "storeCreditApplied": "Store credit applied",
+      "loyaltyPointsRedeemed": "Loyalty points redeemed",
       "shipping": "Shipping",
       "total": "Total",
       "placingOrder": "Placing order...",
@@ -239,6 +276,11 @@
       "orderPlaced": "Order placed!",
       "thanksPrefix": "Thanks for shopping with Betolla. Your order",
       "thanksSuffix": "is being processed.",
+      "subtotal": "Subtotal",
+      "discount": "Discount",
+      "storeCreditApplied": "Store credit applied",
+      "loyaltyPointsRedeemed": "Loyalty points redeemed",
+      "shipping": "Shipping",
       "total": "Total",
       "trackOrder": "Track Order",
       "continueShopping": "Continue Shopping"
@@ -285,6 +327,7 @@
       "wishlists": "Wishlists",
       "preferences": "Preferences",
       "support": "Support",
+      "notifications": "Notifications",
       "sessions": "Sessions",
       "openMenu": "Open account menu",
       "menuTitle": "Account menu"
@@ -317,11 +360,28 @@
         "subtotal": "Subtotal",
         "discount": "Discount",
         "storeCreditApplied": "Store credit applied",
+        "loyaltyPointsRedeemed": "Loyalty points redeemed",
         "shipping": "Shipping",
         "total": "Total",
         "shippingToPrefix": "Shipping to:",
         "paymentPrefix": "Payment:",
         "cancellationReasonPrefix": "Cancellation reason:"
+      },
+      "reviewDialog": {
+        "trigger": "Write a review",
+        "dialogTitle": "Review {itemName}",
+        "commentPlaceholder": "Share your experience with this product (optional)...",
+        "photoLabel": "Photo (optional)",
+        "submitting": "Submitting...",
+        "submit": "Submit Review"
+      },
+      "deliveryRatingDialog": {
+        "trigger": "Rate this delivery",
+        "dialogTitle": "How was your delivery?",
+        "commentPlaceholder": "Any comments about the delivery (optional)...",
+        "submitting": "Submitting...",
+        "submit": "Submit Rating",
+        "ratedNote": "You rated this delivery"
       },
       "reorder": {
         "couldntReorderTitle": "Couldn't reorder",
@@ -393,6 +453,7 @@
         "area": "Area",
         "streetBuilding": "Street / building",
         "defaultLabelValue": "Home",
+        "mapInstructions": "Click the map to drop a pin at the delivery location.",
         "setDefaultCheckbox": "Set as default shipping address",
         "saving": "Saving...",
         "save": "Save Address"
@@ -400,6 +461,7 @@
     },
     "wishlists": {
       "metaTitle": "Wishlists - {brand}",
+      "defaultListName": "My Wishlist",
       "couldntDeleteListTitle": "Couldn't delete list",
       "heading": "Wishlists",
       "newListPlaceholder": "New list name",
@@ -476,6 +538,9 @@
         "trigger": "New Ticket",
         "dialogTitle": "Contact Support",
         "categoryLabel": "Category",
+        "orderLabel": "Related order",
+        "orderPlaceholder": "Select an order...",
+        "noOrdersMessage": "You don't have any orders yet.",
         "subjectLabel": "Subject",
         "messageLabel": "Message",
         "sending": "Sending...",
@@ -504,6 +569,7 @@
       "support": "Support Inbox",
       "deliverySupport": "Delivery Support",
       "analytics": "Analytics",
+      "notifications": "Notifications",
       "settings": "Settings"
     },
     "layout": {
@@ -518,6 +584,7 @@
         "lowOutOfStock": "Low / Out of Stock",
         "openSupportTickets": "Open Support Tickets",
         "openDeliveryReports": "Open Delivery Reports",
+        "ordersNeedingDriver": "Orders Needing Driver",
         "totalRevenue": "Total Revenue",
         "customers": "Customers"
       },
@@ -552,7 +619,9 @@
       "couldntCancelOrder": "Couldn't cancel order",
       "orderCancelled": "Order cancelled",
       "couldntAssignDriver": "Couldn't assign driver",
-      "driverAssigned": "Driver assigned"
+      "driverAssigned": "Driver assigned",
+      "noActiveDriverNote": "Assign a delivery driver first.",
+      "noDriverBadge": "No driver"
     },
     "users": {
       "metaTitle": "Customers - {brand} Admin",
@@ -612,12 +681,15 @@
       "detail": {
         "metaTitle": "Order Details - {brand} Admin",
         "orderPrefix": "Order {orderNumber}",
+        "noDriverAlert": "No delivery driver assigned yet - assign one to keep this order moving.",
         "deliveryHistory": "Delivery History",
         "attemptPrefix": "Attempt {n}: {driverName} -",
         "qty": "Qty",
         "each": "each",
         "subtotal": "Subtotal",
         "discount": "Discount",
+        "storeCreditApplied": "Store credit applied",
+        "loyaltyPointsRedeemed": "Loyalty points redeemed",
         "shipping": "Shipping",
         "total": "Total",
         "paymentPrefix": "Payment:",
@@ -988,9 +1060,22 @@
         "to": "To"
       },
       "vsPriorPeriod": "vs prior period",
+      "kpi": {
+        "totalRevenue": "Total Revenue",
+        "atRiskLostCustomers": "At-Risk + Lost Customers",
+        "openDeliveryTickets": "Open Delivery Reports",
+        "recoverableCartRevenue": "Recoverable Cart Revenue",
+        "noComparisonHint": "Select a date range above for a period-over-period comparison."
+      },
+      "rfmStatTiles": {
+        "champions": "Champions",
+        "atRisk": "At Risk",
+        "lost": "Lost"
+      },
       "rfm": {
         "title": "RFM Customer Segments",
         "description": "Recency / Frequency / Monetary segmentation, population-relative.",
+        "customersLabel": "Customers",
         "unsegmentedNote": "{count, plural, one {# customer not yet scored.} other {# customers not yet scored.}}",
         "noSegmentsTitle": "No segments computed yet",
         "noSegmentsDescription": "Click Recalculate Segments to score every customer.",
@@ -1034,12 +1119,18 @@
           "block5": "8pm–12am"
         }
       },
+      "netRevenue": {
+        "title": "Net Revenue Over Time",
+        "description": "Subtotal minus discounts and refunds, by day (not a true profit figure - this app doesn't track per-product cost).",
+        "tooltipLabel": "Net revenue",
+        "noDataTitle": "No paid orders in this range"
+      },
       "staffPerformance": {
         "title": "Staff Performance",
         "description": "Orders processed per staff member, with a per-staff timeline.",
         "noActivityTitle": "No staff activity yet",
         "noActivityDescription": "Order status changes made by Admin/Staff will show up here.",
-        "ordersProcessedTooltip": "{count, plural, one {# order processed} other {# orders processed}}",
+        "ordersLabel": "Orders",
         "noTimelineData": "No timeline data for this staff member in this range."
       },
       "deliveryPerformance": {
@@ -1053,7 +1144,8 @@
           "delivered": "Delivered",
           "failedRate": "Failed rate",
           "onTimeRate": "On-time rate",
-          "avgDeliveryTime": "Avg delivery time"
+          "avgDeliveryTime": "Avg delivery time",
+          "avgRating": "Avg customer rating"
         },
         "failedReasonsTitle": "Failed-delivery reasons",
         "noProblemReports": "No delivery problem reports filed in this range."
@@ -1103,7 +1195,9 @@
       "orders": "Orders",
       "products": "Products",
       "deliveryAccounts": "Delivery Accounts",
-      "deliverySupport": "Delivery Support"
+      "support": "Support Inbox",
+      "deliverySupport": "Delivery Support",
+      "notifications": "Notifications"
     },
     "layout": {
       "kicker": "Betolla",
@@ -1157,8 +1251,9 @@
       "drawerTitle": "Delivery menu",
       "activeDeliveries": "Active Deliveries",
       "history": "History",
-      "earnings": "Earnings",
-      "myReports": "My Reports"
+      "collections": "Collections",
+      "myReports": "My Reports",
+      "notifications": "Notifications"
     },
     "layout": {
       "kicker": "Betolla",
@@ -1175,16 +1270,23 @@
       "metaTitle": "Delivery History - {brand} Delivery",
       "heading": "History",
       "noPastTitle": "No past deliveries",
-      "noPastDescription": "Completed and failed deliveries will show up here."
+      "noPastDescription": "Completed and failed deliveries will show up here.",
+      "filters": {
+        "from": "From",
+        "to": "To",
+        "searchPlaceholder": "Search order number..."
+      }
     },
-    "earnings": {
-      "metaTitle": "Earnings - {brand} Delivery",
-      "heading": "Earnings",
-      "totalEarnings": "Total earnings",
-      "thisMonth": "This month",
-      "deliveriesCompleted": "Deliveries completed",
-      "noEarningsTitle": "No earnings yet",
-      "noEarningsDescription": "Completed deliveries and their payout will show up here."
+    "collections": {
+      "metaTitle": "Today's Collections - {brand} Delivery",
+      "heading": "Today's Collections",
+      "description": "Cash you collected today from Cash-on-Delivery orders — reconcile this total with the accountant at the end of your shift.",
+      "totalToHandOver": "Total cash to hand over",
+      "codDeliveriesToday": "COD deliveries today",
+      "noCodTitle": "Nothing to hand over yet today",
+      "noCodDescription": "Cash-on-Delivery deliveries you complete today will show up here.",
+      "nonCodHeading": "Other deliveries today (no cash owed)",
+      "nonCodNote": "Paid online at checkout — nothing to collect."
     },
     "detail": {
       "metaTitle": "Delivery - {brand} Delivery",

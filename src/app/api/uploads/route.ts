@@ -7,7 +7,7 @@ const MAX_SIZE_BYTES = 8 * 1024 * 1024;
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 export async function POST(request: NextRequest) {
-  const session = await requireApiRole("ADMIN", "STAFF", "DELIVERY");
+  const session = await requireApiRole("ADMIN", "STAFF", "DELIVERY", "CUSTOMER");
   if (session instanceof NextResponse) return session;
 
   const contentType = request.headers.get("content-type") ?? "";
@@ -30,16 +30,28 @@ export async function POST(request: NextRequest) {
 
   // Never trust the client for the destination folder - a DELIVERY session's uploads always go
   // to delivery-reports/ regardless of what the request claims (matching how isInternalNote is
-  // force-set server-side for non-staff senders on support-ticket messages), and only ADMIN/STAFF
-  // may ever choose "avatars" - delivery-reports is exclusively the DELIVERY-forced path.
+  // force-set server-side for non-staff senders on support-ticket messages), a CUSTOMER session's
+  // uploads always go to reviews/ the same way, and only ADMIN/STAFF may ever choose "avatars" -
+  // delivery-reports/reviews are exclusively their respective role-forced paths.
   const requestedSubfolder = formData?.get("subfolder");
   let subfolder: UploadSubfolder = "products";
   if (session.role === "DELIVERY") {
     subfolder = "delivery-reports";
+  } else if (session.role === "CUSTOMER") {
+    subfolder = "reviews";
   } else if (requestedSubfolder === "avatars") {
     subfolder = "avatars";
   }
 
-  const url = await saveUploadedImage(file, subfolder);
-  return NextResponse.json({ url });
+  // The `file.type` check above only trusts the client-supplied MIME string - a request can claim
+  // image/png while sending non-image bytes. sharp() throws when it can't actually decode the
+  // file as an image, so that failure is caught here and turned into a clean 400 instead of an
+  // unhandled 500 (confirmed live during the Phase 15 security audit: a text file with a spoofed
+  // image/png Content-Type previously reached sharp() and crashed the request with a raw 500).
+  try {
+    const url = await saveUploadedImage(file, subfolder);
+    return NextResponse.json({ url });
+  } catch {
+    return NextResponse.json({ error: "The file could not be read as a valid image" }, { status: 400 });
+  }
 }

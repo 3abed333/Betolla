@@ -10,21 +10,39 @@ function weekdayLabel(dayIndex: number, locale: AppLocale) {
   return formatDate(new Date(2023, 0, 1 + dayIndex), locale, { weekday: "short" });
 }
 
-export async function SalesHeatmap({ grid }: { grid: HeatmapGrid }) {
+function totalOrders(grid: HeatmapGrid) {
+  return grid.reduce((sum, row) => sum + row.blocks.reduce((s, b) => s + b.count, 0), 0);
+}
+
+export async function SalesHeatmap({ grid, previousGrid }: { grid: HeatmapGrid; previousGrid?: HeatmapGrid }) {
   const t = await getTranslations("admin.analytics.salesHeatmap");
-  const tOrdersCount = await getTranslations("common");
+  const tCommon = await getTranslations("common");
+  const tAnalytics = await getTranslations("admin.analytics");
   const locale = (await getLocale()) as AppLocale;
   const maxRevenue = Math.max(1, ...grid.flatMap((row) => row.blocks.map((b) => b.revenue)));
   const blockKeys = grid[0]?.blocks.map((b) => b.key) ?? [];
+  const current = totalOrders(grid);
+  const previous = previousGrid ? totalOrders(previousGrid) : undefined;
+  const delta = previous !== undefined ? current - previous : null;
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full border-separate border-spacing-1 text-xs">
+      <p className="mb-2 text-sm text-analytics-muted">
+        {tCommon("ordersCount", { count: current })}
+        {delta !== null && delta !== 0 && (
+          <span className={delta > 0 ? "text-good" : "text-bad"}>
+            {" "}
+            ({delta > 0 ? "+" : ""}
+            {delta} {tAnalytics("vsPriorPeriod")})
+          </span>
+        )}
+      </p>
+      <table className="w-full border-separate border-spacing-0.5 text-xs">
         <thead>
           <tr>
-            <th className="p-1 text-start text-ink-muted"></th>
+            <th className="p-0.5 text-start text-analytics-muted"></th>
             {blockKeys.map((key) => (
-              <th key={key} className="p-1 text-center font-normal text-ink-muted">
+              <th key={key} className="p-0.5 text-center font-normal text-analytics-muted">
                 {t(`timeBlocks.${key}`)}
               </th>
             ))}
@@ -33,7 +51,7 @@ export async function SalesHeatmap({ grid }: { grid: HeatmapGrid }) {
         <tbody>
           {grid.map((row) => (
             <tr key={row.dayIndex}>
-              <td className="p-1 text-ink-muted">{weekdayLabel(row.dayIndex, locale)}</td>
+              <td className="p-0.5 text-analytics-muted">{weekdayLabel(row.dayIndex, locale)}</td>
               {row.blocks.map((cell) => {
                 const intensity = cell.revenue / maxRevenue;
                 return (
@@ -42,14 +60,14 @@ export async function SalesHeatmap({ grid }: { grid: HeatmapGrid }) {
                       title={t("tooltip", {
                         weekday: weekdayLabel(row.dayIndex, locale),
                         block: t(`timeBlocks.${cell.key}`),
-                        orderCount: tOrdersCount("ordersCount", { count: cell.count }),
+                        orderCount: tCommon("ordersCount", { count: cell.count }),
                         revenue: formatCurrency(cell.revenue, locale),
                       })}
-                      className="flex h-10 w-full min-w-14 items-center justify-center rounded-md text-[11px] font-medium"
+                      className="flex h-8 w-full min-w-12 items-center justify-center rounded text-[11px] font-medium"
                       style={{
-                        backgroundColor: intensity === 0 ? "var(--surface-secondary)" : "var(--cta)",
+                        backgroundColor: intensity === 0 ? "var(--analytics-surface)" : "var(--analytics-neutral)",
                         opacity: intensity === 0 ? 1 : 0.25 + intensity * 0.75,
-                        color: intensity > 0.5 ? "var(--cta-foreground)" : "var(--ink-muted)",
+                        color: intensity > 0.5 ? "var(--analytics-bg)" : "var(--analytics-text-muted)",
                       }}
                     >
                       {cell.count > 0 ? cell.count : ""}
@@ -61,7 +79,7 @@ export async function SalesHeatmap({ grid }: { grid: HeatmapGrid }) {
           ))}
         </tbody>
       </table>
-      <p className="mt-2 text-xs text-ink-muted">{t("footnote")}</p>
+      <p className="mt-2 text-xs text-analytics-muted">{t("footnote")}</p>
     </div>
   );
 }

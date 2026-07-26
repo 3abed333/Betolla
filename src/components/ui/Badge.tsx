@@ -12,6 +12,7 @@ export const badgeVariants = cva(
         neutral: "bg-surface-secondary text-ink border border-border",
         highlight: "bg-highlight text-ink",
         destructive: "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300",
+        critical: "bg-red-600 text-white",
       },
     },
     defaultVariants: {

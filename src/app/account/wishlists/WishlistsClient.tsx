@@ -8,6 +8,7 @@ import { useTranslations, useLocale } from "next-intl";
 import { Button, Card, CardContent, Badge, Input, EmptyState, ConfirmDialog } from "@/components/ui";
 import { Money } from "@/components/Money";
 import { toast } from "@/lib/toast";
+import { localizedField } from "@/lib/localizedField";
 import type { AppLocale } from "@/i18n/config";
 
 type WishlistItem = {
@@ -15,7 +16,7 @@ type WishlistItem = {
   priceAtAdd: string;
   notifyOnPriceDrop: boolean;
   notifyOnRestock: boolean;
-  product: { id: string; slug: string; nameEn: string; mainImageUrl: string; price: string; stock: number };
+  product: { id: string; slug: string; nameEn: string; nameAr: string | null; mainImageUrl: string; price: string; stock: number };
 };
 type Wishlist = { id: string; name: string; items: WishlistItem[] };
 
@@ -108,15 +109,16 @@ export function WishlistsClient({ initialWishlists }: { initialWishlists: Wishli
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {wishlist.items.map((item) => {
                 const priceDropped = Number(item.product.price) < Number(item.priceAtAdd);
+                const productName = localizedField(locale, item.product.nameEn, item.product.nameAr);
                 return (
                   <Card key={item.id}>
                     <CardContent className="flex gap-3">
                       <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-surface-secondary">
-                        <Image src={item.product.mainImageUrl} alt={item.product.nameEn} fill sizes="64px" className="object-cover" />
+                        <Image src={item.product.mainImageUrl} alt={productName} fill sizes="64px" className="object-cover" />
                       </div>
                       <div className="flex-1">
                         <Link href={`/products/${item.product.slug}`} className="text-sm font-medium text-ink hover:underline">
-                          {item.product.nameEn}
+                          {productName}
                         </Link>
                         <p className="text-sm text-ink-muted">
                           <Money value={Number(item.product.price)} locale={locale} />

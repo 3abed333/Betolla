@@ -2,10 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { Button, Input, Textarea, Checkbox, Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui";
 import { SingleImageUploader, GalleryUploader } from "@/components/ImageUploader";
 import { toast } from "@/lib/toast";
+import { localizedField } from "@/lib/localizedField";
+import type { AppLocale } from "@/i18n/config";
 
 export type ProductFormValues = {
   sku: string;
@@ -45,13 +47,14 @@ export function ProductForm({
   productId,
   redirectPath = "/admin/products",
 }: {
-  categories: { id: string; nameEn: string }[];
+  categories: { id: string; nameEn: string; nameAr: string }[];
   initialValues?: ProductFormValues;
   productId?: string;
   redirectPath?: string;
 }) {
   const router = useRouter();
   const t = useTranslations("admin.productForm");
+  const locale = useLocale() as AppLocale;
   const [values, setValues] = useState<ProductFormValues>(initialValues ?? { ...EMPTY, categoryId: categories[0]?.id ?? "" });
   const [submitting, setSubmitting] = useState(false);
 
@@ -122,7 +125,7 @@ export function ProductForm({
             <SelectContent>
               {categories.map((c) => (
                 <SelectItem key={c.id} value={c.id}>
-                  {c.nameEn}
+                  {localizedField(locale, c.nameEn, c.nameAr)}
                 </SelectItem>
               ))}
             </SelectContent>

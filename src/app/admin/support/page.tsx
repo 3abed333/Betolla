@@ -7,7 +7,7 @@ import { TicketStatusBadge } from "@/components/support/TicketStatusBadge";
 import { FormattedDate } from "@/components/FormattedDate";
 import type { AppLocale } from "@/i18n/config";
 import { supportCategoryKey } from "@/lib/supportCategories";
-import { SupportFilters } from "./SupportFilters";
+import { SupportFilters } from "@/components/support/SupportFilters";
 import type { Prisma, TicketStatus } from "@/generated/prisma/client";
 
 export const metadata: Metadata = { title: "Support Inbox - Betolla Admin" };

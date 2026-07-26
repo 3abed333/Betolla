@@ -18,22 +18,22 @@ export function AnalyticsDateRangeFilter() {
 
   return (
     <div className="flex flex-wrap items-center gap-3">
-      <label className="flex items-center gap-2 text-sm text-ink-muted">
+      <label className="flex items-center gap-2 text-sm text-analytics-muted">
         {t("from")}
         <input
           type="date"
           value={searchParams.get("from") ?? ""}
           onChange={(e) => setParam("from", e.target.value)}
-          className="h-10 rounded-lg border border-border bg-surface px-3 text-sm text-ink"
+          className="h-10 rounded-lg border border-analytics bg-analytics-surface px-3 text-sm text-analytics"
         />
       </label>
-      <label className="flex items-center gap-2 text-sm text-ink-muted">
+      <label className="flex items-center gap-2 text-sm text-analytics-muted">
         {t("to")}
         <input
           type="date"
           value={searchParams.get("to") ?? ""}
           onChange={(e) => setParam("to", e.target.value)}
-          className="h-10 rounded-lg border border-border bg-surface px-3 text-sm text-ink"
+          className="h-10 rounded-lg border border-analytics bg-analytics-surface px-3 text-sm text-analytics"
         />
       </label>
     </div>

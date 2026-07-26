@@ -15,6 +15,7 @@ type LoginValues = z.infer<typeof loginSchema>;
 export function LoginForm() {
   const t = useTranslations("auth.login");
   const tErrors = useTranslations();
+  const tCommon = useTranslations("common");
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
   const {
@@ -44,7 +45,7 @@ export function LoginForm() {
       <CardContent className="flex flex-col gap-5">
         <div>
           <h1 className="font-heading text-2xl font-semibold text-ink">{t("heading")}</h1>
-          <p className="mt-1 text-sm text-ink-muted">{t("welcomeBack")}</p>
+          <p className="mt-1 text-sm text-ink-muted">{t("welcomeBack", { brand: tCommon("brand") })}</p>
         </div>
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>
           <Input

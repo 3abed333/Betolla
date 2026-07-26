@@ -8,6 +8,7 @@ import { useCartStore } from "@/store/cart-store";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { Button, EmptyState } from "@/components/ui";
 import { Money } from "@/components/Money";
+import { localizedField } from "@/lib/localizedField";
 import type { AppLocale } from "@/i18n/config";
 
 export default function CartPage() {
@@ -45,14 +46,16 @@ export default function CartPage() {
   return (
     <div className="grid grid-cols-1 gap-10 lg:grid-cols-3">
       <div className="flex flex-col divide-y divide-border lg:col-span-2">
-        {items.map((item) => (
+        {items.map((item) => {
+          const itemName = localizedField(locale, item.nameEn, item.nameAr);
+          return (
           <div key={item.key} className="flex items-center gap-4 py-5">
             <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-surface-secondary">
-              <Image src={item.imageUrl} alt={item.nameEn} fill sizes="80px" className="object-cover" />
+              <Image src={item.imageUrl} alt={itemName} fill sizes="80px" className="object-cover" />
             </div>
             <div className="flex-1">
               <Link href={`/${item.kind === "product" ? "products" : "bundles"}/${item.slug}`} className="font-medium text-ink hover:underline">
-                {item.nameEn}
+                {itemName}
               </Link>
               <p className="text-sm text-ink-muted">
                 <Money value={item.price} locale={locale} />
@@ -83,7 +86,8 @@ export default function CartPage() {
               {t("remove")}
             </button>
           </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="h-fit rounded-2xl border border-border bg-surface-secondary p-6">

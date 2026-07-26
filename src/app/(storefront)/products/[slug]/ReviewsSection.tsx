@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { getTranslations, getLocale } from "next-intl/server";
 import { prisma } from "@/lib/db";
 import { getCurrentSession } from "@/lib/auth/session";
@@ -51,6 +52,11 @@ export async function ReviewsSection({ productId }: { productId: string }) {
                 </span>
               )}
               {review.comment && <p className="text-sm text-ink-muted">{review.comment}</p>}
+              {review.photoUrl && (
+                <div className="relative h-24 w-24 overflow-hidden rounded-lg border border-border">
+                  <Image src={review.photoUrl} alt={t("reviewPhotoAlt")} fill sizes="96px" className="object-cover" />
+                </div>
+              )}
             </div>
           ))}
         </div>

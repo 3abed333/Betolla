@@ -28,7 +28,11 @@ export default async function StaffOrdersPage({
 
   const orders = await prisma.order.findMany({
     where,
-    include: { user: { select: { firstName: true, lastName: true } }, items: true },
+    include: {
+      user: { select: { firstName: true, lastName: true } },
+      items: true,
+      deliveryAssignments: { select: { status: true } },
+    },
     orderBy: { createdAt: "desc" },
     take: 100,
   });
@@ -48,6 +52,9 @@ export default async function StaffOrdersPage({
           createdAt: o.createdAt,
           customerName: `${o.user.firstName} ${o.user.lastName}`,
           itemCount: o.items.length,
+          needsDriver:
+            (o.status === "CONFIRMED" || o.status === "ON_DELIVERY") &&
+            !o.deliveryAssignments.some((da) => da.status !== "FAILED"),
         }))}
       />
     </div>

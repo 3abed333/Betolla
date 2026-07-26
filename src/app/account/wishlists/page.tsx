@@ -27,6 +27,7 @@ export default async function WishlistsPage() {
             id: i.product.id,
             slug: i.product.slug,
             nameEn: i.product.nameEn,
+            nameAr: i.product.nameAr,
             mainImageUrl: i.product.mainImageUrl,
             price: i.product.price.toString(),
             stock: i.product.stock,

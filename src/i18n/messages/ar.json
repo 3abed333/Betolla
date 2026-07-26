@@ -23,6 +23,18 @@
     "inactive": "غير نشط",
     "exportCsv": "تصدير CSV",
     "unassigned": "غير مُسند",
+    "working": "جارٍ التنفيذ...",
+    "imageUploader": {
+      "uploadFailedTitle": "فشل الرفع",
+      "uploading": "جارٍ الرفع...",
+      "uploadMainPhoto": "رفع الصورة الرئيسية",
+      "mainProductImageAlt": "الصورة الرئيسية للمنتج",
+      "addGalleryPhotos": "إضافة صور للمعرض",
+      "galleryImageAlt": "صورة المعرض",
+      "replacePhoto": "استبدال الصورة",
+      "addPhotoOptional": "إضافة صورة (اختياري)",
+      "attachedPhotoAlt": "الصورة المرفقة"
+    },
     "currencyUnit": "د.أ",
     "ticketStatus": {
       "OPEN": "مفتوحة",
@@ -82,7 +94,6 @@
       "NORMAL": "عادي",
       "URGENT": "عاجل"
     },
-    "customersCount": "{count, plural, zero {لا يوجد عملاء} one {عميل واحد} two {عميلان} few {# عملاء} many {# عميلاً} other {# عميل}}",
     "ordersCount": "{count, plural, zero {لا توجد طلبات} one {طلب واحد} two {طلبان} few {# طلبات} many {# طلبًا} other {# طلب}}",
     "roleLabel": {
       "STAFF": "موظف",
@@ -92,12 +103,33 @@
       "UNPAID": "غير مدفوع",
       "PAID": "مدفوع",
       "REFUNDED": "مسترجع"
+    },
+    "notificationCategory": {
+      "ORDER_UPDATES": "تحديثات الطلبات",
+      "PROMOTIONS": "العروض",
+      "BACK_IN_STOCK": "التوفر في المخزون",
+      "LOYALTY_AND_WALLET": "الولاء والمحفظة",
+      "SUPPORT": "الدعم",
+      "DELIVERY_ASSIGNMENTS": "مهام التوصيل",
+      "OPERATIONS": "العمليات"
+    },
+    "notifications": {
+      "heading": "الإشعارات",
+      "allCategories": "الكل",
+      "markAllRead": "تعليم الكل كمقروء",
+      "markRead": "تعليم كمقروء",
+      "unread": "غير مقروء",
+      "viewOrder": "عرض الطلب",
+      "noNotificationsTitle": "لا توجد إشعارات بعد",
+      "noNotificationsDescription": "أنت على اطلاع بكل شيء."
     }
   },
   "theme": {
     "light": "فاتح",
     "dark": "داكن",
-    "toggle": "تبديل المظهر"
+    "toggle": "تبديل المظهر",
+    "switchToLight": "التبديل إلى المظهر الفاتح",
+    "switchToDark": "التبديل إلى المظهر الداكن"
   },
   "language": {
     "en": "English",
@@ -178,6 +210,8 @@
       "whichOrderPlaceholder": "أي طلب؟",
       "orderPrefix": "الطلب {orderNumber}",
       "reviewPlaceholder": "شاركنا تجربتك مع هذا المنتج...",
+      "photoLabel": "صورة (اختياري)",
+      "reviewPhotoAlt": "صورة مرفقة بالتقييم",
       "submitting": "جارٍ الإرسال...",
       "submitReview": "إرسال التقييم"
     },
@@ -224,11 +258,14 @@
       "orderSummary": "ملخص الطلب",
       "promoCodePlaceholder": "كود الخصم",
       "apply": "تطبيق",
-      "promoApplied": "تم تطبيق الخصم: -{amount}",
-      "useStoreCredit": "استخدام الرصيد ({balance} متاح)",
+      "promoApplied": "تم تطبيق الخصم: -<amount></amount>",
+      "useStoreCredit": "استخدام الرصيد (<balance></balance> متاح)",
       "redeemLoyaltyPoints": "{count, plural, zero {استبدال نقاط الولاء (لا نقاط متاحة)} one {استبدال نقاط الولاء (نقطة واحدة متاحة)} two {استبدال نقاط الولاء (نقطتان متاحتان)} few {استبدال نقاط الولاء (# نقاط متاحة)} many {استبدال نقاط الولاء (# نقطة متاحة)} other {استبدال نقاط الولاء (# نقطة متاحة)}}",
-      "pointsEqualsValue": "{count, plural, zero {لا نقاط = {value}} one {نقطة واحدة = {value}} two {نقطتان = {value}} few {# نقاط = {value}} many {# نقطة = {value}} other {# نقطة = {value}}}",
+      "pointsEqualsValue": "{count, plural, zero {لا نقاط = <value></value>} one {نقطة واحدة = <value></value>} two {نقطتان = <value></value>} few {# نقاط = <value></value>} many {# نقطة = <value></value>} other {# نقطة = <value></value>}}",
       "subtotal": "المجموع الفرعي",
+      "discount": "الخصم",
+      "storeCreditApplied": "الرصيد المستخدم",
+      "loyaltyPointsRedeemed": "نقاط الولاء المستبدلة",
       "shipping": "الشحن",
       "total": "الإجمالي",
       "placingOrder": "جارٍ تأكيد الطلب...",
@@ -239,6 +276,11 @@
       "orderPlaced": "تم تقديم الطلب!",
       "thanksPrefix": "شكرًا لتسوّقك مع بيتولا. طلبك",
       "thanksSuffix": "قيد المعالجة الآن.",
+      "subtotal": "المجموع الفرعي",
+      "discount": "الخصم",
+      "storeCreditApplied": "الرصيد المستخدم",
+      "loyaltyPointsRedeemed": "نقاط الولاء المستبدلة",
+      "shipping": "الشحن",
       "total": "الإجمالي",
       "trackOrder": "تتبع الطلب",
       "continueShopping": "متابعة التسوق"
@@ -285,6 +327,7 @@
       "wishlists": "قوائم الأمنيات",
       "preferences": "التفضيلات",
       "support": "الدعم",
+      "notifications": "الإشعارات",
       "sessions": "الجلسات",
       "openMenu": "فتح قائمة الحساب",
       "menuTitle": "قائمة الحساب"
@@ -317,11 +360,28 @@
         "subtotal": "المجموع الفرعي",
         "discount": "الخصم",
         "storeCreditApplied": "الرصيد المستخدم",
+        "loyaltyPointsRedeemed": "نقاط الولاء المستبدلة",
         "shipping": "الشحن",
         "total": "الإجمالي",
         "shippingToPrefix": "الشحن إلى:",
         "paymentPrefix": "الدفع:",
         "cancellationReasonPrefix": "سبب الإلغاء:"
+      },
+      "reviewDialog": {
+        "trigger": "أضف تقييمًا",
+        "dialogTitle": "قيّم {itemName}",
+        "commentPlaceholder": "شاركنا تجربتك مع هذا المنتج (اختياري)...",
+        "photoLabel": "صورة (اختياري)",
+        "submitting": "جارٍ الإرسال...",
+        "submit": "إرسال التقييم"
+      },
+      "deliveryRatingDialog": {
+        "trigger": "قيّم عملية التوصيل",
+        "dialogTitle": "كيف كانت تجربة التوصيل؟",
+        "commentPlaceholder": "أي ملاحظات حول التوصيل (اختياري)...",
+        "submitting": "جارٍ الإرسال...",
+        "submit": "إرسال التقييم",
+        "ratedNote": "لقد قيّمت هذا التوصيل"
       },
       "reorder": {
         "couldntReorderTitle": "تعذّر إعادة الطلب",
@@ -393,6 +453,7 @@
         "area": "المنطقة",
         "streetBuilding": "الشارع / المبنى",
         "defaultLabelValue": "المنزل",
+        "mapInstructions": "انقر على الخريطة لتحديد موقع التوصيل.",
         "setDefaultCheckbox": "تعيين كعنوان الشحن الافتراضي",
         "saving": "جارٍ الحفظ...",
         "save": "حفظ العنوان"
@@ -400,6 +461,7 @@
     },
     "wishlists": {
       "metaTitle": "قوائم الأمنيات - {brand}",
+      "defaultListName": "قائمة أمنياتي",
       "couldntDeleteListTitle": "تعذّر حذف القائمة",
       "heading": "قوائم الأمنيات",
       "newListPlaceholder": "اسم القائمة الجديدة",
@@ -476,6 +538,9 @@
         "trigger": "تذكرة جديدة",
         "dialogTitle": "تواصل مع الدعم",
         "categoryLabel": "الفئة",
+        "orderLabel": "الطلب المرتبط",
+        "orderPlaceholder": "اختر طلباً...",
+        "noOrdersMessage": "ليس لديك أي طلبات بعد.",
         "subjectLabel": "الموضوع",
         "messageLabel": "الرسالة",
         "sending": "جارٍ الإرسال...",
@@ -504,6 +569,7 @@
       "support": "صندوق الدعم",
       "deliverySupport": "دعم التوصيل",
       "analytics": "التحليلات",
+      "notifications": "الإشعارات",
       "settings": "الإعدادات"
     },
     "layout": {
@@ -518,6 +584,7 @@
         "lowOutOfStock": "مخزون منخفض / نافد",
         "openSupportTickets": "تذاكر الدعم المفتوحة",
         "openDeliveryReports": "بلاغات التوصيل المفتوحة",
+        "ordersNeedingDriver": "طلبات بحاجة إلى سائق",
         "totalRevenue": "إجمالي الإيرادات",
         "customers": "العملاء"
       },
@@ -552,7 +619,9 @@
       "couldntCancelOrder": "تعذّر إلغاء الطلب",
       "orderCancelled": "تم إلغاء الطلب",
       "couldntAssignDriver": "تعذّر تعيين السائق",
-      "driverAssigned": "تم تعيين السائق"
+      "driverAssigned": "تم تعيين السائق",
+      "noActiveDriverNote": "عيّن سائق توصيل أولاً.",
+      "noDriverBadge": "بلا سائق"
     },
     "users": {
       "metaTitle": "العملاء - إدارة {brand}",
@@ -612,12 +681,15 @@
       "detail": {
         "metaTitle": "تفاصيل الطلب - إدارة {brand}",
         "orderPrefix": "الطلب {orderNumber}",
+        "noDriverAlert": "لم يتم تعيين سائق توصيل بعد - عيّن سائقًا لإبقاء هذا الطلب متقدّمًا.",
         "deliveryHistory": "سجل التوصيل",
         "attemptPrefix": "المحاولة {n}: {driverName} -",
         "qty": "الكمية",
         "each": "للقطعة",
         "subtotal": "المجموع الفرعي",
         "discount": "الخصم",
+        "storeCreditApplied": "الرصيد المستخدم",
+        "loyaltyPointsRedeemed": "نقاط الولاء المستبدلة",
         "shipping": "الشحن",
         "total": "الإجمالي",
         "paymentPrefix": "الدفع:",
@@ -988,9 +1060,22 @@
         "to": "إلى"
       },
       "vsPriorPeriod": "مقارنة بالفترة السابقة",
+      "kpi": {
+        "totalRevenue": "إجمالي الإيرادات",
+        "atRiskLostCustomers": "عملاء معرّضون للخطر + مفقودون",
+        "openDeliveryTickets": "بلاغات التوصيل المفتوحة",
+        "recoverableCartRevenue": "الإيراد القابل للاسترداد من السلال",
+        "noComparisonHint": "اختر نطاقًا زمنيًا أعلاه للمقارنة بالفترة السابقة."
+      },
+      "rfmStatTiles": {
+        "champions": "الأبطال",
+        "atRisk": "معرّض للخطر",
+        "lost": "مفقود"
+      },
       "rfm": {
         "title": "شرائح العملاء RFM",
         "description": "تصنيف حسب الحداثة / التكرار / القيمة النقدية، نسبةً إلى إجمالي العملاء.",
+        "customersLabel": "العملاء",
         "unsegmentedNote": "{count, plural, zero {} one {عميل واحد لم يُصنَّف بعد.} two {عميلان لم يُصنَّفا بعد.} few {# عملاء لم يُصنَّفوا بعد.} many {# عميلًا لم يُصنَّفوا بعد.} other {# عميل لم يُصنَّفوا بعد.}}",
         "noSegmentsTitle": "لم تُحسب أي شرائح بعد",
         "noSegmentsDescription": "اضغط على \"إعادة حساب الشرائح\" لتصنيف كل عميل.",
@@ -1026,20 +1111,26 @@
         "footnote": "درجة التظليل = كثافة الإيراد؛ الرقم = عدد الطلبات. مرر المؤشر فوق أي خانة لمعرفة الأرقام الدقيقة.",
         "tooltip": "{weekday} {block}: {orderCount}، {revenue}",
         "timeBlocks": {
-          "block0": "١٢–٤ص",
-          "block1": "٤–٨ص",
-          "block2": "٨ص–١٢ظ",
-          "block3": "١٢–٤ظ",
-          "block4": "٤–٨م",
-          "block5": "٨م–١٢ص"
+          "block0": "12–4ص",
+          "block1": "4–8ص",
+          "block2": "8ص–12ظ",
+          "block3": "12–4ظ",
+          "block4": "4–8م",
+          "block5": "8م–12ص"
         }
+      },
+      "netRevenue": {
+        "title": "صافي الإيرادات عبر الزمن",
+        "description": "المجموع الفرعي مطروحًا منه الخصومات والمبالغ المستردة، يوميًا (ليس رقم ربح حقيقي - هذا التطبيق لا يتتبع تكلفة المنتج).",
+        "tooltipLabel": "صافي الإيرادات",
+        "noDataTitle": "لا توجد طلبات مدفوعة ضمن هذا النطاق"
       },
       "staffPerformance": {
         "title": "أداء الموظفين",
         "description": "الطلبات التي عالجها كل موظف، مع مخطط زمني لكل موظف.",
         "noActivityTitle": "لا يوجد نشاط للموظفين بعد",
         "noActivityDescription": "ستظهر هنا تغييرات حالة الطلبات التي يجريها الإدارة/الموظفون.",
-        "ordersProcessedTooltip": "{count, plural, zero {لم تُعالَج أي طلبات} one {تمت معالجة طلب واحد} two {تمت معالجة طلبين} few {تمت معالجة # طلبات} many {تمت معالجة # طلبًا} other {تمت معالجة # طلب}}",
+        "ordersLabel": "الطلبات",
         "noTimelineData": "لا توجد بيانات زمنية لهذا الموظف ضمن هذا النطاق."
       },
       "deliveryPerformance": {
@@ -1053,7 +1144,8 @@
           "delivered": "تم التوصيل",
           "failedRate": "معدل الفشل",
           "onTimeRate": "معدل الالتزام بالوقت",
-          "avgDeliveryTime": "متوسط زمن التوصيل"
+          "avgDeliveryTime": "متوسط زمن التوصيل",
+          "avgRating": "متوسط تقييم العملاء"
         },
         "failedReasonsTitle": "أسباب فشل التوصيل",
         "noProblemReports": "لا توجد بلاغات مشاكل توصيل مُقدَّمة ضمن هذا النطاق."
@@ -1103,7 +1195,9 @@
       "orders": "الطلبات",
       "products": "المنتجات",
       "deliveryAccounts": "حسابات التوصيل",
-      "deliverySupport": "دعم التوصيل"
+      "support": "صندوق الدعم",
+      "deliverySupport": "دعم التوصيل",
+      "notifications": "الإشعارات"
     },
     "layout": {
       "kicker": "بيتولا",
@@ -1157,8 +1251,9 @@
       "drawerTitle": "قائمة التوصيل",
       "activeDeliveries": "التوصيلات النشطة",
       "history": "السجل",
-      "earnings": "الأرباح",
-      "myReports": "بلاغاتي"
+      "collections": "التحصيلات",
+      "myReports": "بلاغاتي",
+      "notifications": "الإشعارات"
     },
     "layout": {
       "kicker": "بيتولا",
@@ -1175,16 +1270,23 @@
       "metaTitle": "سجل التوصيل - توصيل {brand}",
       "heading": "السجل",
       "noPastTitle": "لا توجد توصيلات سابقة",
-      "noPastDescription": "ستظهر هنا التوصيلات المكتملة والفاشلة."
+      "noPastDescription": "ستظهر هنا التوصيلات المكتملة والفاشلة.",
+      "filters": {
+        "from": "من",
+        "to": "إلى",
+        "searchPlaceholder": "ابحث برقم الطلب..."
+      }
     },
-    "earnings": {
-      "metaTitle": "الأرباح - توصيل {brand}",
-      "heading": "الأرباح",
-      "totalEarnings": "إجمالي الأرباح",
-      "thisMonth": "هذا الشهر",
-      "deliveriesCompleted": "التوصيلات المكتملة",
-      "noEarningsTitle": "لا توجد أرباح بعد",
-      "noEarningsDescription": "ستظهر هنا التوصيلات المكتملة ومستحقاتها."
+    "collections": {
+      "metaTitle": "تحصيلات اليوم - توصيل {brand}",
+      "heading": "تحصيلات اليوم",
+      "description": "النقد الذي حصّلته اليوم من طلبات الدفع عند الاستلام - سلّم هذا الإجمالي للمحاسب في نهاية دوامك.",
+      "totalToHandOver": "إجمالي النقد المستحق تسليمه",
+      "codDeliveriesToday": "توصيلات الدفع عند الاستلام اليوم",
+      "noCodTitle": "لا يوجد نقد لتسليمه بعد اليوم",
+      "noCodDescription": "ستظهر هنا توصيلات الدفع عند الاستلام التي تُكملها اليوم.",
+      "nonCodHeading": "توصيلات أخرى اليوم (لا نقد مستحق)",
+      "nonCodNote": "مدفوعة إلكترونيًا عند الطلب - لا يوجد شيء لتحصيله."
     },
     "detail": {
       "metaTitle": "التوصيل - توصيل {brand}",

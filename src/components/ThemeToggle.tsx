@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import { useTranslations } from "next-intl";
 import { setThemePreference } from "@/lib/theme/actions";
 import type { ThemeChoice } from "@/lib/theme/config";
 
 export function ThemeToggle() {
+  const t = useTranslations("theme");
   const [isDark, setIsDark] = useState(false);
   const [isPending, startTransition] = useTransition();
 
@@ -32,8 +34,8 @@ export function ThemeToggle() {
       type="button"
       onClick={toggle}
       disabled={isPending}
-      aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
-      className="flex h-10 items-center gap-1.5 rounded-full border border-border px-3 text-ink-muted transition-colors hover:text-ink"
+      aria-label={isDark ? t("switchToLight") : t("switchToDark")}
+      className="flex h-10 items-center gap-1.5 rounded-full border border-border px-3 text-ink-faint transition-colors hover:text-ink"
     >
       {isDark ? (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5 shrink-0">
@@ -48,7 +50,7 @@ export function ThemeToggle() {
           <path d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 1020.354 15.354z" />
         </svg>
       )}
-      <span className="text-xs font-medium">{isDark ? "Light" : "Dark"}</span>
+      <span className="text-xs font-medium">{isDark ? t("light") : t("dark")}</span>
     </button>
   );
 }

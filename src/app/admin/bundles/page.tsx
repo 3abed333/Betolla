@@ -5,6 +5,7 @@ import { getTranslations, getLocale } from "next-intl/server";
 import { prisma } from "@/lib/db";
 import { Button, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Badge } from "@/components/ui";
 import { Money } from "@/components/Money";
+import { localizedField } from "@/lib/localizedField";
 import type { AppLocale } from "@/i18n/config";
 import { BundleRowActions } from "./BundleRowActions";
 
@@ -35,14 +36,16 @@ export default async function AdminBundlesPage() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {bundles.map((bundle) => (
+          {bundles.map((bundle) => {
+            const bundleName = localizedField(locale, bundle.nameEn, bundle.nameAr);
+            return (
             <TableRow key={bundle.id}>
               <TableCell>
                 <div className="flex items-center gap-3">
                   <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-surface-secondary">
-                    <Image src={bundle.mainImageUrl} alt={bundle.nameEn} fill sizes="40px" className="object-cover" />
+                    <Image src={bundle.mainImageUrl} alt={bundleName} fill sizes="40px" className="object-cover" />
                   </div>
-                  <p className="font-medium text-ink">{bundle.nameEn}</p>
+                  <p className="font-medium text-ink">{bundleName}</p>
                 </div>
               </TableCell>
               <TableCell>{bundle.items.length}</TableCell>
@@ -58,7 +61,8 @@ export default async function AdminBundlesPage() {
                 <BundleRowActions bundleId={bundle.id} editHref={`/admin/bundles/${bundle.id}/edit`} />
               </TableCell>
             </TableRow>
-          ))}
+            );
+          })}
         </TableBody>
       </Table>
     </div>

@@ -61,7 +61,7 @@ export default async function StaffDeliverySupportDetailPage({ params }: { param
             )}
           </p>
         </div>
-        {report.urgency === "URGENT" && <Badge variant="destructive">{tUrgency("URGENT")}</Badge>}
+        {report.urgency === "URGENT" && <Badge variant="critical">{tUrgency("URGENT")}</Badge>}
       </div>
 
       {report.description && (
@@ -78,7 +78,8 @@ export default async function StaffDeliverySupportDetailPage({ params }: { param
           <CardContent>
             <p className="mb-2 text-sm font-medium text-ink">{t("photo")}</p>
             <div className="relative h-48 w-48 overflow-hidden rounded-xl bg-surface-secondary">
-              <Image src={report.photoUrl} alt={t("photoAlt")} fill sizes="192px" className="object-cover" />
+              {/* unoptimized: served through an authenticated route, see the admin equivalent page. */}
+              <Image src={report.photoUrl} alt={t("photoAlt")} fill sizes="192px" className="object-cover" unoptimized />
             </div>
           </CardContent>
         </Card>

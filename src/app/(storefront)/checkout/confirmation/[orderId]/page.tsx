@@ -20,6 +20,10 @@ export default async function OrderConfirmationPage({ params }: { params: Promis
   const order = await prisma.order.findUnique({ where: { id: orderId }, include: { items: true } });
   if (!order || order.userId !== session.userId) notFound();
 
+  const discountTotal = Number(order.discountTotal);
+  const storeCreditUsed = Number(order.storeCreditUsed);
+  const loyaltyRedemptionValue = Number(order.loyaltyRedemptionValue);
+
   return (
     <div className="mx-auto max-w-lg text-center">
       <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-success">
@@ -43,11 +47,49 @@ export default async function OrderConfirmationPage({ params }: { params: Promis
               </span>
             </div>
           ))}
-          <div className="flex justify-between border-t border-border pt-2 font-semibold text-ink">
-            <span>{t("total")}</span>
-            <span>
-              <Money value={Number(order.total)} locale={locale} />
-            </span>
+          <div className="flex flex-col gap-2 border-t border-border pt-2">
+            <div className="flex justify-between text-sm text-ink-muted">
+              <span>{t("subtotal")}</span>
+              <span>
+                <Money value={Number(order.subtotal)} locale={locale} />
+              </span>
+            </div>
+            {discountTotal > 0 && (
+              <div className="flex justify-between text-sm text-ink-muted">
+                <span>{t("discount")}</span>
+                <span>
+                  -<Money value={discountTotal} locale={locale} />
+                </span>
+              </div>
+            )}
+            {storeCreditUsed > 0 && (
+              <div className="flex justify-between text-sm text-ink-muted">
+                <span>{t("storeCreditApplied")}</span>
+                <span>
+                  -<Money value={storeCreditUsed} locale={locale} />
+                </span>
+              </div>
+            )}
+            {loyaltyRedemptionValue > 0 && (
+              <div className="flex justify-between text-sm text-ink-muted">
+                <span>{t("loyaltyPointsRedeemed")}</span>
+                <span>
+                  -<Money value={loyaltyRedemptionValue} locale={locale} />
+                </span>
+              </div>
+            )}
+            <div className="flex justify-between text-sm text-ink-muted">
+              <span>{t("shipping")}</span>
+              <span>
+                <Money value={Number(order.shippingFee)} locale={locale} />
+              </span>
+            </div>
+            <div className="flex justify-between font-semibold text-ink">
+              <span>{t("total")}</span>
+              <span>
+                <Money value={Number(order.total)} locale={locale} />
+              </span>
+            </div>
           </div>
         </CardContent>
       </Card>

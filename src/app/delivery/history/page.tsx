@@ -5,15 +5,37 @@ import { requireRole } from "@/lib/auth/guards";
 import { prisma } from "@/lib/db";
 import { Card, CardContent, EmptyState } from "@/components/ui";
 import { DeliveryStatusBadge } from "@/components/DeliveryStatusBadge";
+import { DeliveryHistoryFilters } from "./DeliveryHistoryFilters";
+import type { Prisma } from "@/generated/prisma/client";
 
 export const metadata: Metadata = { title: "Delivery History - Betolla Delivery" };
 
-export default async function DeliveryHistoryPage() {
+export default async function DeliveryHistoryPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ from?: string; to?: string; q?: string }>;
+}) {
   const session = await requireRole("DELIVERY");
   const t = await getTranslations("delivery.history");
+  const { from, to, q } = await searchParams;
+
+  const where: Prisma.DeliveryAssignmentWhereInput = {
+    driverId: session.userId,
+    status: { in: ["DELIVERED", "FAILED"] },
+  };
+  // Filtered by assignedAt (not deliveredAt) since it's the one timestamp every row in this list
+  // always has - a FAILED assignment never gets a deliveredAt, and assignedAt already matches the
+  // list's existing sort order.
+  if (from || to) {
+    where.assignedAt = {
+      ...(from ? { gte: new Date(from) } : {}),
+      ...(to ? { lt: new Date(new Date(to).getTime() + 24 * 60 * 60 * 1000) } : {}),
+    };
+  }
+  if (q) where.order = { orderNumber: { contains: q, mode: "insensitive" } };
 
   const assignments = await prisma.deliveryAssignment.findMany({
-    where: { driverId: session.userId, status: { in: ["DELIVERED", "FAILED"] } },
+    where,
     orderBy: { assignedAt: "desc" },
     take: 100,
     include: { order: { select: { orderNumber: true, shippingAddressSnapshot: true } } },
@@ -22,6 +44,7 @@ export default async function DeliveryHistoryPage() {
   return (
     <div className="flex flex-col gap-4">
       <h2 className="font-heading text-2xl font-semibold text-ink">{t("heading")}</h2>
+      <DeliveryHistoryFilters />
 
       {assignments.length === 0 ? (
         <EmptyState title={t("noPastTitle")} description={t("noPastDescription")} />

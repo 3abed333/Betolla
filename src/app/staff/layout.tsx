@@ -3,14 +3,15 @@ import { requireRole } from "@/lib/auth/guards";
 import { prisma } from "@/lib/db";
 import { LogoutButton } from "@/components/LogoutButton";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { StaffNav } from "./StaffNav";
 
 export default async function StaffLayout({ children }: { children: React.ReactNode }) {
   const session = await requireRole("STAFF");
-  const user = await prisma.user.findUniqueOrThrow({
-    where: { id: session.userId },
-    select: { firstName: true },
-  });
+  const [user, unreadNotifications] = await Promise.all([
+    prisma.user.findUniqueOrThrow({ where: { id: session.userId }, select: { firstName: true } }),
+    prisma.notification.count({ where: { userId: session.userId, isRead: false } }),
+  ]);
   const t = await getTranslations("staff.layout");
 
   return (
@@ -22,12 +23,13 @@ export default async function StaffLayout({ children }: { children: React.ReactN
         </div>
         <div className="flex items-center gap-4">
           <p className="text-sm text-ink-muted">{t("welcome", { name: user.firstName })}</p>
+          <LanguageSwitcher />
           <ThemeToggle />
           <LogoutButton />
         </div>
       </header>
       <div className="flex flex-1 flex-col sm:flex-row">
-        <StaffNav />
+        <StaffNav unreadNotifications={unreadNotifications} />
         <main className="flex-1 overflow-x-auto p-6">{children}</main>
       </div>
     </div>

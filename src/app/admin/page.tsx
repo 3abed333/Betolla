@@ -9,7 +9,7 @@ import { getLowStockProducts } from "@/lib/server/services/inventory";
 export default async function AdminHomePage() {
   const t = await getTranslations("admin.home");
   const locale = (await getLocale()) as AppLocale;
-  const [pendingOrders, lowStockProducts, openTickets, openDeliveryReports, totalRevenue, customerCount] =
+  const [pendingOrders, lowStockProducts, openTickets, openDeliveryReports, totalRevenue, customerCount, ordersNeedingDriver] =
     await Promise.all([
       prisma.order.count({ where: { status: "PENDING" } }),
       getLowStockProducts(),
@@ -17,6 +17,11 @@ export default async function AdminHomePage() {
       prisma.deliverySupportTicket.count({ where: { status: { in: ["OPEN", "ASSIGNED", "IN_PROGRESS"] } } }),
       prisma.order.aggregate({ where: { paymentStatus: "PAID" }, _sum: { total: true } }),
       prisma.user.count({ where: { role: "CUSTOMER" } }),
+      // "Active assignment" = status !== FAILED, matching every other guard/badge in the app -
+      // same corrected where-clause as staff/page.tsx's own "awaiting driver" tile.
+      prisma.order.count({
+        where: { status: { in: ["CONFIRMED", "ON_DELIVERY"] }, deliveryAssignments: { none: { status: { not: "FAILED" } } } },
+      }),
     ]);
   const lowStockCount = lowStockProducts.length;
 
@@ -25,6 +30,7 @@ export default async function AdminHomePage() {
     { label: t("tiles.lowOutOfStock"), value: lowStockCount, href: "/admin/products?filter=low-stock" },
     { label: t("tiles.openSupportTickets"), value: openTickets, href: "/admin/support" },
     { label: t("tiles.openDeliveryReports"), value: openDeliveryReports, href: "/admin/delivery-support" },
+    { label: t("tiles.ordersNeedingDriver"), value: ordersNeedingDriver, href: "/admin/orders" },
     {
       label: t("tiles.totalRevenue"),
       value: <Money value={Number(totalRevenue._sum.total ?? 0)} locale={locale} />,

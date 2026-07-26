@@ -47,5 +47,9 @@ next-env.d.ts
 /public/uploads/*
 !/public/uploads/.gitkeep
 
+# private (non-public) uploads - delivery-report photos, served only via an authenticated route
+/uploads-private/*
+!/uploads-private/.gitkeep
+
 # local Postgres data directory (scripts/db-start.mjs)
 /.pgdata

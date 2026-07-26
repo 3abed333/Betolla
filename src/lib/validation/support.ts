@@ -4,7 +4,7 @@ export const createTicketSchema = z.object({
   subject: z.string().trim().min(1).max(200),
   category: z.string().trim().min(1).max(60),
   message: z.string().trim().min(1).max(4000),
-  orderId: z.string().optional(),
+  orderId: z.string().min(1, "An order is required"),
 });
 
 export const createMessageSchema = z.object({

@@ -1,15 +1,18 @@
 import Link from "next/link";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, getLocale } from "next-intl/server";
 import { cn } from "@/lib/cn";
+import { localizedField } from "@/lib/localizedField";
+import type { AppLocale } from "@/i18n/config";
 
 export async function CategoryFilter({
   categories,
   activeSlug,
 }: {
-  categories: { slug: string; nameEn: string }[];
+  categories: { slug: string; nameEn: string; nameAr: string }[];
   activeSlug?: string;
 }) {
   const t = await getTranslations("storefront.products");
+  const locale = (await getLocale()) as AppLocale;
   return (
     <div className="flex flex-wrap gap-2">
       <Link
@@ -32,7 +35,7 @@ export async function CategoryFilter({
               : "border-border text-ink-muted hover:text-ink",
           )}
         >
-          {c.nameEn}
+          {localizedField(locale, c.nameEn, c.nameAr)}
         </Link>
       ))}
     </div>

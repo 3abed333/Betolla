@@ -38,7 +38,7 @@ export async function GeographicOrderTable({ rows }: { rows: GeoRow[] }) {
                     className="h-2 rounded-full"
                     style={{
                       width: `${Math.max(4, intensity * 80)}px`,
-                      backgroundColor: "var(--cta)",
+                      backgroundColor: "var(--analytics-neutral)",
                       opacity: intensity === 0 ? 0.2 : 0.4 + intensity * 0.6,
                     }}
                   />

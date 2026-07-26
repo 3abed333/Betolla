@@ -8,6 +8,7 @@ export async function createReview(params: {
   orderItemId: string;
   rating: number;
   comment?: string;
+  photoUrl?: string;
 }) {
   const orderItem = await prisma.orderItem.findUnique({
     where: { id: params.orderItemId },
@@ -28,6 +29,7 @@ export async function createReview(params: {
       orderItemId: orderItem.id,
       rating: params.rating,
       comment: params.comment,
+      photoUrl: params.photoUrl,
       isVerifiedPurchase: true,
     },
   });

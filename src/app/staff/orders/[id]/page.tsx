@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui";
 import { OrderStatusBadge } from "@/components/orders/OrderStatusBadge";
 import { OrderTracker } from "@/components/orders/OrderTracker";
 import { OrderStatusActions } from "@/components/orders/OrderStatusActions";
+import { NoDriverAlert } from "@/components/orders/NoDriverAlert";
 import { Money } from "@/components/Money";
 import { FormattedDate } from "@/components/FormattedDate";
 import type { AppLocale } from "@/i18n/config";
@@ -38,6 +39,9 @@ export default async function StaffOrderDetailPage({ params }: { params: Promise
   const tPayment = await getTranslations("common.paymentStatus");
   const tDeliveryStatus = await getTranslations("common.deliveryStatus");
   const locale = (await getLocale()) as AppLocale;
+  const needsDriverAlert =
+    (order.status === "CONFIRMED" || order.status === "ON_DELIVERY") &&
+    !order.deliveryAssignments.some((da) => da.status !== "FAILED");
 
   return (
     <div className="flex flex-col gap-6">
@@ -52,10 +56,17 @@ export default async function StaffOrderDetailPage({ params }: { params: Promise
         <OrderStatusBadge status={order.status} />
       </div>
 
+      {needsDriverAlert && <NoDriverAlert />}
+
       <Card>
         <CardContent className="flex flex-col gap-4">
           <OrderTracker status={order.status} history={order.statusHistory} />
-          <OrderStatusActions orderId={order.id} status={order.status} drivers={drivers} />
+          <OrderStatusActions
+            orderId={order.id}
+            status={order.status}
+            drivers={drivers}
+            hasActiveAssignment={order.deliveryAssignments.some((da) => da.status !== "FAILED")}
+          />
         </CardContent>
       </Card>
 
@@ -109,6 +120,22 @@ export default async function StaffOrderDetailPage({ params }: { params: Promise
               </span>
               <span>
                 -<Money value={Number(order.discountTotal)} locale={locale} />
+              </span>
+            </div>
+          )}
+          {Number(order.storeCreditUsed) > 0 && (
+            <div className="flex justify-between text-ink-muted">
+              <span>{t("storeCreditApplied")}</span>
+              <span>
+                -<Money value={Number(order.storeCreditUsed)} locale={locale} />
+              </span>
+            </div>
+          )}
+          {Number(order.loyaltyRedemptionValue) > 0 && (
+            <div className="flex justify-between text-ink-muted">
+              <span>{t("loyaltyPointsRedeemed")}</span>
+              <span>
+                -<Money value={Number(order.loyaltyRedemptionValue)} locale={locale} />
               </span>
             </div>
           )}

@@ -1,6 +1,6 @@
 import "server-only";
 import { prisma } from "@/lib/db";
-import type { NotificationCategory } from "@/generated/prisma/client";
+import type { NotificationCategory, Role } from "@/generated/prisma/client";
 
 export const DEFAULT_NOTIFICATION_PREFERENCES: {
   category: NotificationCategory;
@@ -44,6 +44,39 @@ export async function notify(params: {
       relatedOrderId: params.relatedOrderId,
     })),
   });
+}
+
+/**
+ * Role-broadcast wrapper - notify() only ever targets one specific userId, there's no
+ * "notify all Admins" concept at the DB/query level, so this resolves the recipient list and
+ * calls notify() once per recipient (each still gated by their own NotificationPreference rows).
+ */
+export async function notifyRoles(
+  roles: Role[],
+  params: { category: NotificationCategory; title: string; body: string; relatedOrderId?: string },
+) {
+  const recipients = await prisma.user.findMany({
+    where: { role: { in: roles }, isActive: true },
+    select: { id: true },
+  });
+  await Promise.all(recipients.map((r) => notify({ userId: r.id, ...params })));
+}
+
+/** Which NotificationCategory values are relevant to each non-customer role's permissions. */
+export const ROLE_NOTIFICATION_CATEGORIES: Partial<Record<Role, NotificationCategory[]>> = {
+  STAFF: ["SUPPORT", "OPERATIONS"],
+  ADMIN: ["SUPPORT", "OPERATIONS"],
+  DELIVERY: ["DELIVERY_ASSIGNMENTS"],
+};
+
+/** Default preference rows for a freshly created account, mirroring DEFAULT_NOTIFICATION_PREFERENCES's shape. */
+export function buildDefaultPreferences(categories: NotificationCategory[]) {
+  return categories.flatMap((category) => [
+    { category, channel: "EMAIL" as const, enabled: true },
+    { category, channel: "IN_APP" as const, enabled: true },
+    { category, channel: "SMS" as const, enabled: false },
+    { category, channel: "PUSH" as const, enabled: false },
+  ]);
 }
 
 /**

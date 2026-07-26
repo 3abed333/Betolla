@@ -2,7 +2,8 @@ import "server-only";
 import { prisma } from "@/lib/db";
 import { validatePromoCode, PromoCodeError } from "./promoCodes";
 import { recomputeCustomerStatsForUser } from "./customerStats";
-import { notify } from "./notifications";
+import { notify, notifyRoles } from "./notifications";
+import { isLowStock } from "./inventory";
 import type { CheckoutInput } from "@/lib/validation/checkout";
 
 export class CheckoutError extends Error {}
@@ -127,6 +128,15 @@ export async function placeOrder(userId: string, input: CheckoutInput) {
   const pointsPerJd = loyaltyConfig ? Number(loyaltyConfig.pointsPerJdSpent) : 1;
   const loyaltyPointsEarned = paymentStatus === "PAID" ? Math.floor(total * pointsPerJd) : 0;
 
+  // The same productId can appear twice in stockDecrements (once as a direct line item, once
+  // inside a bundle) - aggregate per product first so the low-stock crossing check below reads a
+  // single, consistent before/after pair per product rather than checking mid-decrement.
+  const decrementByProduct = new Map<string, number>();
+  for (const dec of stockDecrements) {
+    decrementByProduct.set(dec.productId, (decrementByProduct.get(dec.productId) ?? 0) + dec.quantity);
+  }
+  const lowStockCrossings: { nameEn: string }[] = [];
+
   const order = await prisma.$transaction(async (tx) => {
     const created = await tx.order.create({
       data: {
@@ -140,6 +150,7 @@ export async function placeOrder(userId: string, input: CheckoutInput) {
         total,
         storeCreditUsed,
         loyaltyPointsUsed,
+        loyaltyRedemptionValue,
         loyaltyPointsEarned,
         promoCodeId,
         shippingAddressId: address.id,
@@ -155,8 +166,20 @@ export async function placeOrder(userId: string, input: CheckoutInput) {
       data: { orderId: created.id, status: "PENDING" },
     });
 
-    for (const dec of stockDecrements) {
-      await tx.product.update({ where: { id: dec.productId }, data: { stock: { decrement: dec.quantity } } });
+    for (const [productId, quantity] of decrementByProduct) {
+      const before = await tx.product.findUnique({
+        where: { id: productId },
+        select: { stock: true, lowStockThreshold: true, nameEn: true },
+      });
+      if (!before) continue;
+      const after = await tx.product.update({
+        where: { id: productId },
+        data: { stock: { decrement: quantity } },
+        select: { stock: true, lowStockThreshold: true, nameEn: true },
+      });
+      if (!isLowStock(before) && isLowStock(after)) {
+        lowStockCrossings.push({ nameEn: after.nameEn });
+      }
     }
 
     if (promoCodeId) {
@@ -213,6 +236,13 @@ export async function placeOrder(userId: string, input: CheckoutInput) {
       title: "Loyalty points earned",
       body: `You earned ${loyaltyPointsEarned} points on order ${order.orderNumber}.`,
       relatedOrderId: order.id,
+    });
+  }
+  for (const crossing of lowStockCrossings) {
+    await notifyRoles(["STAFF", "ADMIN"], {
+      category: "OPERATIONS",
+      title: "Low stock alert",
+      body: `${crossing.nameEn} has dropped to or below its low-stock threshold.`,
     });
   }
 

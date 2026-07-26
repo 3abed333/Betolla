@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { hashPassword } from "@/lib/auth/password";
 import { generateTempPassword } from "@/lib/auth/temp-password";
 import { logActivity } from "./activityLog";
+import { ROLE_NOTIFICATION_CATEGORIES, buildDefaultPreferences } from "./notifications";
 import type { Role } from "@/generated/prisma/client";
 
 export class AccountCreationError extends Error {}
@@ -56,6 +57,13 @@ export async function createManagedAccount(params: {
     entityId: user.id,
     afterData: { email: user.email, username: user.username, role: user.role },
   });
+
+  const categories = ROLE_NOTIFICATION_CATEGORIES[params.role] ?? [];
+  if (categories.length > 0) {
+    await prisma.notificationPreference.createMany({
+      data: buildDefaultPreferences(categories).map((p) => ({ ...p, userId: user.id })),
+    });
+  }
 
   return { user, tempPassword };
 }

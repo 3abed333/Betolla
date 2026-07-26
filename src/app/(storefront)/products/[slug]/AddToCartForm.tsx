@@ -2,10 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { useCartStore } from "@/store/cart-store";
 import { Button } from "@/components/ui";
 import { toast } from "@/lib/toast";
+import { localizedField } from "@/lib/localizedField";
+import type { AppLocale } from "@/i18n/config";
 
 export function AddToCartForm({
   id,
@@ -26,6 +28,7 @@ export function AddToCartForm({
 }) {
   const t = useTranslations("storefront.productDetail");
   const tToast = useTranslations("toast");
+  const locale = useLocale() as AppLocale;
   const [quantity, setQuantity] = useState(1);
   const addItem = useCartStore((s) => s.addItem);
   const router = useRouter();
@@ -35,7 +38,7 @@ export function AddToCartForm({
       { key: `product:${id}`, kind: "product", id, slug, nameEn, nameAr, price, imageUrl, maxStock: stock },
       quantity,
     );
-    toast.success(tToast("addedToCartTitle"), `${nameEn} x${quantity}`);
+    toast.success(tToast("addedToCartTitle"), `${localizedField(locale, nameEn, nameAr)} x${quantity}`);
   }
 
   function buyNow() {

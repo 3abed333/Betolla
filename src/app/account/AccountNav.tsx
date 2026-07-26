@@ -7,8 +7,9 @@ import { useTranslations } from "next-intl";
 import { cn } from "@/lib/cn";
 import { Drawer, DrawerTrigger, DrawerContent } from "@/components/ui";
 import { LogoutButton } from "@/components/LogoutButton";
+import { NavBadge } from "@/components/NavBadge";
 
-export function AccountNav() {
+export function AccountNav({ unreadNotifications = 0 }: { unreadNotifications?: number }) {
   const t = useTranslations("account.nav");
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -21,6 +22,7 @@ export function AccountNav() {
     { href: "/account/wishlists", label: t("wishlists") },
     { href: "/account/preferences", label: t("preferences") },
     { href: "/account/support", label: t("support") },
+    { href: "/account/notifications", label: t("notifications") },
     { href: "/account/sessions", label: t("sessions") },
   ];
 
@@ -55,6 +57,7 @@ export function AccountNav() {
               {LINKS.map((link) => (
                 <Link key={link.href} href={link.href} onClick={() => setOpen(false)} className={linkClassName(isActive(link))}>
                   {link.label}
+                  {link.href === "/account/notifications" && <NavBadge count={unreadNotifications} />}
                 </Link>
               ))}
             </nav>
@@ -68,6 +71,7 @@ export function AccountNav() {
         {LINKS.map((link) => (
           <Link key={link.href} href={link.href} className={linkClassName(isActive(link))}>
             {link.label}
+            {link.href === "/account/notifications" && <NavBadge count={unreadNotifications} />}
           </Link>
         ))}
       </nav>

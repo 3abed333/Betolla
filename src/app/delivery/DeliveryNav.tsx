@@ -6,8 +6,9 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { cn } from "@/lib/cn";
 import { Drawer, DrawerTrigger, DrawerContent } from "@/components/ui";
+import { NavBadge } from "@/components/NavBadge";
 
-export function DeliveryNav() {
+export function DeliveryNav({ unreadNotifications = 0 }: { unreadNotifications?: number }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const t = useTranslations("delivery.nav");
@@ -15,8 +16,9 @@ export function DeliveryNav() {
   const LINKS = [
     { href: "/delivery", label: t("activeDeliveries"), exact: true },
     { href: "/delivery/history", label: t("history") },
-    { href: "/delivery/earnings", label: t("earnings") },
+    { href: "/delivery/collections", label: t("collections") },
     { href: "/delivery/reports", label: t("myReports") },
+    { href: "/delivery/notifications", label: t("notifications") },
   ];
 
   function isActive(link: (typeof LINKS)[number]) {
@@ -50,6 +52,7 @@ export function DeliveryNav() {
               {LINKS.map((link) => (
                 <Link key={link.href} href={link.href} onClick={() => setOpen(false)} className={linkClassName(isActive(link))}>
                   {link.label}
+                  {link.href === "/delivery/notifications" && <NavBadge count={unreadNotifications} />}
                 </Link>
               ))}
             </nav>
@@ -60,6 +63,7 @@ export function DeliveryNav() {
         {LINKS.map((link) => (
           <Link key={link.href} href={link.href} className={linkClassName(isActive(link))}>
             {link.label}
+            {link.href === "/delivery/notifications" && <NavBadge count={unreadNotifications} />}
           </Link>
         ))}
       </nav>

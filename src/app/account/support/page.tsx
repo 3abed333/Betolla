@@ -5,6 +5,7 @@ import { requireRole } from "@/lib/auth/guards";
 import { prisma } from "@/lib/db";
 import { Card, CardContent, EmptyState } from "@/components/ui";
 import { FormattedDate } from "@/components/FormattedDate";
+import { formatDate } from "@/lib/format";
 import type { AppLocale } from "@/i18n/config";
 import { supportCategoryKey } from "@/lib/supportCategories";
 import { NewTicketDialog } from "./NewTicketDialog";
@@ -17,16 +18,27 @@ export default async function SupportPage() {
   const t = await getTranslations("account.support");
   const tCategories = await getTranslations("account.support.newTicket.categories");
   const locale = (await getLocale()) as AppLocale;
-  const tickets = await prisma.supportTicket.findMany({
-    where: { userId: session.userId },
-    orderBy: { updatedAt: "desc" },
-  });
+  const [tickets, orders] = await Promise.all([
+    prisma.supportTicket.findMany({
+      where: { userId: session.userId },
+      orderBy: { updatedAt: "desc" },
+    }),
+    prisma.order.findMany({
+      where: { userId: session.userId },
+      orderBy: { createdAt: "desc" },
+      select: { id: true, orderNumber: true, createdAt: true },
+    }),
+  ]);
+  const orderOptions = orders.map((o) => ({
+    id: o.id,
+    label: `${o.orderNumber} — ${formatDate(o.createdAt, locale, { dateStyle: "medium" })}`,
+  }));
 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <h2 className="font-heading text-2xl font-semibold text-ink">{t("heading")}</h2>
-        <NewTicketDialog />
+        <NewTicketDialog orders={orderOptions} />
       </div>
 
       {tickets.length === 0 ? (

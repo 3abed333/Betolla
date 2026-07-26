@@ -110,6 +110,8 @@ enum NotificationCategory {
   BACK_IN_STOCK
   LOYALTY_AND_WALLET
   SUPPORT
+  DELIVERY_ASSIGNMENTS
+  OPERATIONS
 }
 
 enum PaymentMethodType {
@@ -402,7 +404,11 @@ model Order {
 
   storeCreditUsed     Decimal @default(0) @db.Decimal(10, 2)
   loyaltyPointsUsed   Int     @default(0)
-  loyaltyPointsEarned Int     @default(0)
+  // JD value of loyaltyPointsUsed, snapshotted at order-placement time (same reasoning as
+  // discountTotal/PromoCodeUsage.discountAmount - the redemption rate is admin-configurable and can
+  // change later, so this must not be recomputed from the live LoyaltyConfig rate after the fact).
+  loyaltyRedemptionValue Decimal @default(0) @db.Decimal(10, 2)
+  loyaltyPointsEarned    Int     @default(0)
 
   promoCodeId String?
   promoCode   PromoCode? @relation(fields: [promoCodeId], references: [id], onDelete: SetNull)
@@ -513,6 +519,7 @@ model Review {
   orderItem          OrderItem? @relation(fields: [orderItemId], references: [id], onDelete: SetNull)
   rating             Int
   comment            String?
+  photoUrl           String?
   isVerifiedPurchase Boolean    @default(false)
   createdAt          DateTime   @default(now())
 
@@ -713,6 +720,11 @@ model DeliveryAssignment {
   assignedAt     DateTime       @default(now())
   pickedUpAt     DateTime?
   deliveredAt    DateTime?
+  // Customer-submitted rating of the delivery experience/driver for this specific assignment -
+  // optional, separate from Review (which is product-scoped), fed into the driver leaderboard in
+  // analytics.ts. Set once by the customer via PATCH /api/delivery/assignments/[id]/rating.
+  rating         Int?
+  comment        String?
 
   supportTickets DeliverySupportTicket[]
 

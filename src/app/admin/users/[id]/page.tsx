@@ -15,7 +15,23 @@ export const metadata: Metadata = { title: "Customer - Betolla Admin" };
 
 export default async function CustomerDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const customer = await prisma.user.findUnique({ where: { id }, include: { customerStats: true } });
+  const customer = await prisma.user.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      email: true,
+      username: true,
+      phone: true,
+      role: true,
+      isActive: true,
+      createdAt: true,
+      storeCreditBalance: true,
+      loyaltyPointsBalance: true,
+      customerStats: true,
+    },
+  });
   if (!customer || customer.role !== "CUSTOMER") notFound();
 
   const t = await getTranslations("admin.users.detail");
@@ -174,7 +190,9 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
               {loyaltyTx.map((tx) => (
                 <div key={tx.id} className="flex items-center justify-between py-2 text-sm">
                   <div>
-                    <p className="text-ink">{tx.note ?? tx.type}</p>
+                    <p className="text-ink">
+                      {tx.note ?? (tx.type === "EARN" ? tWallet("txType.earned") : tx.type === "REDEEM" ? tWallet("txType.redeemed") : tWallet("txType.adjusted"))}
+                    </p>
                     <p className="text-xs text-ink-muted">
                       <FormattedDate date={tx.createdAt} locale={locale} />
                     </p>

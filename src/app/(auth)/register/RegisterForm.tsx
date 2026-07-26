@@ -15,6 +15,7 @@ type RegisterValues = z.infer<typeof registerSchema>;
 export function RegisterForm() {
   const t = useTranslations("auth.register");
   const tErrors = useTranslations();
+  const tCommon = useTranslations("common");
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
   const {
@@ -44,7 +45,7 @@ export function RegisterForm() {
       <CardContent className="flex flex-col gap-5">
         <div>
           <h1 className="font-heading text-2xl font-semibold text-ink">{t("heading")}</h1>
-          <p className="mt-1 text-sm text-ink-muted">{t("join")}</p>
+          <p className="mt-1 text-sm text-ink-muted">{t("join", { brand: tCommon("brand") })}</p>
         </div>
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>
           <div className="grid grid-cols-2 gap-4">

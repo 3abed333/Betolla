@@ -8,7 +8,7 @@ function Star({ filled, className }: { filled: boolean; className?: string }) {
   return (
     <svg
       viewBox="0 0 20 20"
-      className={cn("h-5 w-5", filled ? "fill-accent text-accent" : "fill-none text-border", className)}
+      className={cn("h-5 w-5", filled ? "fill-star text-star" : "fill-none text-border", className)}
       stroke="currentColor"
       strokeWidth={filled ? 0 : 1.5}
     >

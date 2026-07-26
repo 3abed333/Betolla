@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireApiRole } from "@/lib/auth/api-guard";
 import { createReportSchema } from "@/lib/validation/deliverySupport";
+import { notifyRoles } from "@/lib/server/services/notifications";
 
 export async function GET() {
   const session = await requireApiRole("DELIVERY");
@@ -45,5 +46,12 @@ export async function POST(request: NextRequest) {
       urgency: parsed.data.urgency,
     },
   });
+
+  await notifyRoles(["STAFF", "ADMIN"], {
+    category: "OPERATIONS",
+    title: "New delivery problem report",
+    body: `A driver filed a new delivery report${report.urgency === "URGENT" ? " (urgent)" : ""}.`,
+  });
+
   return NextResponse.json({ report });
 }

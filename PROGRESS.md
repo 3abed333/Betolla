@@ -1310,15 +1310,1433 @@ still correct, layout intact at mobile width alongside the new drawer nav).
 
 ### Not done this session — explicitly remaining
 
-- **Item C (i18n string retrofit) was not started.** `PROGRESS.md` §6's ~150-250-string gap is
-  unchanged. All new UI text authored in items B/D/E/F this session is plain hardcoded English,
-  same as the rest of the pre-existing app — nothing new was added to the `en.json`/`ar.json`
-  catalogs, and no `t()` calls were introduced anywhere. Two small reusable pieces were built ahead
-  of the retrofit and are ready to be consumed once it starts: `src/lib/format.ts`
-  (`formatCurrency`/`formatDate`, locale-aware, not yet wired into any call site) and
-  `src/components/Money.tsx`/`FormattedDate.tsx` (bidi-isolated wrappers for the eventual price/date
-  retrofit) and `src/lib/cityAr.ts` (the `CITY_AR` lookup for the city-name gap noted in the
-  original i18n investigation). The full retrofit — namespace population, ~150-250 real Arabic
-  translations, ICU plural handling, and a post-retrofit RTL re-QA pass — remains a large,
-  standalone piece of future work.
+- **Item C (i18n string retrofit) was not started in this session** — see §10 below for the full
+  retrofit, completed in the next continuation session.
 - Swipe-to-close on the new mobile drawer (§9c) is unverified on a real touch device.
+
+---
+
+## §10 — Phase 13 continuation: dev-server fix, theme-toggle re-check, and the full i18n retrofit
+
+A follow-up session picked up exactly where §9 left off, in the order requested: (1) diagnose and
+fix the dev-server startup issue, (2) investigate the "2 Issues" dev-tools badge, (3) re-check the
+theme toggle, then (4) build the entire i18n retrofit deferred at the end of §9.
+
+### 1 — Dev server port/lock conflict, root-caused
+
+Symptom: `npm run dev` failed with `FATAL: lock file "postmaster.pid" already exists ... Is another
+postmaster (PID nnnnn) running?`, and Next.js silently fell back to port 3001.
+
+Root cause (confirmed via `Get-CimInstance Win32_Process` command-line inspection, not assumed): a
+dev server from an earlier turn in the *same* session was still running in the background —
+genuinely running, not a crash artifact. Fix required two steps because of a Windows-specific
+gotcha: `taskkill //PID <postgres-pid> //F` **without** the `/T` flag killed the parent
+`embedded-postgres` process but left an orphaned `io_worker` child process still holding port 5433.
+That child had to be found and killed separately (with `/T`) before the now-genuinely-stale
+`.pgdata/postmaster.pid` file could be safely removed and `npm run dev` restarted cleanly.
+
+**New environment gotcha for future sessions** (same category as the existing Turbopack-stale-
+manifest and dev-server-crash notes in §4): if `postmaster.pid` conflicts occur, check whether a
+process is actually listening on the expected port before assuming the lock file is stale — killing
+a *live* Postgres out from under a running dev server is a worse outcome than leaving it alone. On
+Windows, always force-kill embedded-postgres with `taskkill /F /T` (both flags) — omitting `/T`
+reliably leaves an `io_worker` child holding the data directory lock.
+
+### 2 — "2 Issues" dev-tools badge investigated
+
+This was the Next.js Dev Tools indicator (`<nextjs-portal>` shadow-DOM element,
+`.dev-tools-indicator-issue-count`), not an application bug. At the time of inspection it reported
+zero real issues and was unrelated to item 1's crash. Separately, a console warning ("Encountered a
+script tag while rendering React component") was re-tested across multiple genuinely fresh tabs
+(ruling out this project's own documented stale-per-tab-console gotcha) and confirmed real and
+reproducible on every page — traced to the root layout's pre-existing no-FOUC theme script
+(`<script dangerouslySetInnerHTML>` in `src/app/layout.tsx`, present since early build phases).
+Functionally harmless (the whole point of that script is to run before hydration), reported
+honestly rather than "fixed" since it isn't actually broken and predates this session.
+
+### 3 — Theme toggle re-checked, no code bug found
+
+The user reported the toggle's icon represents the *current* theme rather than the theme a click
+would switch *to*. Live empirical testing (checking `document.documentElement.classList.contains
+("dark")` against which SVG actually rendered, across multiple reloads) confirmed the logic was
+**already correct**: dark mode shows a sun icon (switch to light), light mode shows a moon icon
+(switch to dark) — this is the same fix already shipped in §9. Explicitly did not "fix" already-
+working logic based on the reported premise. The one real gap found: `ThemeToggle.tsx` had no
+visible text label at the time, only an `aria-label` — a plausible explanation for the reported
+confusion. (A visible label was added during this pass; see the retrofit section below for the
+follow-up bug where that label's text turned out to be hardcoded and was fixed properly.)
+
+### 4 — Item C: the full i18n retrofit
+
+Built in five batches, in the order specified: infrastructure → storefront/auth → account hub →
+admin dashboard → staff + delivery dashboards, followed by a dedicated live-QA + RTL re-verification
+pass across all 4 roles in both languages. See `I18N_AR_REVIEW.md` for every register/ICU-plural/
+numeral-convention choice flagged for native-speaker review, organized by the same batches below.
+
+**Batch 4a — Infrastructure + storefront/auth.** Reorganized `en.json`/`ar.json` from the original
+3 flat namespaces (21 keys) into namespaces mirroring the app's route groups (`common`, `theme`,
+`language`, `nav`, `storefront`, `account`, `admin`, `staff`, `delivery`, `auth`, `toast`, `errors`).
+Built `src/lib/format.ts` (`formatCurrency`/`formatDate`, locale-aware via an `-u-nu-latn` numbering-
+system override so `ar-JO` renders Western digits, matching the documented convention rather than
+`ar-JO`'s Arabic-Indic default), `src/components/Money.tsx`/`FormattedDate.tsx` (bidi-isolated
+`dir="ltr"` wrappers), and `src/lib/cityAr.ts` (`CITY_AR` lookup + `localizedCity()` for the
+`ShippingZone.cityAr`-exists-but-unused gap noted in the original investigation). Fully migrated:
+storefront header/footer/home/products/product-detail/reviews/bundles/cart/checkout/confirmation,
+and both auth pages (login/register), including converting `registerSchema`/`loginSchema` zod
+messages to i18n key-paths translated at render time via `tErrors(errors.field.message)`.
+
+**Batch 4b — Account hub.** All ~20 files across orders (list/detail/reorder/return-request),
+wallet, addresses (incl. `localizedCity()` in both the saved-address display and the city
+`<select>`), wishlists, preferences, sessions, support (list/detail/new-ticket/reply), and change-
+password (incl. converting `changePasswordSchema` to the same key-path convention). New
+`src/lib/supportCategories.ts` (`SUPPORT_CATEGORIES` with `{value, key}` pairs) so a ticket's
+category translates consistently between the New Ticket dialog and every place a ticket list/detail
+displays it, while the value stored in the DB stays a stable English identifier. A verification
+sweep after this batch caught two real gaps: the account-overview store-credit tile bypassing
+`<Money>` (left as an intentional design choice after confirming the label already localizes its own
+unit and digits are Western either way — not a bug) and `AddressFormDialog.tsx`'s default form value
+`label: "Home"` never running through `t()` (fixed with a new `defaultLabelValue` key).
+
+**Batch 4c — Admin dashboard (the largest single batch, 47 files).** Nav, dashboard home, Users
+(list/filters/detail + `StoreCreditAdjustmentForm`), Orders (list/detail, plus the shared
+`OrdersTable`/`OrderFilters`/`OrderStatusActions`/`OrderTracker` components — migrating these once
+fixed the parallel Staff routes for free since they render the identical components), Products
+(list/new/edit + shared `ProductForm`/`ProductRowActions`), Bundles (+ `BundleForm`/
+`BundleRowActions`), Promo Codes (+ `PromoCodeForm`/`PromoCodeRowActions`), Settings (loyalty
+config/tiers, shipping zones), Delivery Support (admin queue + the 3 shared `DeliverySupport*`
+components), Support Inbox, Staff management (+ shared `CreateManagedAccountDialog`), Abandoned
+Carts, and all 12 Analytics files. New shared enum catalogs added to `common.*` for reuse across
+every role: `orderTracker`, `rfmSegment`, `promoSegment`, `paymentStatus`, `deliveryProblemType`,
+`deliveryUrgency`, `roleLabel`. `src/lib/deliverySupport.ts`'s `PROBLEM_TYPE_LABEL`/`URGENCY_LABEL`
+plain-English label maps were removed as dead code once every consumer was switched to the
+`common.deliveryProblemType`/`deliveryUrgency` catalogs. For the Analytics batch specifically, two
+service-layer changes were made (not touching any actual computed values/aggregation logic, only
+how results are *labeled*): `getSalesHeatmap()` now returns `dayIndex`/block `key` instead of baked
+English day-abbreviations and time-range strings (the UI localizes the weekday name via
+`Intl.DateTimeFormat` off the index, and translates the time-block key), and
+`getCartAbandonmentFunnel()`'s stage objects use a `key` instead of an English `label`. A
+verification sweep after this batch caught one real gap (the admin-dashboard revenue tile bypassing
+`<Money>`, same pattern as the account-hub one) — this time genuinely fixed, since the thousands-
+separator benefit matters more for a total-revenue figure than a single customer's store credit;
+the account-overview tile was updated to match for consistency.
+
+**Batch 4d — Staff + delivery dashboards.** Staff: nav/layout/home, Orders/Products pages (thin
+wrappers reusing the now-translated shared components — mostly just a heading string each),
+Delivery Accounts (list/detail + `DeliveryAccountRowActions`, reusing `common.roleLabel` for the
+shared `CreateManagedAccountDialog`), Delivery Support pages (reusing the `admin.deliverySupport.*`
+keys directly, since the underlying component tree is identical). Delivery (driver): nav/layout/
+active-deliveries/history/earnings, assignment detail (+ `DeliveryStatusActions`,
+`ReportProblemDialog`), and My Reports (list/detail). Reused `account.orders.itemCount`'s existing
+ICU-plural for the item-count string on the driver's active-deliveries list, and
+`common.deliveryProblemType`/`deliveryUrgency` for the driver-facing report dialog — meaning the
+driver-side "Report a Problem" flow (built in item B, earlier this phase) is now fully localized for
+free as a side effect of the admin-batch enum-catalog work.
+
+**Batch 4e — Live QA + RTL re-verification.** Logged in as all 4 seeded roles (Admin, Staff — Lina
+Haddad, Delivery — Khaled Fares, Customer — Sara Khoury, whose seeded locale is already Arabic) and
+walked every migrated page in both languages via the real dev server with real seeded data, not just
+a static code read. Confirmed real Arabic renders throughout (not mirrored-layout-with-English-text-
+still-showing), the RTL mobile drawer nav slides in from the correct "start" (right, in RTL) edge
+with fully-translated content (`document.documentElement.dir === "rtl"` confirmed), and a wide range
+of real ICU plural forms render grammatically correctly against actual seeded counts (e.g. 3 vs. 8
+vs. 17 vs. 104 all selecting the right Arabic plural category). Also ran a dedicated background
+sweep specifically for one bug class this pass surfaced (see below): messages containing an ICU
+placeholder whose call site never supplies it — found and fixed the one real instance, confirmed no
+others exist anywhere in the ~90 placeholder-bearing keys across the whole catalog.
+
+**Real bugs found and fixed during live QA** (beyond what static code review / `tsc`/`lint` can
+catch):
+
+1. `auth.login.welcomeBack`/`auth.register.join` contain a `{brand}` ICU placeholder that
+   `LoginForm.tsx`/`RegisterForm.tsx` never supplied — next-intl rendered the literal untranslated
+   key path (`auth.login.welcomeBack`) on screen instead of throwing a build-time error, since this
+   is a runtime-only formatting error. Fixed by passing `{ brand: tCommon("brand") }` at both call
+   sites.
+2. `ThemeToggle.tsx`'s aria-label and visible "Light"/"Dark" text were hardcoded English despite
+   `theme.switchToLight`/`switchToDark`/`light`/`dark` keys already existing in the catalog since
+   the very first infra batch — simply never wired up. Fixed.
+3. `ConfirmDialog.tsx`'s `cancelLabel`/`confirmLabel` prop *defaults* and its "Working..." pending-
+   state text were hardcoded English and silently active at nearly every call site in the app (no
+   call site had ever passed an explicit `cancelLabel`). Fixed via `common.cancel`/`common.confirm`/
+   a new `common.working` key, with the component now falling back to translated defaults instead of
+   English ones when a caller doesn't override.
+4. `admin/users/[id]/page.tsx`'s wallet-history section rendered `LoyaltyTransaction.type` (raw
+   "EARN"/"REDEEM"/"ADJUSTED") when no `note` was set, instead of reusing the
+   `account.wallet.txType.*` labels already built for the customer-facing wallet page. Fixed.
+5. `src/components/ImageUploader.tsx` — all three exported components (`SingleImageUploader`,
+   `GalleryUploader`, `ReportPhotoUploader`) were missed by every batch above; every button label,
+   the "Uploading..." state, the "Upload failed" toast, and image alt text were hardcoded English.
+   New `common.imageUploader.*` namespace added and wired into all three.
+6. `src/components/MapPinPicker.tsx`'s map caption ("Click the map to drop a pin...") was hardcoded
+   English; wired to `account.addresses.form.mapInstructions`.
+7. `src/lib/server/services/wishlists.ts`'s `getOrCreateDefaultWishlist()` wrote the literal string
+   `"My Wishlist"` into the database for every new customer's first wishlist, regardless of locale —
+   a server-side default value, not a template string, so it was invisible to a component-level
+   grep. Fixed to call `getTranslations("account.wishlists")` and use a new `defaultListName` key.
+   Only affects wishlists created from this point forward; already-persisted wishlists (seeded or
+   real) keep their existing English name — expected, not a data migration this pass is scoped to
+   do.
+8. `ar.json`'s `admin.analytics.salesHeatmap.timeBlocks.*` initially used Arabic-Indic digits
+   (e.g. "١٢–٤ص"), breaking the project's established Western-digit convention (enforced everywhere
+   else via `formatCurrency`/`formatDate`'s `-u-nu-latn` override). Fixed to Western digits
+   ("12–4ص").
+
+`tsc --noEmit` and `npm run lint` were run clean after every single file edited across all five
+batches (dozens of checkpoints, not just at the end). Both `en.json`/`ar.json` were validated as
+parseable JSON after every edit.
+
+### 5 — Analytics date-range filter extended to all 9 widgets
+
+The single `AnalyticsDateRangeFilter` (URL params `from`/`to`) was moved from its old position
+(only above the 5 Phase-13 widgets) to sit directly under the page heading, so it now visually and
+functionally governs the whole page. `analytics.ts` gained real range-aware query logic for the 3
+of the original 4 widgets where a date window is a coherent question:
+
+- `getTopCustomersByLifetimeValue(limit, range?)` — without a range, still reads the pre-aggregated
+  `CustomerStats.totalSpent` (fast, matches the all-time figure shown elsewhere). With a range, it
+  switches to a fresh `Order.groupBy` over PAID orders within the window instead (the pre-aggregate
+  literally cannot answer "top spenders in June" - it only tracks all-time totals).
+- `getFrequentlyBoughtTogether(limit, range?)` — added an `order: { createdAt }` filter to the
+  `OrderItem` query.
+- `getSalesHeatmap(range?)` — added the same `createdAt` filter alongside the existing `PAID` filter.
+
+**RFM segment counts were deliberately left date-agnostic** and flagged rather than forced: a
+segment (Champions/At Risk/Lost/etc.) is a whole-customer-lifetime label recomputed all-at-once by
+the "Recalculate Segments" button, not a per-event fact with its own date - "Champions between
+March 1-31" isn't a coherent question the way "top spenders in March" is. This is recorded as a
+comment directly in `page.tsx` next to where the segment counts are fetched, not just here.
+
+Verified live: filtering to June 2026 produces a completely different top-10 list (different
+customers, different totals) and different frequently-bought-together/heatmap counts than the
+all-time view - confirming this is real re-aggregation, not a UI-only filter over already-fetched
+all-time data.
+
+### 6 — Analytics page redesigned for density and weight
+
+Per the explicit feedback that the page read as "childish" and "decorative" rather than something
+"a serious business would rely on to make decisions" - a KPI strip, meaningful-only color, and a
+density pass, without touching any computed values beyond what item 5 already required.
+
+- **KPI strip** (new `KpiStrip.tsx`): 4 large single-figure tiles at the top - Total Revenue,
+  At-Risk + Lost Customers, Open Delivery Reports, Recoverable Cart Revenue - each with a
+  colored trend delta vs. the prior equal-length period when one is available (a "select a date
+  range for a comparison" hint shows instead when the page is unfiltered, rather than a
+  misleadingly blank space). Revenue rising and recoverable-cart-revenue falling are colored green;
+  the reverse of each is colored red (`text-success`/`text-critical`, both defined in
+  `globals.css` and already dark-mode-aware). The two count tiles (at-risk+lost customers, open
+  delivery tickets) intentionally show **no delta** - both are point-in-time backlog snapshots, not
+  period totals, so a "trend" for them would have to compare today's count to some arbitrary past
+  count, which isn't the same kind of question as a period-over-period revenue change.
+- **RFM section reworked** (new `RfmStatTiles.tsx`): leads with 3 actionable segment counts
+  (Champions in green, At Risk and Lost in red/critical) before the existing full 7-segment bar
+  chart, rather than making an admin read the whole chart to find the 3 segments that actually
+  need action.
+- **Trend deltas added to the original widgets where they're a genuinely different signal, not
+  added where they'd just repeat the KPI strip**: Sales Heatmap gained a "N paid orders (+/-Δ vs
+  prior period)" line above the grid (order *count* is a different signal from revenue *amount*,
+  and the delta was free to compute - already had both periods' grids in hand for the heatmap
+  itself). Top Customers by LTV and Frequently Bought Together were deliberately left without a
+  page-level delta: both are ranked lists of distinct entities (individual customers, individual
+  product pairs), not a single scalar that can meaningfully go up or down the way a total can -
+  forcing a "combined top-10 spend" figure onto Top Customers would just re-derive a number close
+  to (and confusable with) the Total Revenue KPI already at the top, for no real added insight.
+  This mirrors the judgment already applied to the cohort heatmap and geographic table in the
+  original Phase-13 build (some widgets are distributions/rankings, not trend-lines, and forcing a
+  delta onto them doesn't make them more useful).
+- **Density pass**: every analytics `Card` on the page now uses `rounded-lg` (down from the
+  app-wide default `rounded-2xl`) and tighter `p-3.5` content padding (down from `p-5`), applied via
+  className overrides on this page only (the shared `Card`/`CardContent` components and every other
+  page using them are untouched). Chart heights were reduced (RFM bar chart 280px→200px, staff
+  leaderboard 240px→180px, staff timeline 200px→140px) and the sales-heatmap/cohort-heatmap grid
+  cells shrank (40px→32px height, tighter `border-spacing`, smaller corner radius) to fit more
+  numbers on screen without scrolling, matching the requested Stripe/Linear-style density over the
+  previous consumer-card-grid look.
+
+No underlying data/query logic was touched beyond what item 5 required, per the explicit
+instruction for this item - the density/KPI/RFM-tiles work is presentation-only, reusing the same
+`analytics.ts` return values (plus the two new small aggregates, `getTotalRevenue()` and the
+existing open-delivery-ticket count already used on the admin dashboard home page).
+
+Verified live in both languages: KPI deltas color correctly (a real -1,204.970 JD revenue drop
+in a filtered June-2026 test showed in red; the "no comparison available" hint shows correctly on
+the unfiltered default view); RFM stat tiles show correct counts and colors in both light and dark
+mode (`--critical` resolves to `#f87171` in dark mode as expected); the KPI grid reflows to 2
+columns at mobile width; `tsc`/`lint` clean throughout.
+
+### Not done this session — explicitly remaining
+
+- The ~35 `metaTitle` keys scattered across the catalog (e.g. `account.orders.metaTitle`,
+  `staff.deliveryAccounts.metaTitle`) are dead/unreferenced — every route in this app sets a static
+  hardcoded-English `export const metadata` instead of calling `t("metaTitle", ...)`, a pattern
+  established in the very first batch and kept consistent throughout. Only the two product/bundle
+  `generateMetadata` functions actually consume a `metaTitle` key. Worth a cleanup pass to either
+  wire these up for real (translating browser-tab titles) or delete the unused keys — deliberately
+  left as-is this session since it's a pre-existing pattern decision, not a correctness bug.
+- A native Arabic speaker has not reviewed any of the flagged items in `I18N_AR_REVIEW.md` (register
+  choices, ICU plural forms, the RFM segment terminology, the sales-heatmap time-block numeral
+  convention).
+
+---
+
+## §11 — Phase 14: Arabic content coverage, analytics fixes, staff support, delivery
+collections/history, and product+delivery reviews
+
+Six items, worked in order per the standing instruction (investigate → build → test → full
+role/language QA → fix → re-test → move on), no check-ins between items. Three judgment calls were
+resolved via direct questions before starting (all took the recommended default): Category stays
+seed-only this phase (no admin CRUD built — flagged as a follow-up below); the analytics page's
+black/vivid treatment applies **unconditionally**, independent of the site's light/dark toggle;
+driver/delivery rating **was** built this phase (new field on `DeliveryAssignment`, not skipped).
+
+### Item A — Arabic content coverage
+
+**A1 — Product/category/bundle content.** Investigation found the schema and admin forms were
+**already fully bilingual** (`Product`/`Category`/`ProductBundle` all have paired `nameEn`/`nameAr`
+(+`descriptionEn`/`descriptionAr`) fields, already populated by seed data since they're
+non-nullable; `ProductForm.tsx`/`BundleForm.tsx` already had working `nameAr`/`descriptionAr`
+inputs with `dir="rtl"`) — the actual bug was purely on the read side: 33 files hardcoded
+`.nameEn`/`.descriptionEn` instead of picking a field by locale. Fixed with a new
+`src/lib/localizedField.ts` (`localizedField(locale, en, ar)`, falls back to `en` if `ar` is
+missing/empty — never renders blank), following the exact precedent of `src/lib/cityAr.ts`'s
+`localizedCity()`. Applied across every storefront/account/admin/staff read path: `ProductCard`,
+product/bundle listing and detail pages, the homepage, cart, checkout, wishlists, category filter
+chips, admin/staff product and bundle tables, the analytics "frequently bought together" pairs, and
+the admin bundle/product picker dropdowns. `OrderItem.nameSnapshot` (a frozen English string
+written at checkout) was deliberately left unchanged — order-history displays instead prefer the
+**live** `product.nameAr`/`bundle.nameAr` via the existing nullable FK, falling back to the
+snapshot only if the product/bundle was later deleted (`SetNull`). Categories stay seed-only per
+the confirmed scope decision — `nameAr` already renders correctly everywhere it's read, no new
+admin UI was built.
+
+**A2 — Dashboard language switcher.** `LanguageSwitcher.tsx` was already a portable, self-contained
+component (only used in `StorefrontHeader.tsx` before this phase). Added `<LanguageSwitcher />` to
+`admin/layout.tsx`, `staff/layout.tsx`, `delivery/layout.tsx`, and `account/layout.tsx`, in the same
+`flex items-center gap-4` header block Phase 13 used for `<ThemeToggle />` — a 4-file, one-line
+change. Verified live as Staff (Lina Haddad) and a seeded driver: switching to Arabic puts the
+entire nav/forms/tables into Arabic with no English-only screen encountered, including every new
+surface built later in this same phase (staff Support Inbox, Today's Collections, delivery history
+filters, both new review dialogs) — all were tested in Arabic as part of their own item's QA pass,
+not as an afterthought.
+
+`tsc`/`lint` clean throughout. No schema changes.
+
+### Item B — Analytics: missing line chart + visual redesign
+
+**B1 — The "missing" LineChart.** Live investigation (real DOM measurement via `javascript_tool`,
+not just reading source) found the LineChart **does render** — nonzero `ResponsiveContainer`
+dimensions, a real SVG path with real coordinates, a resolved `stroke` color, and dots — once
+verified in a genuinely fresh tab. Static analysis of `getStaffPerformance()` also confirmed
+`leaderboard` and `timeline` are built from the same loop over the same rows, so the "empty
+timeline points" theory didn't hold up either. Most likely explanation: the chart sits inside the
+"Extended Analytics" section, well over a full page-length below the KPI strip/RFM/heatmap, and was
+simply scrolled past. No code bug found for B1 in isolation — but see the real bug found and fixed
+during B2's verification below, which affected this exact chart.
+
+**B2 — Visual redesign.** New page-scoped token set added to `globals.css` under a `.analytics-theme`
+class (deliberately **not** merged into `:root`/`.dark` or `@theme inline`, since this is a fixed
+identity independent of the site theme toggle, confirmed via the judgment call above):
+`--analytics-bg: #050505`, `--analytics-surface: #161616`, `--analytics-border: #2e2e2e`,
+`--analytics-text: #f5f5f5`, `--analytics-text-muted: #9a9a9a`, and three meaning-locked accents —
+`--analytics-good: #39ff88` (electric green, always "good/high/on-target"), `--analytics-bad:
+#ff3b5c` (vivid red-pink, always "bad/low/at-risk"), `--analytics-neutral: #3ea9ff` (bright blue,
+plain magnitude/count data with no inherent direction). Every chart/table on the page was repointed
+from the site's brand tokens to this 3-color system, consistently: RFM segment chart's 7-segment
+spectrum collapsed onto good/neutral/bad (Champions/Loyal → good, the 3 "watch" segments → neutral,
+At Risk/Lost → bad); KPI strip and RFM stat tile deltas; Sales/Cohort heatmap intensity scale →
+neutral (a magnitude, not a direction); Staff Performance bar+line → neutral (plain counts);
+Delivery Performance's on-time-rate/failed-rate → good/bad respectively, delivered-count → neutral,
+plus a new avg-rating column (see F2) colored good/bad/neutral by threshold; Cart Funnel's
+recoverable-revenue delta reuses the KPI strip's own good/bad convention. Every shared UI primitive
+rendered on this page (`Card`, `Table`, `Badge`, `EmptyState`, the date-range inputs) gets its
+background/border/text repointed via CSS overrides scoped under `.analytics-theme`, since those
+components live outside this item's edit scope. No query, aggregation, or computed value was
+touched — confirmed by re-reading `analytics.ts`'s diff before finishing.
+
+**Real bug found and fixed during B2's live verification, not present before this session's testing
+tooling could actually check it:** both bar charts on the page (`RfmSegmentChart`'s and
+`StaffPerformanceChart`'s leaderboard `<Bar>`) rendered **zero actual bar shapes** — the
+`recharts-bar-rectangle` DOM nodes were present but empty, in a genuinely fresh tab, confirmed via
+direct SVG/path inspection (not just "looks fine on screen"). Root-caused to this browser
+automation environment never compositing frames (`computer{action:"screenshot"}` consistently
+failed with "the Browser pane is not displayed, so the page is not compositing frames"), which
+means `requestAnimationFrame` never fires — Recharts' bar entrance-grow animation depends on it, so
+the bar shape never gets inserted past its initial zero-height animation frame. The `<Line>` chart
+was unaffected because its path `d` attribute is set immediately regardless of animation state,
+which is exactly why B1's investigation found it rendering fine while the bar charts (checked more
+carefully during B2) did not. Fixed by adding `isAnimationActive={false}` to both `<Bar>` elements —
+a reasonable, no-downside change for a dashboard that doesn't need entrance animation anyway, and it
+makes rendering deterministic regardless of whether a given viewing environment's `requestAnimationFrame`
+ever fires. Confirmed fixed: real bar paths with the correct resolved good/neutral/bad hex colors
+render immediately in a fresh tab. This finding is why B1's own investigation is now considered
+resolved as "not an app bug, just below the fold" rather than left uncertain — B2's more careful
+DOM-level check is what actually proved the charts work.
+
+Verified live as Admin (Staff has no analytics access) in both languages and with the site
+ThemeToggle in both positions: the analytics page's background/colors are byte-identical regardless
+of the toggle (confirmed via `getComputedStyle` before/after toggling the `.dark` class), matching
+the confirmed judgment call exactly. `tsc`/`lint` clean throughout.
+
+### Item C — Staff Support Inbox (reuse, not duplicate)
+
+Investigation found the two admin-only-looking routes staff would need
+(`PATCH /api/admin/support-tickets/[id]/status`, `.../assign`) **already allow `STAFF`**
+(`requireApiRole("ADMIN", "STAFF")`, despite the `/api/admin/...` path prefix) — no backend change
+needed. The customer-facing `support-tickets` routes already do inline role checks that permit
+staff too. `proxy.ts`'s `/staff` prefix rule already covers any new `/staff/*` route.
+
+Relocated `SupportFilters.tsx`, `TicketControls.tsx`, `AdminReplyForm.tsx` from
+`src/app/admin/support/` to `src/components/support/` (alongside the existing
+`TicketStatusBadge.tsx`), matching the Delivery Support precedent from Phase 13 exactly rather than
+cross-importing from the admin route tree. New `src/app/staff/support/page.tsx` and
+`support/[id]/page.tsx` — thin copies of the admin pages pointed at `/staff/...` links instead of
+`/admin/...`. Added a `support` nav link + i18n key to `StaffNav.tsx`/`staff.nav`. No new API route,
+no new Prisma model, no `proxy.ts` change.
+
+Verified live as Staff (Lina Haddad): list loads real tickets, opened one, posted a real reply
+(confirmed it landed in the thread) — same underlying API/components as Admin's page, working
+identically. Role sweep: Customer → redirected to `/`, logged-out → redirected to `/login`, both
+via direct `fetch()` with `redirect:'follow'` checked against `.redirected`/`.url` (not just
+`status`, per the Phase 7 near-miss lesson). `tsc`/`lint` clean.
+
+### Item D — Delivery earnings → "Today's Collections"
+
+Confirmed via schema: `DeliveryAssignment.deliveredAt` is a direct field (no join needed), and
+`Order.paymentMethodLabel` is a stable checkout-time string snapshot (`"Cash on Delivery"` vs
+`"Card on file"`) independent of the live `PaymentMethod` row. The old page's
+`DeliveryAssignment.earningsAmount` (the driver's own shipping-fee pay) was the wrong figure
+entirely for this ask — drivers are salaried, so what they actually need is **cash collected from
+customers today, owed to the accountant**, i.e. `Order.total` summed across today's COD deliveries.
+
+Rewrote and renamed the route from `/delivery/earnings` to `/delivery/collections` (folder renamed,
+`DeliveryNav.tsx` href/label updated). New query: `deliveryAssignment.findMany` filtered to
+`status: "DELIVERED"`, `deliveredAt` within `[startOfToday, startOfTomorrow)`, and
+`order.paymentMethodLabel === "Cash on Delivery"`. Renders one clear total ("Total cash to hand
+over"), the list of today's COD deliveries backing it, and a secondary "no cash owed" list for
+today's non-COD deliveries (for reconciliation completeness). No month view, no lifetime total, no
+non-COD amount in the total. Naming judgment call resolved as **"Today's Collections"** /
+**"تحصيلات اليوم"** — reads as "money collected," not "your pay," in both languages.
+
+Verified live: advanced two real active assignments (Yousef Zeidan's BT-1086 and BT-1167, both COD)
+to `DELIVERED` through the real status-update flow, confirmed the collections page showed the
+correct running total (73.300 + 47.400 = 120.700 JD) matching a manual sum, correct per-delivery
+list entries, and confirmed in Arabic (`تحصيلات اليوم`, `120.700 د.أ`). `tsc`/`lint` clean.
+
+### Item E — Delivery history filters
+
+Added a date-range filter (two-date-input pattern copied from `AnalyticsDateRangeFilter.tsx`) and
+an order-number search filter (copied from `OrderFilters.tsx`'s commit-on-blur/Enter `Input`
+pattern) via a new `DeliveryHistoryFilters.tsx` client component, using the same
+`useSearchParams`/`setParam` URL-sync convention used everywhere else filtered lists exist in this
+app. `page.tsx` extended its existing `where` with an `assignedAt` range (chosen over `deliveredAt`
+since it's the one timestamp every row in this list always has — a `FAILED` assignment never gets a
+`deliveredAt`) and an `orderNumber` contains-filter.
+
+Verified live as Yousef Zeidan (20+ real assignments): search by a real partial order number
+correctly narrowed to one result; a date range excluding all history correctly showed the empty
+state; a full-history date range showed everything again; URL params round-tripped correctly
+through direct navigation (shareable/back-button-safe, matching the rest of the app's filter
+convention). `tsc`/`lint` clean.
+
+### Item F — Product and delivery reviews from the account order page
+
+**F1 — Product review.** Investigation found the entire product-review backend **already existed
+and worked** — `Review` model, `POST /api/reviews`, `createReview()` (ownership + `DELIVERED`-status
++ one-review-per-order-item validation, recomputes `Product.avgRating`/`reviewCount`),
+`StarRatingInput`/`StarRatingDisplay`, `getReviewableOrderItems()` — it just wasn't reachable from
+`/account/orders/[id]`, only from the storefront product-detail page. Added a
+`WriteOrderItemReviewDialog.tsx` (new) to the order-item row for each `DELIVERED` order's line item
+where `item.productId` is set (bundles are out of scope — reviews are product-scoped, not
+bundle-scoped, per the existing schema/service) and the current user hasn't already reviewed that
+specific order item. Added photo upload: `"reviews"` added to `UploadSubfolder`, `CUSTOMER` added to
+`/api/uploads`'s allowed roles with a forced `reviews/` destination (server-controlled, matching the
+existing DELIVERY-role precedent — a spoofed `subfolder:"products"` request from a customer session
+still lands in `reviews/`), a new optional `Review.photoUrl` column (migration), and a new
+`ReviewPhotoUploader` component (mirrors `ReportPhotoUploader`'s shape exactly). The storefront's
+own `WriteReviewForm.tsx` got the same photo field for consistency, since both forms hit the same
+`POST /api/reviews`.
+
+**F2 — Delivery/service rating (new).** Added nullable `rating`/`comment` directly on
+`DeliveryAssignment` (migration) — mirrors `Review.rating` being per-unit-of-purchase, per the
+confirmed judgment call, rather than a separate model. New `WriteDeliveryRatingDialog.tsx` on the
+order page's delivery card, shown once the order's latest `DeliveryAssignment` is `DELIVERED` and
+ungraded (a `StarRatingDisplay` shows instead once rated). New
+`PATCH /api/delivery/assignments/[id]/rating` (`CUSTOMER`-only, ownership-checked against the
+**order's** `userId`, not the driver's — same 404-hides-existence pattern the driver-facing status
+route already uses, just inverted). Wired into `getDeliveryPerformance()` in `analytics.ts`: an
+`avgRating`/`ratingCount` accumulator alongside the existing `delivered`/`failedRate`/`onTimeRate`
+fields, surfaced as a new column on the Delivery Performance table (colored good/bad/neutral by
+threshold, per B2's palette).
+
+**F3 — Verification and moderation gap.** `avgRating`/`reviewCount` are pre-existing denormalized
+fields recomputed by `createReview()` — confirmed live that a real new review immediately updated
+the count/average shown on both the product card (search results) and the product detail page, with
+the review's own comment and star rating rendering correctly. No admin/staff review-moderation
+surface exists anywhere in the app (no list/delete UI for reviews) — flagged in Known Issues as a
+real, out-of-scope-for-this-phase gap, not built here.
+
+**Full live verification** (as Sara Khoury, a real customer with real `DELIVERED` orders, both via
+the browser and direct `fetch()` role/ownership sweeps):
+- Submitted a real product review (5 stars is the form's default, a comment, no photo — see the
+  environment note below on why photo upload couldn't be exercised) on a real delivered
+  order-item — confirmed it appeared on the product detail page, confirmed `Product.avgRating`/
+  `reviewCount` updated (4.6 → shown with 5 reviews, up from 4), confirmed the "Write a review"
+  trigger disappeared for that specific item afterward (one-review-per-order-item, already-existing
+  service behavior).
+- Confirmed a duplicate-review attempt and a review attempt against a genuinely non-existent
+  order-item ID are both rejected (400) via direct API calls.
+- Confirmed a review attempt against a real order-item belonging to a **cancelled** (non-`DELIVERED`)
+  order is rejected with `"You can only review products from delivered orders"` (400) — the
+  pre-existing gating logic, unchanged, re-confirmed working.
+- Submitted a real delivery rating (4 stars) on a different real delivered order — confirmed the
+  trigger was replaced by a star display, confirmed the rating appears correctly in the driver's
+  (Khaled Fares) row on the admin analytics Delivery Performance table ("4.0 (1)").
+- Role/ownership sweep on the new rating route: Admin → 403, a Delivery session → 403, logged-out →
+  401, and — critically — a **different real customer** (Nour Abdallah) targeting the **real**
+  assignment ID of Sara's already-rated delivery got a **404** (existence hidden, not just denied),
+  and a direct DB re-check afterward confirmed the rating/comment were genuinely untouched by the
+  attempted hijack (still exactly `4`/`null`), not just that the HTTP response looked right.
+
+**Real environment defect found and root-caused during this item's verification, not related to any
+Phase 14 code change:** attempting an actual image-byte upload (any role — reproduced identically
+as Admin, with zero involvement of the new `CUSTOMER`/`reviews` code path) crashes the entire dev
+server process (`Error: Could not load the "sharp" module using the win32-x64 runtime,
+ERR_DLOPEN_FAILED`), which in turn takes down the co-located embedded-Postgres process too (via
+`concurrently`'s `--kill-others-on-fail`) — the same failure shape logged as a one-off, unreproduced
+curiosity back in Phase 7/13, except this time it reproduces **every single time**, for every role,
+confirmed via direct `curl` against both a browser-launched and a directly-run dev server instance.
+Root-caused (not just observed) by capturing the server's own stderr at the moment of the crash: the
+native `sharp-win32-x64-0.35.3.node` addon fails to `dlopen` under this environment's Node.js
+v26.4.0 + Turbopack combination specifically — `sharp` loads and runs correctly via a plain `node -e`
+script (confirmed working, byte-for-byte, both before and after two different reinstall attempts:
+`npm rebuild sharp` and a full `rm -rf` + `npm install sharp`), but fails identically every time
+Turbopack's own module loader (`externalImport`) tries to load the exact same file. This means it's
+a genuine Node 26 / Turbopack / sharp native-addon ABI incompatibility in this specific environment,
+not a corrupted install and not something a package reinstall can fix — see the new Known Issues
+entry below. Because this reproduces for **every** role and **every** upload route (products,
+delivery-reports, avatars, and now reviews alike), it is **not** a Phase 14 regression — confirmed
+by triggering it as Admin uploading through the pre-existing, untouched `products` path, with the
+identical crash and stack trace.
+- **Practical consequence for this session's verification**: the review-photo-upload code path
+  (`ReviewPhotoUploader`, the `reviews` subfolder, the `CUSTOMER`-role branch in
+  `/api/uploads/route.ts`) is confirmed correct by code review and by the fact that it follows the
+  exact same pattern as the already-working `DELIVERY`/`ADMIN`/`STAFF` paths — but an actual
+  end-to-end image byte upload could not be exercised live in this session without repeatedly
+  crashing the dev server, so that specific sub-path is **not** live-verified this session, unlike
+  everything else in this phase. Flagged honestly rather than claimed.
+
+> **Update — resolved in the Phase 15 follow-up (see §12).** Both the sharp/Turbopack crash and the
+> unverified photo-upload path above were addressed head-on rather than left as accepted risk:
+> confirmed via a webpack-mode diagnostic that Turbopack was genuinely the cause (matches a known,
+> tracked upstream bug, not a Node 26 issue), fixed by pinning `sharp` to the exact version `0.34.4`
+> (was `^0.35.3`), and the review-photo-upload path was then actually exercised end-to-end with a
+> real file as a real customer, photo confirmed rendering on the public product page. See §12 for
+> full detail — this note exists so this section's own "not verified" language isn't misleading to
+> a future reader who only skims this far.
+
+`tsc`/`lint` clean after every file across all of Item F.
+
+---
+
+## Known Issues (single running list — supersedes scattered per-phase gap notes above)
+
+This is now the one place to check for everything still wrong, incomplete, or deferred across the
+whole app, pulled together from every phase's write-up plus what Phase 16 found. Phase-specific
+sections above (§2–§13) keep their original detail for historical context, but this list is the
+current, accurate source of truth.
+
+**Corrections to earlier phase write-ups (found stale during Phase 16's investigation):**
+- §6/§10 describe "no customer-facing notification inbox" and the CONFIRMED-without-driver guard as
+  only a passive disabled button. Both were already untrue by the start of Phase 16 — a full
+  notification inbox (all 4 roles) and the `DeliveryAssignment`-based advance guard both already
+  existed, built in an undocumented session between Phase 15 and Phase 16. §13 builds on top of that
+  real state (badges + category filtering for the former, a visible red alert for the latter) rather
+  than re-building either from scratch. Historical §6/§10 text is left as-is for the historical
+  record, but should not be read as the current state — this note plus §13 supersede it.
+
+**i18n:**
+- The ~35 dead `metaTitle` i18n keys (browser-tab titles are hardcoded English `export const
+  metadata` everywhere except the two product/bundle `generateMetadata` functions) — pre-existing
+  since Phase 13, not touched since.
+- No native Arabic speaker has reviewed any of `I18N_AR_REVIEW.md`'s flagged register/ICU-plural/
+  terminology items across any batch, including Phase 16's new "Batch 6" additions (the Net Revenue
+  chart's honesty-caveat phrasing, the no-driver alert copy) — worth a dedicated native-speaker pass
+  before shipping to real Arabic-speaking users.
+- **Category management has no admin UI** (confirmed scope decision, Phase 14 §11 Item A1) — the
+  schema's `nameAr` field works and renders correctly everywhere, but categories can only be
+  created/edited via the seed script. A real gap if content ever needs updating outside a
+  re-seed.
+
+**Moderation/admin surfaces:**
+- **No review-moderation surface exists anywhere** (confirmed Phase 14, §11 Item F3) — no way for
+  Admin/Staff to see, hide, or delete an abusive/spam product or delivery review. A real, if
+  low-likelihood-so-far, content-moderation gap.
+
+**Testing/infrastructure:**
+- Still no automated test suite (Jest/Playwright) — every phase through 16 has been verified live,
+  manually, in-browser or via direct `fetch()`/DB queries.
+- Swipe-to-close on the mobile drawer nav (Phase 13) is unverified on a real touch device — this
+  environment has no real touch-drag simulation. Phase 16's notification nav badge has the same
+  category of gap: verified on the desktop nav variant, not independently screenshotted inside the
+  opened mobile drawer (identical conditional JSX in both, but the drawer's content unmounts when
+  closed and this environment's screenshot/compositing is unreliable — see below).
+- ~~`sharp`'s native Windows binary fails to load under Turbopack, crashing the dev server on any
+  real image upload~~ — **RESOLVED in the Phase 15 follow-up (§12)**. Root-caused to a known,
+  upstream-tracked Turbopack bug (not Node 26, not a corrupted install — confirmed via a webpack-mode
+  diagnostic run that uploads succeeded there with the exact same `sharp` version). Fixed by pinning
+  `sharp` to the exact version `0.34.4` (was `^0.35.3`) — Turbopack remains the dev bundler, no
+  workflow change needed. Verified stable across 6+ consecutive real uploads post-fix. See §12 for
+  the full diagnostic trail.
+- **This environment cannot composite frames** (`computer{action:"screenshot"}` fails outright, and
+  `requestAnimationFrame` never fires) — already known from Phase 14's bar-chart-animation finding,
+  hit again in Phase 16 via a second code path (Recharts' tooltip-activation dispatch is itself
+  throttled through `requestAnimationFrame`). New workaround recorded in §13 Item 2a: monkey-patch
+  `window.requestAnimationFrame` to run synchronously immediately before dispatching a synthetic
+  hover event, then always `navigate()` (full reload) afterward rather than continuing to interact
+  with the same patched page — leaving the patch active destabilized React's own scheduling once,
+  crashing a page transition. Hit a third time in Phase 17 (§14): `screenshot`/`zoom` failed outright
+  for the entire session this time (not just at non-default sizes, as in earlier phases) — the new
+  star-rating color's numeric contrast was confirmed excellent via computed styles, but a genuine
+  visual "does it look clean vs. washed out" read could not be obtained. Flagged, not asserted.
+- **Real bug found, not fixed this phase — flagged as a background task instead**: the storefront
+  cart appears to not merge duplicate line items for the same product, and/or the client-side
+  cart store may not be scoped per logged-in user (a second account's leftover cart contents were
+  still present after logging in as a different customer in the same browser tab, without an
+  explicit clear). Found incidentally while verifying Item 1; genuinely unclear if this is a real
+  bug or a same-tab-account-switching test artifact — needs dedicated investigation, not a blind fix.
+- **Secondary Accent (`#BF5F3F`) as a badge background falls slightly short of AA contrast**
+  (Phase 17, §14) — best achievable text color (dark `#121212`) is `4.39:1` against it, white text is
+  `4.19:1`, both below the `4.5:1` normal-text minimum (Badge text is 12px, doesn't qualify for the
+  3:1 large-text exception). Flagged, not changed — it's the user's own given brand hex for badges
+  specifically, and close enough to the threshold to read as a defensible trade-off rather than an
+  illegible badge, but on record in case a future pass wants to nudge the foreground/background to
+  close the last `0.1`.
+
+**Deliberate scope/design decisions (not bugs):**
+- Analytics page's black/vivid identity is intentionally independent of the site's light/dark
+  toggle (confirmed judgment call, Phase 14 §11 Item B2) — this is permanent by design, not a bug if
+  the toggle "does nothing" on that one page. Re-confirmed unchanged after Phase 16 added the Net
+  Revenue chart to the same page.
+- "Today's Collections" total only counts Cash-on-Delivery deliveries completed *today*
+  (`assignedAt`/`deliveredAt`-scoped) — a driver's shipping-fee pay (`earningsAmount`) is a
+  completely separate figure, deliberately not shown on this page anymore (Phase 14 §11 Item D).
+  Confirmed in Phase 16 (§13 Item 3) that this page's logic never reads `paymentStatus` at all, so
+  the COD-accrual fix has zero effect on it.
+- Delivery/service ratings are per-`DeliveryAssignment`, one-time (no edit/re-rate path once
+  submitted) — matches the one-review-per-order-item precedent for product reviews.
+- Net Revenue (Phase 16, §13 Item 2b) is a discounts/refunds-adjusted revenue figure, explicitly not
+  a true profit figure — this schema has no per-product cost-basis field to compute real profit
+  from, same honesty stance as the existing realized-spend-only CLV metric.
+- Dark mode's `--ink-muted` token (Phase 17, §14) intentionally does **not** hold the literal
+  "Text-Muted" hex given in that update's spec (`#666666`, which fails AA contrast) — it holds the
+  "Text-Secondary" value (`#A0A0A0`) instead, since that's what this token has always actually meant
+  across ~80 files app-wide (confirmed by audit: form labels, nav links, descriptions). The literal
+  `#666666` value lives under a new, narrower `--ink-faint` token, applied only to the footer and the
+  theme-toggle control. See §14 for the full reasoning — a deliberate reinterpretation, not an
+  oversight, and flagged in case more surfaces should move to the dimmer tier.
+
+**Not exercised this build (carried forward from earlier phases, still true):**
+- A live bundle purchase through checkout, the mock-card checkout path, a full return/refund flow,
+  and driver-reassignment-after-a-failed-delivery end-to-end — all lower-risk, genuinely unverified
+  rather than suspected-broken (see §5/§6 for detail).
+
+---
+
+## §12 — Phase 15: sharp/Turbopack root-cause fix, real F1 photo verification, full security audit
+
+Three distinct pieces of follow-up work, done in order since the first two blocked the third:
+(1) an honest check of whether Phase 14's photo-upload claim actually held up, (2) a real second
+attempt at the sharp/Turbopack crash rather than accepting "reinstalls didn't fix it," and (3) a
+dedicated security audit — a distinct pass from feature work, with a live-tested before-picture
+produced before any fix was made, exactly as asked.
+
+### 1 — Was F1's photo upload actually verified?
+
+No. Re-reading the Phase 14 transcript confirmed it directly: the photo attachment was explicitly
+skipped when submitting Sara Khoury's review ("no test image file available in this environment"),
+and the only real image upload attempted afterward went through the pre-existing Admin
+product-upload path (to investigate the crash), never back through the new review flow. This was
+stated plainly before doing anything else, and the photo-upload path was treated as unverified,
+not done, until fixed and actually tested (see §3 below).
+
+### 2 — Sharp/Turbopack crash: real root cause, real fix
+
+Following the exact steps requested, in order, with actual outcomes reported (not assumed):
+
+- **`node -v` / `npm ls sharp` vs. sharp's documented Node support**: `node -v` → `v26.4.0`.
+  `node_modules/sharp/package.json`'s own `engines` field is `>=20.9.0` with no upper bound — sharp
+  does **not** self-declare an incompatibility with Node 26. This ruled out "sharp doesn't support
+  this Node version" before doing anything else.
+- **Diagnostic: `next dev --webpack` (no Turbopack), same real upload**: booted cleanly, and a real
+  multipart image upload (`POST /api/uploads` via `curl` with an actual PNG file, as Admin)
+  **succeeded** — `200`, a real `.webp` file written to disk, server stayed up. This conclusively
+  isolated Turbopack as the cause, matching a known, currently-tracked upstream bug
+  ([vercel/next.js#60035](https://github.com/vercel/next.js/issues/60035), tracked internally as
+  `PACK-2183`; [lovell/sharp#4567](https://github.com/lovell/sharp/issues/4567) reports the
+  identical `ERR_DLOPEN_FAILED` symptom under Turbopack + Next 16 + sharp 0.35.3, resolved by
+  downgrading to sharp 0.34.4 with zero app-code changes) — not a Node-version mismatch, not a
+  corrupted install.
+- **Actual fix**: pinned `sharp` to the exact version `0.34.4` (`npm install sharp@0.34.4
+  --save-exact`, `package.json`'s `"sharp"` entry changed from `"^0.35.3"` to `"0.34.4"`) — keeping
+  Turbopack as the dev bundler, no workflow change. Confirmed via `npm ls sharp` and a standalone
+  `node -e` sharp smoke test that the correct binary installed. Cleared `.next`, restarted
+  `npm run dev` (default, Turbopack active) — a real image upload **succeeded** (`200`, real `.webp`
+  written), then **stress-tested with 5 more consecutive real uploads, all succeeded**, server
+  stayed up throughout. `tsc --noEmit`/`npm run lint` clean after the `package.json` change.
+- Not needed: falling back to webpack permanently (step 3 in the plan) — the sharp pin alone fully
+  resolved it under Turbopack.
+
+### 3 — F1 photo-upload: actually completed this time
+
+Claude in Chrome wasn't connected in this environment, so real-file upload testing used the
+sandboxed Browser pane's DOM File API instead — constructing a real `File` object from real bytes,
+assigning it to the file input's `.files` via `DataTransfer`, and dispatching a real `change` event.
+This is the same underlying technique browser-automation frameworks (Playwright, Selenium) use for
+file-input testing — it exercises the identical client code, network request, and server-side
+multipart/sharp/DB path a real user's file picker would, not a shortcut around any of it.
+
+Logged in as Sara Khoury, opened `WriteOrderItemReviewDialog` on a real delivered order-item still
+missing a review (BT-1006's blush item), attached a real small test PNG through the actual file
+input, rated 4 stars, added a comment, submitted. Confirmed: the upload succeeded and the dialog's
+photo preview updated to the real uploaded URL; after submission, the review appeared on the
+product's public detail page with the correct comment text; the photo's URL
+(`/uploads/reviews/....webp`) is present in the page's rendered `<img>` tags; a direct `fetch()` of
+the raw file returned `200`, `image/webp`, and the exact expected byte count; and loading the URL
+via a fresh `Image()` object confirmed it genuinely decodes (`naturalWidth: 1, naturalHeight: 1`,
+correctly matching the 1×1 test image used). This is real, live, end-to-end verification — not
+inferred from the API response alone. The test review was deleted afterward and the product's
+`avgRating`/`reviewCount` recomputed to remove the scratch data.
+
+### 4 — Full security audit
+
+A dedicated pass, run as its own distinct exercise rather than folded into feature work. Every row
+below was actually tested live (`curl` against the real running dev server, real cookie-jar
+sessions for Admin/Staff/Delivery/two separate Customers/logged-out, real cross-user resource IDs
+for ownership checks) — nothing here is "should be fine, wasn't tried."
+
+#### Before-picture
+
+| Area | Tested | Result |
+|---|---|---|
+| Password hashing | Code-confirmed (`bcryptjs`, cost 10, `createManagedAccount` hashes temp passwords before storing); confirmed no plaintext appears in any auth-route log/response | **Pass** |
+| JWT signature/expiry verification | Sent a missing, a malformed (`garbage.not.a.jwt`), and a forged-but-well-formed token to a real protected route (`/api/admin/staff`) | **Pass** — all three `401`, a real admin cookie `200`, a real cookie with an appended-garbage (corrupted signature) `401` |
+| Logout / session revocation | Logged in, confirmed access, logged out, **replayed the identical old cookie value** against a protected route | **Pass** — `401` after logout; revocation is server-side (DB `Session.revokedAt`), not just a client cookie clear |
+| Cookie flags | Read the raw `Set-Cookie` header via `curl -v` | **Pass** — `HttpOnly; SameSite=lax` always on; `Secure` correctly omitted in dev (conditional on `NODE_ENV==="production"`, which `next start`/production builds set automatically) |
+| Login rate limiting | Hammered `/api/auth/login` with a wrong password 12× | **Pass** — `401`×10 then `429`×2, exactly matching the documented 10-attempt/15-minute window |
+| **Registration rate limiting** | Hammered `/api/auth/register` with an already-taken email 12× (safe — never creates an account) | **FAIL** — all 12 returned `409`, never `429`. Zero brute-force/spam protection existed. |
+| **Change-password rate limiting** | Hammered `/api/auth/change-password` with a wrong current password 12× (as a real logged-in customer) | **FAIL** — all 12 returned `400`, never `429`. Zero protection existed. |
+| Role gates across the app | Systematic sweep: Admin-only routes (`admin/staff`, `admin/promo-codes`, `admin/settings/*`, `admin/users/export`), Admin\|Staff routes (`products`, `admin/orders/export`), Staff-only (`staff/delivery-accounts`), Delivery-only (`delivery/reports`), and the customer-facing routes never previously swept (`addresses`, `cart`, `checkout`, `wishlists`, `wishlist-items`, `returns`, `payment-methods`, `notification-preferences`, `support-tickets`, `reviews`) | **Pass** — every route correctly gated for its intended role(s); wrong roles `403`, logged-out `401`, including the deliberate Admin-403-on-`staff/delivery-accounts` asymmetry from Phase 8 still holding |
+| Cross-customer ownership | Nour (a real customer) targeting Sara's real address, wishlist, support ticket, and order (reorder) IDs directly | **Pass** — all four correctly `404` (hides existence) |
+| Cross-driver ownership | Khaled targeting Yousef's real `DeliveryAssignment` id for a status update | **Pass** — `404` |
+| Client-supplied identity trust | Customer session attempting `POST /api/orders/[id]/assign-driver` with a real `driverId` in the body | **Pass** — `403` (Staff/Admin-only route, correctly gated before the body's `driverId` is ever used) |
+| `User` queries without `select` | Grepped every `prisma.user.*` call in the tree, cross-checked against every file touched since the last audit (Phase 14's new routes included) | **Pass, no active leak** — but 3 pre-existing queries (`admin/users/[id]/page.tsx`, `admin/staff/page.tsx`, `api/admin/users/export`) fetched full `User` rows (incl. `passwordHash`) despite only ever serializing narrow fields out — undisciplined, flagged for hardening |
+| `/public/uploads/**` read exposure | Confirmed via code (no auth on static file serving; `/uploads/*` absent from `proxy.ts`'s matcher) | **FAIL (by design gap)** — any uploaded file was viewable by anyone with its URL, including `delivery-reports/` (internal driver problem-report photos) |
+| Error responses / stack traces | Malformed JSON, wrong-typed fields, and an empty body sent to `addresses`, `checkout`, and `admin/promo-codes/[id]` | **Pass** — every response was a clean, generic zod-driven message; no stack trace, SQL, or file path ever leaked |
+| Zod validation coverage | Sent malformed/wrong-type/oversized payloads directly to the ~10 routes flagged as under-validated | **FAIL** — `notification-preferences` (invalid enum), `orders/reorder` (wrong-type `orderId`), and `wishlist-items` (wrong-type `productId`) all threw **unhandled `500`s**; `wishlists` accepted a 10,000-character name with no cap (`200`) |
+| Raw SQL / injection | Grepped the entire tree for `$queryRaw(Unsafe)`/`$executeRaw(Unsafe)` | **Pass** — zero hits in app code (only in generated Prisma client docs) |
+| XSS | Submitted a real review with `<script>alert(1)</script>` in the comment, fetched the rendered public product page's raw HTML | **Pass** — rendered as `&lt;script&gt;`, HTML-entity-escaped, not executable |
+| File upload validation | Sent a text file with a spoofed `Content-Type: image/png` header directly to `/api/uploads`; sent a 9MB file | **FAIL (the spoofed-content case)** — passed the MIME-string check, then crashed into `sharp()` with an unhandled `500` instead of a clean rejection. Size cap (**Pass**) correctly rejected the 9MB file with a clean `400`. |
+
+#### Fixes applied (each re-tested the same way the original finding was tested)
+
+1. **Rate limiting extended** to `register` (keyed per-IP) and `change-password` (keyed per
+   authenticated `userId`, so a stolen-cookie attacker can't brute-force the current-password field
+   from a different network than the real user) — reused the existing
+   `src/lib/auth/rate-limit.ts` in-memory limiter as-is, same 10-attempt/15-minute convention as
+   login. **Re-tested**: both routes now `429` on the 11th attempt; confirmed no cross-contamination
+   with login's own rate-limit key or with a different account's key.
+2. **Zod validation added** to `notification-preferences` (real enum checks against the actual
+   Prisma `NotificationCategory`/`NotificationChannel` values, new
+   `src/lib/validation/notificationPreferences.ts`), `orders/reorder`, `wishlist-items` (both
+   add/remove), `wishlists` (100-char cap on list name), `addresses/[id]` PATCH, `promo-codes/validate`,
+   and `admin/staff/[id]`/`staff/delivery-accounts/[id]` PATCH (new shared
+   `src/lib/validation/managedAccount.ts`, closing a real gap where a non-string `firstName`/`phone`
+   would previously have hit an untyped Prisma write). Also added an explicit length cap (2000 chars)
+   on `delivery/assignments/[id]/status`'s free-text `failedReason`. **Re-tested**: every previously-500
+   or previously-uncapped case now returns a clean `400` with a real validation message; every
+   previously-working valid request (a real notification-preference toggle, a real wishlist
+   creation, a real staff/driver detail edit, a real promo-code check) still returns `200` — zero
+   regressions.
+3. **Upload route hardened against spoofed content**: `saveUploadedImage()`'s call in
+   `src/app/api/uploads/route.ts` is now wrapped in a `try/catch` — a file that lies about its MIME
+   type but fails to actually decode as an image now returns a clean `400 The file could not be
+   read as a valid image` instead of an unhandled `500`. **Re-tested**: the exact same spoofed-file
+   request now `400`s cleanly; a real, valid image upload immediately afterward still succeeds
+   (`200`), confirming no regression to the working path.
+4. **`select` tightened** on the 3 undisciplined-but-not-actively-leaking `User` queries
+   (`admin/users/[id]/page.tsx`, `admin/staff/page.tsx`, `api/admin/users/export/route.ts`) to match
+   the query-level-narrowing discipline established after Phase 7's original password-hash
+   incident. **Re-tested**: both admin pages still render real seeded data correctly; the CSV export
+   still produces identical output with zero `passwordHash`-shaped content (confirmed via a direct
+   grep of the response body, not just assumed from the new `select`).
+5. **Delivery-report photos auth-gated** (the confirmed judgment call: gate `delivery-reports/`
+   specifically, leave `products/`/`avatars/`/`reviews/` public since that content is meant to be
+   publicly visible). This subfolder now lives entirely outside `public/` — a new
+   `uploads-private/` directory at the project root (gitignored, matching the existing
+   `public/uploads/.gitkeep` pattern) — and is served exclusively through a new authenticated route,
+   `src/app/api/uploads/delivery-reports/[filename]/route.ts` (`ADMIN`/`STAFF` unconditionally;
+   `DELIVERY` only if a `DeliverySupportTicket` they filed actually references that exact filename —
+   same ownership-scoping convention as everywhere else in the app, hides existence via `404` rather
+   than `403`). `src/lib/server/storage.ts` grew a `rootFor()`/`readPrivateUpload()` split and
+   `getFileUrl()` now returns the authenticated route path for this one subfolder instead of a
+   static one; `deleteUploadedImage()` handles both path shapes. The 3 existing render call sites
+   (`admin/delivery-support/[id]`, `staff/delivery-support/[id]`, `delivery/reports/[id]`, plus
+   `ReportPhotoUploader`'s own upload-dialog preview) needed one addition each — Next's `<Image>`
+   `unoptimized` prop — since Next's built-in image optimizer fetches images server-side without
+   forwarding the viewer's session cookie, which would otherwise `401` against the new authenticated
+   route; `unoptimized` makes the browser fetch the URL directly with its own cookies instead, same
+   as a normal user request. **Re-tested end-to-end with real data**: uploaded a real photo as a
+   driver (URL correctly came back as `/api/uploads/delivery-reports/...`, not a static path);
+   confirmed the **old public static path 404s** (file was never written there in the first place);
+   confirmed the new route `401`s logged-out, `403`s a Customer, `200`s Admin and Staff, `404`s the
+   uploading driver **before** any report references the photo (a photo isn't "owned" until
+   attached to a real ticket) and `200`s the same driver **after** creating a real report that
+   references it; confirmed a **different** driver still `404`s even after the report exists;
+   confirmed the photo genuinely renders (loads, decodes, correct dimensions) on the real admin
+   report-detail page in a live browser session. Test report and photo file deleted afterward.
+
+#### Left as documented, accepted risk (not fixed this pass — flagged, not fixed under time pressure without being said)
+
+- **The rate limiter is in-memory and single-process** (resets on restart, doesn't share state
+  across instances) and its login/register keys include the client-supplied `x-forwarded-for`
+  header, which isn't validated against a trusted-proxy list — a client could theoretically spoof
+  this header to evade the per-IP component of the limit (the email/account-scoped component still
+  applies for login). A real fix needs a shared store (e.g. Redis) and a deployment-level decision
+  about which proxy headers are actually trustworthy once this runs behind Hetzner's reverse proxy
+  (§4a) — out of scope for a code-only pass, and flagged here rather than silently left unmentioned.
+- **Several customer-hub routes aren't restricted to the `CUSTOMER` role specifically** —
+  `addresses`, `cart`, `wishlists`, `payment-methods`, `support-tickets`, and
+  `notification-preferences` all accept any authenticated session (Admin/Staff/Delivery included),
+  scoped correctly to that session's own `userId`. Confirmed this is **not** a data-leak or
+  privilege-escalation issue — an Admin hitting `GET /api/cart` gets back their own (empty) cart,
+  never another customer's data (verified by reading the actual response body, not just the status
+  code). It's inconsistent with `POST /api/reviews`'s explicit `CUSTOMER`-only gate, though, and
+  probably isn't intentional — Admin/Staff/Delivery are internal accounts, not meant to shop. Not
+  fixed this pass since it's a product/design decision (should internal roles be blocked from ever
+  using the storefront's cart/wishlist/support features under their own account?), not a security
+  fix — flagged for a future decision rather than guessed at.
+- **No admin review-moderation surface** (carried forward from §11 Item F3, still true) — nothing
+  new found here, just re-confirmed still absent.
+
+`tsc --noEmit`/`npm run lint` clean after every single file changed across this entire section, not
+just once at the end.
+
+---
+
+## §13 — Phase 16: discount visibility, analytics fixes, COD accrual, notification badges,
+## driver-guard alerts
+
+Six items from live use of the app since Phase 14, worked in the same investigate → build → test →
+full role/language/theme QA → fix → re-test → next-item loop as every prior phase, no check-ins
+between items.
+
+**Correcting the record first**: this task referenced "the notification/order-guard/badge
+follow-up session" as something that happened after Phase 15 but was never written up. Investigation
+at the start of this phase confirmed that session did happen and its work is real and live in the
+codebase — but §6/§10's Known Issues text still said "no customer-facing notification inbox exists,"
+and the CONFIRMED-without-driver situation was described as only a passive disabled button. Neither
+was true by the time this phase started: a full notification inbox (all 4 roles, category-tagged,
+mark-read/mark-all-read) and a `DeliveryAssignment`-based guard blocking `ON_DELIVERY`/`DELIVERED`
+without an active driver both already existed, undocumented. This phase's six items build on top of
+that real, already-shipped foundation rather than starting from the (stale) written record — the
+Known Issues section below is corrected accordingly.
+
+### Item 1 — Checkout discount line
+
+`account.orders.detail`'s and both `admin`/`staff orders.detail`'s order-detail pages already
+rendered a conditional `Discount -{amount}` row between Subtotal and Shipping, reading the
+already-persisted `Order.discountTotal` field — no change needed there, re-verified live with a
+real promo-code order. Two surfaces were missing it: `CheckoutForm.tsx`'s live pre-order summary
+(computed `discountAmount` client-side already, just never rendered a row for it) and the order
+confirmation page (`checkout/confirmation/[orderId]/page.tsx`, which only ever rendered line items
++ Total, no Subtotal/Shipping/Discount breakdown at all — extended its query to select
+`subtotal`/`discountTotal`/`shippingFee` and added the full breakdown). New
+`storefront.checkout.discount` / `storefront.confirmation.{subtotal,discount,shipping}` keys,
+reusing the exact "Discount"/"الخصم" wording already shipped elsewhere.
+
+**Real, pre-existing bug found and fixed while verifying this, directly relevant to the item's own
+goal ("customer has no visibility into how much they saved")**: `CheckoutForm.tsx`'s
+"Promo applied: -{amount}" message, the store-credit-balance line, and the loyalty-points-value line
+all rendered with the numeric part silently missing (`"Promo applied: -"`, `"0 points ="` with
+nothing after) — confirmed via direct DOM read, and via a captured console error ("Functions are not
+valid as a React child... transformed"). Root cause: all three used `t.rich(key, { placeholder: () =>
+<Money .../> })` where the message itself used a **bare** ICU placeholder (`"...{amount}"`) instead
+of tag syntax (`"...<amount></amount>"`) — `next-intl`'s `t.rich` only invokes a function value when
+the message contains a matching `<tag>` for it; against a bare placeholder it just inserts the raw
+function, which React then refuses to render. Fixed by adding the missing `<amount>`/`<balance>`/
+`<value>` tags to the three affected `en.json`/`ar.json` messages (`promoApplied`, `useStoreCredit`,
+`pointsEqualsValue`) rather than changing the component code, which was already using the correct
+`RichTagsFunction` shape for a tag substitution.
+
+Verified live end-to-end: placed a real order as Sara Khoury (Arabic locale) with `WELCOME10`
+applied — checkout summary, "Promo applied: -{amount}" message, and the confirmation page all
+showed the correct discount figure in Arabic (`تم تطبيق الخصم: -5.960 د.أ`, `الخصم -5.960 د.أ`
+between Subtotal/Shipping); re-confirmed the account order-detail page's pre-existing discount row
+still renders correctly (regression-check, no code touched there). `tsc`/`lint` clean throughout.
+
+### Item 2 — Analytics
+
+**2a. Tooltip fix.** Root cause found in `RfmSegmentChart.tsx` and `StaffPerformanceChart.tsx`'s bar
+tooltip (not the line tooltip, which was already correct): both passed
+`formatter={(value) => [translatedCountString, ""]}` — the second tuple slot (Recharts' "name") was
+hardcoded empty, so the tooltip item rendered as a dangling `" : 4 customers"` instead of a clean
+`"Customers: 4"`. This is a **different** bug from Phase 14's `isAnimationActive={false}` fix (bars
+not rendering shapes at all, due to `requestAnimationFrame` never firing in this sandboxed
+browser) — that fix is confirmed still correctly in place, not regressed.
+
+Per the explicit instruction not to declare this fixed on static analysis alone a second time, this
+was verified via actual rendered tooltip DOM content, not a screenshot or code read. Real hover
+proved unreachable through every synthetic-event technique tried (`MouseEvent`/`PointerEvent`
+dispatch on the bar, the wrapper div, and the SVG, with and without manually-set `offsetX`/`offsetY`)
+— tracing Recharts v3's actual source (`node_modules/recharts/es6/state/mouseEventsMiddleware.js`)
+found why: its mousemove handler schedules the real tooltip-activating dispatch via
+`requestAnimationFrame`, which never fires in this environment (the same root cause as Phase 14's
+bar-animation bug, just hit a second time via a different code path). **New reusable technique for
+future sessions**: monkey-patching `window.requestAnimationFrame = (cb) => { cb(); return 1; }`
+before dispatching a synthetic `mousemove` on the chart makes Recharts' tooltip state update
+synchronously, after which the real tooltip DOM (`.recharts-tooltip-wrapper`) can be read directly.
+Confirmed this fix live, before/after: pre-fix DOM read showed `<span class="...item-name"></span> :
+<span class="...item-value">4 customers</span>` (empty name); post-fix shows `Customers : 4` (RFM,
+English) and `العملاء : 4` (Arabic) with the segment name correctly in the tooltip's bold label line
+above (`Potential Loyalist` / `موالٍ محتمل`) — matching the originally-reported symptom exactly.
+Same fix applied to `StaffPerformanceChart`'s bar tooltip (`Orders`/`الطلبات`), confirmed working
+(`Betolla Admin` / `Orders : 2`). New `admin.analytics.rfm.customersLabel` /
+`staffPerformance.ordersLabel` keys; the now-dead `common.customersCount` and
+`staffPerformance.ordersProcessedTooltip` ICU-plural keys were removed (no remaining consumers,
+confirmed via grep), following this codebase's established practice of deleting dead labels once
+every consumer switches to a replacement.
+
+**Note on the `window.requestAnimationFrame` patch**: it destabilized the page's own React
+scheduling when left active (one page transition crashed to a browser-level "page couldn't load"
+error mid-verification) — a self-inflicted side effect of overriding a core browser API, not an app
+bug. Always followed with a real `navigate()` (full reload) afterward, never trusted for more than
+one immediate DOM read.
+
+**2b. New "Net Revenue Over Time" chart.** No cost-basis field exists anywhere in the schema
+(`Product`/`ProductBundle` confirmed via grep — no `costPrice`/`cogs`/`wholesale`), so per the task's
+own fallback instruction this plots **net revenue** (`subtotal - discountTotal - refundedAmount`,
+PAID orders, bucketed by day) and is honestly labeled "Net Revenue Over Time" / "صافي الإيرادات عبر
+الزمن" — never "Profit" — matching the existing CLV-honesty precedent. New
+`getNetRevenueOverTime(range?)` in `analytics.ts` (same `DateRange`/`dateRangeWhere()` convention as
+every sibling function), new `NetRevenueChart.tsx` (mirrors `StaffPerformanceChart`'s `LineChart`
+shape, `stroke="var(--analytics-neutral)"` since it's a magnitude not a good/bad signal, tooltip
+built correctly from the start using 2a's fix), wired into the "Extended Analytics" section (first
+card, ahead of Staff Performance) with the same period-over-period delta convention as the KPI strip
+and Sales Heatmap.
+
+Verified live: all-time total 8,824.870 JD across ~90 daily data points; filtering to June 2026
+produced a genuinely different total (1,510.240 JD, `+162.050 JD vs prior period`) with all x-axis
+dates confined to June — real re-aggregation, not a client-side filter over cached all-time data.
+Confirmed in both languages and analytics' theme-independence held (`getComputedStyle` byte-identical
+background before/after toggling `.dark`, same method as Phase 14). `tsc`/`lint` clean throughout.
+
+### Item 3 — COD accrual on delivery + backfill
+
+**Root cause, confirmed**: `recomputeCustomerStatsForUser()` sums only `paymentStatus: "PAID"`
+orders; COD orders are created `UNPAID` at checkout and nothing anywhere in the codebase — not
+`updateOrderStatus()`, not `syncOrderStatusFromDelivery()`, not any delivery route — ever flipped
+that flag. Loyalty `EARN` transactions are likewise only ever created once, in `placeOrder()`, gated
+on the same check, so `loyaltyPointsEarned` was permanently baked in as `0` for every COD order at
+checkout time. This is why the seed data never showed the bug (seed.ts sets `DELIVERED` orders'
+`paymentStatus` directly to `"PAID"` unconditionally, bypassing the real checkout/delivery code path
+entirely) — the bug only ever manifested for orders that went through the actual live app flow,
+which is exactly what the reported screenshots were.
+
+**Fix**: new `confirmCodPaymentOnDelivery(orderId)` in `customerStats.ts` — idempotent (no-ops
+unless `paymentMethodLabel === "Cash on Delivery"` and `paymentStatus === "UNPAID"`), computes
+`earned = floor(total × LoyaltyConfig.pointsPerJdSpent)`, flips the order to `PAID` +
+`loyaltyPointsEarned`, creates the `EARN` `LoyaltyTransaction`, credits `User.loyaltyPointsBalance`,
+then calls `recomputeCustomerStatsForUser`. Wired into both places an order reaches `DELIVERED`
+(`updateOrderStatus()` and `syncOrderStatusFromDelivery()` in `orders.ts`) — non-COD (`MOCK_CARD`)
+orders are already `PAID` at checkout and untouched by the new branch. "Today's Collections" reads
+only `paymentMethodLabel`/`DeliveryAssignment.status`/`deliveredAt`, never `paymentStatus` —
+confirmed unaffected by reading its source, no code there needed changing.
+
+**Live-flow verification** (real order, not seed data): placed a real COD order as Sara Khoury
+(`BT-MS0GKMAV499`, 53.640 JD with `WELCOME10` applied), assigned a driver, advanced it
+Confirmed → On Delivery → Delivered through the real Admin UI. Confirmed: `paymentStatus` flipped to
+`PAID` (UI showed "Cash on Delivery (Paid)"), `loyaltyPointsEarned` = 53 (`floor(53.64 × 1.00)`), a
+real `LoyaltyTransaction` row (`EARN`, 53, note "COD payment confirmed on delivery"), Sara's
+`loyaltyPointsBalance` 606 → 659, and `CustomerStats` recomputed to a value matching a direct SQL sum
+of her currently-PAID orders exactly (confirming correctness, not just "a number changed").
+
+**Backfill — root cause and result, for the record**: zero orders in this dev database were
+currently in the broken state, because (as above) seed data was generated already-correct, bypassing
+the bug entirely. To prove the one-time backfill script (`scripts/backfill-cod-accrual.ts`) works
+against a genuinely affected historical order, one real seeded order (`BT-1111`, Yasmin Tuqan,
+74.80 JD) was deliberately reverted via direct SQL to the exact broken shape (`DELIVERED`,
+`paymentStatus: UNPAID`, `loyaltyPointsEarned: 0`) — reproducing what a real pre-fix delivered COD
+order would have looked like. Running the script: **before** — `loyaltyPointsBalance` 383,
+`CustomerStats` 386.41 JD / 6 orders; **after** — order flipped to `PAID` with 74 points credited
+(`floor(74.80 × 1.00)`), `loyaltyPointsBalance` 383 → 457, `CustomerStats` recomputed to
+461.21 JD / 7 orders (exactly +74.80/+1, matching the order's own total). Re-running the script
+immediately after found 0 affected orders — confirmed idempotent. The script constructs its own
+`PrismaClient` rather than importing `src/lib/db.ts`/the service layer, since both are marked
+`"server-only"` (a Next.js marker package that throws at runtime outside Next's own module
+resolution) — the same pattern `prisma/seed.ts` already uses for its own standalone
+`CustomerStats`-equivalent computation. This is a one-time correction script, documented here, not a
+standing migration — it should not need to run again once any real historical backlog is cleared.
+
+`tsc`/`lint` clean throughout.
+
+### Item 4 — Notification unread badges + category filtering
+
+A working notification inbox already existed for all 4 roles (see the correction note above) — this
+item added what was genuinely missing: an unread-count badge on the nav link, and category
+filtering/per-category counts on the inbox page itself.
+
+**Nav badge**: each of the 4 layouts already ran one `prisma.user.findUniqueOrThrow` query before
+rendering its nav — added a sibling `prisma.notification.count({ where: { userId, isRead: false } })`
+and passed it into `AdminNav`/`StaffNav`/`DeliveryNav`/`AccountNav` as a new `unreadNotifications`
+prop. New shared `NavBadge.tsx` + `formatBadgeCount()` (`src/lib/format.ts`, caps at `"9+"`), reusing
+the storefront cart icon's exact `bg-accent`/`rounded-full`/`text-cta-foreground` visual convention,
+rendered inline next to the text label (the cart badge overlays an icon absolutely; a text nav link
+has no icon to overlay, so this flows inline instead — same colors/shape, different layout).
+
+**Category filter + per-category counts**: `NotificationsList.tsx` (already fetches ≤200 rows in one
+query per page) now filters client-side via a `Tabs`/`TabsList`/`TabsTrigger` row (Radix, same
+component already used in Settings) — "All" + only the `NotificationCategory` values actually present
+for that user (not all 7 unconditionally), each showing its own unread count via the same `NavBadge`
+convention. No new API route or query needed. New `common.notifications.allCategories` key;
+everything else needed already existed in `common.notificationCategory.*`.
+
+Verified live across all 4 roles and both languages: Admin's badge showed `2` (from a real
+"Order confirmed without a driver" OPERATIONS alert, itself a real trigger of Item 5's testing),
+Staff (Lina Haddad) showed `4` after also receiving a real customer-submitted support ticket
+(`notifyRoles(["STAFF","ADMIN"])`, category `SUPPORT`) — confirmed the "Support"/"Operations" tabs
+filtered correctly (clicking "Support" showed only the 2 Support items, correctly excluding the 2
+Operations ones), confirmed "Mark as read" decremented both the tab count and the "All" count
+correctly. Delivery (Khaled Fares) showed `2` (`DELIVERY_ASSIGNMENTS`). Customer (Sara Khoury, who
+accumulated many order-status notifications during this session's own testing) showed `9+`,
+confirming the cap. Arabic rendering confirmed for both the nav badge (`ms-1.5` logical margin
+correctly flips under `dir="rtl"`) and the inbox page (`الكل3`, `الدعم1`, `العمليات2`). The scratch
+support ticket created purely to generate a second category for this test was deleted afterward
+(and its 8 resulting `Notification` rows across all 4 staff/admin recipients), leaving only the real
+Item-5-testing `OPERATIONS` notifications in place. The mobile-drawer variant of the badge uses the
+identical conditional JSX as the verified desktop variant but was not independently screenshotted
+open (Radix `Dialog` content unmounts when closed, and this environment's screenshot/compositing is
+unreliable per the existing documented limitation) — flagged honestly, same spirit as the
+swipe-to-close gap from Phase 13.
+
+`tsc`/`lint` clean throughout.
+
+### Item 5 — Red alert for orders with no driver assigned
+
+The underlying guard (blocking `ON_DELIVERY`/`DELIVERED` without an active `DeliveryAssignment`) and
+a passive `text-xs text-ink-muted` note under the disabled advance button already existed (see the
+correction note above) — this item upgraded the *visibility* of that same already-real condition.
+
+**Order detail banner**: new `NoDriverAlert.tsx` (`src/components/orders/`), a full-width
+`bg-red-600 text-white` banner — the same "strong red" treatment already used by
+`DeliverySupportList`'s `Badge variant="critical"` urgent flag, scaled up to a banner rather than a
+small pill — shown on both `admin/orders/[id]` and `staff/orders/[id]` whenever `order.status` is
+`CONFIRMED` or `ON_DELIVERY` with no active (non-`FAILED`) assignment. **Orders list row badge**:
+`OrdersTable`'s `OrderRow` gained an optional `needsDriver` field (computed in both list pages, which
+now `include` `deliveryAssignments`), rendered as a small `Badge variant="critical"` next to the
+existing status badge. **Dashboard tiles**: added "Orders Needing Driver" to the Admin dashboard
+(previously missing entirely — only Staff had an equivalent tile), and fixed a real bug in Staff's
+existing `awaitingDriverAssignment` tile query: it used `deliveryAssignments: { none: {} }`, which
+undercounts any order whose *only* assignment already `FAILED` (that order has an assignment row, so
+`none: {}` was `false`, even though there's no *active* driver) — inconsistent with the "active
+assignment = status ≠ FAILED" definition used everywhere else in the app (the guard itself, Today's
+Collections). Both tiles now share one corrected where-clause (`status: {in:["CONFIRMED",
+"ON_DELIVERY"]}, deliveryAssignments: {none: {status: {not: "FAILED"}}}`) — this also narrows
+Staff's tile scope from `PENDING+CONFIRMED` to `CONFIRMED+ON_DELIVERY`, a deliberate alignment with
+the rest of this item's "CONFIRMED-or-later" definition rather than an oversight.
+
+Verified live on a real order (`BT-1031`, Farah Odeh, confirmed without a driver via the real Admin
+UI as part of generating Item 4's test notification): banner confirmed rendering with
+`background-color: lab(48.4493 77.4328 61.5452)` (red-600) and white text via direct
+`getComputedStyle` read, byte-identical with `.dark` toggled on/off (hardcoded Tailwind color, not
+theme-scoped, confirmed not accidentally re-pointed by `.analytics-theme`-style overrides); Orders
+list row showed `Confirmed` + `No driver` badges together; both Admin's new tile and Staff's
+corrected tile independently converged on the same count (`13`), confirming consistency. Re-verified
+in Arabic: banner text `لم يتم تعيين سائق توصيل بعد - عيّن سائقًا لإبقاء هذا الطلب متقدّمًا.`,
+Staff's tile `13 - بانتظار تعيين سائق`.
+
+`tsc`/`lint` clean throughout.
+
+### Item 6 — i18n coverage
+
+Every new string introduced above (`storefront.checkout/confirmation.discount`,
+`admin.analytics.netRevenue.*`, `admin.analytics.rfm.customersLabel`,
+`admin.analytics.staffPerformance.ordersLabel`, `common.notifications.allCategories`,
+`admin.orders.detail.noDriverAlert`, `admin.ordersShared.noDriverBadge`,
+`admin.home.tiles.ordersNeedingDriver`) shipped with real `en.json`/`ar.json` entries from the start,
+following the established formal-MSA/Western-digit conventions. Translation-uncertain items flagged
+in `I18N_AR_REVIEW.md`'s new "Batch 6" entry, same format as every prior batch — most notably the new
+Net Revenue honesty-caveat phrasing and the no-driver alert's closing clause.
+
+### Out-of-scope finding, flagged not fixed
+
+While verifying Item 1, the storefront cart showed two separate line items for the exact same
+product (52 units + 1 unit) instead of merging into one row with combined quantity, and a large
+leftover quantity from one customer's session (Nour Abdallah) was still present in the cart after
+logging in as a different customer (Sara Khoury) in the same browser tab without an explicit cart
+clear. Genuinely unclear whether this is a real bug (the Zustand/localStorage cart not being
+per-user-scoped or not reconciling on login) or an artifact of testing multiple accounts in one
+unusual browser session — flagged as a background task for dedicated investigation rather than
+fixed blind mid-phase, since it's unrelated to any of this phase's six items.
+
+### Verification summary
+
+`tsc --noEmit` and `npm run lint` were run clean after every file touched across all six items, not
+just once at the end (confirmed via the terminal history: dozens of checkpoints). Live browser
+verification covered the actually-relevant role(s) per item (Customer for 1/3, Admin for 2, all 4
+roles for 4, Admin/Staff for 5), both languages, and — where relevant — both themes with the
+analytics page's theme-independence re-confirmed unchanged. All scratch/test data created purely for
+verification was cleaned up (the fake support ticket and its 8 notification rows); real orders
+advanced through the real app flow during testing (`BT-MS0GKMAV499`, `BT-1031`) were **not** reverted,
+matching the established policy from every prior phase that a forward-only state-machine transition
+exercised through the real UI is a legitimate outcome, not test pollution to unwind. The one
+deliberately-fabricated "legacy broken order" fixture (`BT-1111`, used only to prove the backfill
+script) was left in its now-corrected, genuinely valid state rather than reverted, since reverting it
+would mean re-introducing the very bug this phase fixed.
+
+---
+
+## §14 — Phase 17: Dark-mode palette update
+
+A design-only change: replace `.dark`'s CSS variable *values* with a new given palette, preserving
+existing token *names* wherever the semantic role matched, and adding new tokens only where the new
+palette genuinely introduced a role the current 2-tier text/1-hue-accent system didn't have. Light
+mode, RTL, and the Analytics page's independent fixed-dark identity (Phase 14) were all explicitly
+out of scope and confirmed untouched — see Verification below.
+
+### New palette as given
+
+| Role | Hex | Mapped to |
+|---|---|---|
+| Primary Surface | `#121212` | `--surface` |
+| Secondary Surface | `#1E1E1E` | `--surface-secondary` |
+| Primary Accent | `#3CB371` | `--cta` / `--success` (see note) |
+| Secondary Accent | `#BF5F3F` | `--accent` |
+| Text — Primary | `#FDFDFD` | `--ink` |
+| Text — Secondary | `#A0A0A0` | `--ink-muted` (see note below - **not** a 1:1 name match) |
+| Text — Muted | `#666666` | new `--ink-faint` (see note below) |
+| Borders & separators | `#333333` | `--border` |
+| Star ratings | `#E0E0E0` | new `--star` (see note below) |
+
+`--highlight` and `--critical` weren't part of the given table, so both are unchanged. `--cta-hover`/
+`--accent-hover` (not given) were derived as ~15%-darker shades of the two new accents
+(`#339860`/`#a25136`) following the same relationship the existing light/dark hover shades already
+have to their base color. `--success` (also not given a distinct swatch) reuses Primary Accent,
+matching light mode's own pre-existing precedent/comment ("Forest Green doubles as the positive/
+status color") for exactly the same reason: it's a green, the closest semantic fit of the two given
+accents, and the new table gives no third color to use instead.
+
+### Judgment call 1 — Text-Muted's contrast problem, and why `--ink-muted` did NOT become `#666666`
+
+Computed first, as instructed, before wiring anything in: `#666666` on `#121212`/`#1E1E1E` is
+**3.26:1 / 2.90:1** — below WCAG AA's 4.5:1 minimum for normal text, confirmed via the standard
+relative-luminance formula (not eyeballed). Per the instruction, this triggered a real audit of
+`--ink-muted`'s current call sites (218 occurrences across ~80 files, via grep) before deciding
+anything - and the audit found this token is used **far more broadly than "footer links and
+lesser-used icons"** (the new spec's own description of what Text-Muted is for): real examples
+found directly, not inferred - `DeliverySupportControls.tsx`'s `<label>` for "Status"/"Assigned To"
+(a field label a Staff/Admin user must read to operate the form), `StorefrontHeader.tsx`'s main
+site navigation links, and essentially every product description, table cell, and secondary price
+line in the app. Shipping `#666666` under this name would have silently failed AA contrast across
+most of the app's secondary text and form labels - exactly the "form label... anything load-bearing"
+case the task said to flag rather than silently ship.
+
+**Resolution applied** (a real fix, not just a report-and-wait, per the task's own "propose a
+specific fix" instruction): the given **Text-Secondary** value (`#A0A0A0` - `7.16:1`/`6.38:1`
+against the two surfaces, comfortably AA, even close to AAA on the darker surface) is what
+`--ink-muted` now resolves to in dark mode - because that broad "descriptions, subheadings,
+secondary price lines, form labels" role is what this token has always actually meant across the
+whole app, confirmed by the audit, not a semantic mismatch. **Zero component changes were needed**
+for the ~216 call sites that keep this meaning (re-verified live: product-card descriptions, admin
+nav links, and form labels all render at `rgb(160, 160, 160)` = `#A0A0A0` in a real dark-mode
+session).
+
+The literal given Text-Muted value (`#666666`) was **not discarded** - it's wired in under a new,
+more narrowly-scoped token, `--ink-faint`, applied only to the two places the audit actually
+confirmed are genuinely decorative/low-priority, matching the new spec's own named examples:
+`StorefrontFooter.tsx` (the footer's nav links + copyright line - a literal, unambiguous "footer
+links" match) and `ThemeToggle.tsx` (an icon + one-word secondary toggle control, the closest
+equivalent to "a lesser-used icon fill" among this app's actual icon-only controls). Re-verified
+live: the real footer text renders at `rgb(102, 102, 102)` = `#666666` in dark mode. This is a
+narrower scope than "every icon in the app" - only these two files were reclassified, flagged here
+explicitly in case the user wants more surfaces (e.g. the cart icon, the language switcher) moved to
+the dimmer tier too.
+
+`--ink-faint` and the repurposed `--ink-muted` are both declared in `:root` as well (equal to the
+existing light-mode values, `#6b655d`), so light mode's rendering at every one of these call sites
+is provably unchanged - confirmed via a direct `getComputedStyle` read of every relevant CSS
+variable in light mode before touching anything, byte-identical to the pre-change values.
+
+### Judgment call 2 — Star ratings: contrast is excellent, but couldn't get a real visual look
+
+`#E0E0E0` against the `#1E1E1E` card surface computes to **12.63:1** (`14.19:1` against the page
+background) - very high, nowhere near a contrast problem. Stars didn't have their own dedicated
+token before this change (`StarRating.tsx` rendered filled stars via `fill-accent text-accent`,
+i.e. whatever the brand accent happened to be) - since the new palette wants star color independent
+of the two brand accents, this is a genuinely new semantic role, so a new `--star` token was added
+(again, `:root` gets the pre-existing accent value so light mode is unaffected; only `.dark` gets
+the new `#E0E0E0`). Re-verified live: a real product page's filled star `<svg>` computes
+`fill: rgb(224, 224, 224)` in dark mode.
+
+**Honest limitation, not silently glossed over**: the task asked to actually render this and look
+at it, not just trust the numbers, in case a numerically-high-contrast near-white reads as
+"washed out" against the card rather than "distinct and clean." `computer{action:"screenshot"}`
+(and `zoom`) failed outright every attempt this session with "the Browser pane is not displayed, so
+the page is not compositing frames" - the same environment limitation logged elsewhere in this file
+(§9e/§11 Item B2), but this session it blocked screenshots entirely rather than just being
+unreliable at non-default sizes. So this specific "does it look clean vs. washed out" call could
+**not** be visually confirmed this session - flagged plainly rather than asserted. What *is*
+confirmed: the star color sits at a deliberately different luminance than both neighboring text
+tones on the same card (dimmer than Text-Primary's `#FDFDFD`, brighter than the `#A0A0A0`
+rating-count text right next to it), which is a coherent, intentional-looking outcome rather than a
+color that would blend into anything around it - but a real look at real pixels is recommended
+before considering this fully closed.
+
+### Secondary Accent as a badge background - a related contrast finding, not asked for explicitly but caught by the required accent/badge check
+
+The verification list explicitly asked to check Primary/Secondary Accent contrast against both
+surfaces "button/badge text needs to stay readable" - so this was computed too, not skipped:
+`Badge`'s `accent` variant uses `text-cta-foreground` (`#121212`, dark) on `bg-accent`
+(`#BF5F3F`) - **4.39:1**. White text on the same background is slightly worse, `4.19:1`. Both fall
+short of the 4.5:1 AA threshold for normal text (Badge text is `text-xs font-medium`, 12px, which
+doesn't qualify for the 3:1 "large text" exception). Re-verified live: the storefront's real "Sale"
+badge (`تخفيض`) computes `background-color: rgb(191, 95, 63)` / `color: rgb(18, 18, 18)`, matching
+the code and the `4.39:1` figure exactly. This is a real, if small, shortfall - flagged rather than
+silently shipped, but **not changed**: it's the user's own given brand hex for badges specifically
+(not a token this app was free to reinterpret the way `--ink-muted` was, since there's no existing
+broader-usage evidence suggesting `#BF5F3F` means something else app-wide), and 4.39:1 is close
+enough to the threshold that it reads as a defensible brand-color trade-off rather than a
+broken/illegible badge - but the exact number is on record here in case a future pass wants a
+slightly darker or lighter foreground to close the last 0.1.
+
+### Verification
+
+- **Light mode**: confirmed byte-identical via a direct `getComputedStyle` read of every CSS
+  variable (`--surface`, `--ink`, `--ink-muted`, `--ink-faint`, `--cta`, `--accent`, `--star`,
+  `--success`, `--border`) before any dark-mode toggle - every value matched the pre-existing light
+  palette exactly, including the two new tokens correctly falling back to their light-mode
+  equivalents.
+- **Dark mode**: confirmed the same full variable set resolves to the new palette's intended values
+  after toggling `.dark`, then re-confirmed against real rendered elements in a live, logged-in
+  session (Arabic locale) rather than just the CSS variables in isolation: the storefront's "Sale"
+  badge (`#BF5F3F` bg / `#121212` text), a product card's description text (`#A0A0A0`), the "Add to
+  Cart" button (`#3CB371` bg / `#121212` text), the footer (`#666666`), a filled star icon
+  (`#E0E0E0`), and admin nav links/form labels (`#A0A0A0`, confirming the load-bearing-safety
+  decision above actually took effect app-wide, not just in the one file read during the audit).
+- **Analytics page**: confirmed its background is byte-identical (`rgb(5, 5, 5)`) whether `.dark` is
+  toggled on or off, re-proving Phase 14's theme-independence judgment call still holds after this
+  change - the `.analytics-theme` block was not touched.
+- **RTL**: all of the above live checks were done in a real Arabic-locale (`dir="rtl"`) session; no
+  layout or mirroring regression observed.
+- `npx tsc --noEmit` and `npm run lint` both clean after every edit to `globals.css`, `StarRating.tsx`,
+  `StorefrontFooter.tsx`, and `ThemeToggle.tsx`.
+- **Not able to verify this session**: a genuine visual (pixel-screenshot) read of the star-rating
+  color and the overall dark palette's look-and-feel - `computer{action:"screenshot"}`/`zoom` failed
+  outright throughout ("the Browser pane is not displayed, so the page is not compositing frames").
+  All verification above is real, live, computed-style confirmation against actual rendered DOM
+  elements (not static code reading), but a literal look at rendered pixels should still happen
+  before treating the star-rating and general "does dark mode look good" questions as fully closed.
+
+### Files touched
+
+`src/app/globals.css` (`.dark` block values, two new tokens `--ink-faint`/`--star` added to both
+`:root` and `.dark`, `@theme inline` mapping extended), `src/components/ui/StarRating.tsx`
+(`fill-accent text-accent` → `fill-star text-star`), `src/app/(storefront)/StorefrontFooter.tsx` and
+`src/components/ThemeToggle.tsx` (`text-ink-muted` → `text-ink-faint`). No schema changes, no new
+API routes, no i18n keys (this phase introduced no new user-facing strings).
+
+---
+
+## §15 — Phase 18: analytics bar-chart readability, loyalty point redemption, dark-mode date inputs
+
+Three fixes, worked in order per the standing instruction (investigate → build → test → full role/
+language/theme QA → fix → re-test → next item), followed by a QA + security pass once all three were
+verified. No server was running at the start of this session — both Next.js and embedded Postgres
+were started fresh (`npm run dev`) before any investigation began.
+
+### Item 1 — Analytics bar-chart gridlines + tooltip re-verification
+
+Only two files on the analytics page use a Recharts `<BarChart>` — `RfmSegmentChart.tsx` and
+`StaffPerformanceChart.tsx` (its leaderboard chart; its per-staff timeline is a `<LineChart>`).
+Delivery Performance and the Cart Funnel were confirmed to use a plain `<Table>`/custom div-bars,
+not Recharts, so they were out of scope for both parts of this item, as expected. Added
+`<CartesianGrid vertical={false} stroke="var(--analytics-border)" strokeOpacity={0.6} />` to both
+bar charts - reusing the existing border token (already the page's "structural neutral line" color,
+distinct from the tick-label muted color and the bright neutral/good/bad data hues), dimmed
+slightly further via opacity. Confirmed live: 3 horizontal gridlines rendered on each bar chart,
+correctly absent from both line charts (not in scope).
+
+**Tooltip re-verification found a real, previously-undetected bug in the exact chart named in the
+report.** Phase 16's tooltip fix (real name + real numeric value in the formatter) was confirmed
+still correctly in place - but a fresh, from-scratch DOM-content check (not trusting the prior
+"looked right" conclusion) found the RFM chart's tooltip **item** text rendered in `rgb(0, 0, 0)`
+(pure black) against the tooltip's own near-black `#050505` background - effectively invisible,
+despite the correct value being genuinely present in the DOM. Root cause: Recharts falls back to a
+hardcoded `itemStyle.color: '#000'` default when a `<Bar>` has no single top-level `fill` prop -
+which is exactly `RfmSegmentChart`'s case, since its bars are colored per-segment via child `<Cell>`
+elements, not one flat `fill`. The other three tooltips on the page (`StaffPerformanceChart`'s bar,
+its line, and `NetRevenueChart`'s line) happened to render correctly, but only because Recharts
+opportunistically borrowed each series' own flat `fill`/`stroke` prop as an *implicit* item color -
+not because any of the four had an explicit, intentional style. Fixed by adding explicit
+`itemStyle={{ color: "var(--analytics-text)" }}` and `labelStyle={{ color: "var(--analytics-text)"
+}}` to all four `<Tooltip>` instances, removing the reliance on that fragile fallback everywhere,
+not just patching the one broken instance.
+
+Verified via real hover DOM content (same standard as Phase 16, since this exact chart was already
+claimed fixed once): reused Phase 16's `requestAnimationFrame` monkey-patch technique (this
+environment's `requestAnimationFrame` never fires, so Recharts' tooltip-activation dispatch - itself
+scheduled through it - never runs without the patch) to dispatch a real synthetic hover and read
+`.recharts-tooltip-item`'s actual computed color/text. Before the fix: `rgb(0, 0, 0)` item color,
+correct text ("Customers : 3") but invisible against the background. After: `rgb(245, 245, 245)`
+(`--analytics-text`) on all four tooltips, confirmed in both English ("Customers : 3", "Orders : 5",
+"Net Revenue : 51.000 JD") and Arabic ("العملاء : 3", segment label "الأبطال"/"Champions" correctly
+bold above it). `tsc`/`lint` clean.
+
+### Item 2 — Loyalty point redemption
+
+**Investigated first, as instructed - the real answer was more nuanced than "exists" or "doesn't
+exist."** A live DB query found **zero of 184 orders** have ever redeemed loyalty points, but
+reading `checkout.ts`'s `placeOrder()` found the server-side redemption logic was already fully
+built: it reads the real `LoyaltyConfig.redemptionValuePerPoint` (not a hardcoded rate), caps
+redemption at both the customer's actual balance and the order's remaining total (never goes
+negative), and already creates a `REDEEM` `LoyaltyTransaction` + decrements the balance. The feature
+was real and correct - it had just never been exercised, which is exactly why two real, separate gaps
+in it had never surfaced:
+
+1. **`CheckoutForm.tsx` computed the redemption preview using a hardcoded `0.01`**, not the real
+   configured rate - harmless only because the seeded `LoyaltyConfig.redemptionValuePerPoint`
+   happens to already be `0.01`; if an Admin ever changed it via the already-existing Settings form,
+   the checkout page's live preview would silently disagree with what actually gets charged.
+2. **No surface anywhere showed the customer how much their redeemed points (or their applied store
+   credit) were actually worth** - `estimatedTotal`/`order.total` silently absorbed both reductions
+   with no line item, the same "invisible savings" gap Phase 16 fixed for promo-code discounts, just
+   never extended to these two. Confirmed live: the admin/staff order-detail pages didn't even have
+   a "Store credit applied" line (only the customer's own order page did).
+
+**Fixes**:
+- `checkout/page.tsx` now fetches the real `LoyaltyConfig` and passes `loyaltyRedemptionRate` into
+  `CheckoutForm`, which uses it instead of the hardcoded `0.01`.
+- New `Order.loyaltyRedemptionValue` column (migration `20260726000829_add_loyalty_redemption_value`)
+  - snapshots the JD value of redeemed points at order-placement time, mirroring
+  `discountTotal`/`PromoCodeUsage.discountAmount`'s existing precedent exactly: the redemption rate
+  is admin-configurable and can change later, so a historical order's savings must never be
+  recomputed against today's rate. Zero existing orders had `loyaltyPointsUsed > 0`, so no backfill
+  was needed for this new column.
+- Added a **"Loyalty points redeemed"** line (and, since it was an equally real and directly
+  adjacent gap in the very same summary blocks, a **"Store credit applied"** line) to all 5 places an
+  order's totals are shown: `CheckoutForm.tsx`, the confirmation page, `account/orders/[id]`,
+  `admin/orders/[id]`, and `staff/orders/[id]` - both conditional, both between Discount and
+  Shipping, matching the existing "Discount" row's exact treatment. **Decision on the discount-line
+  question the task asked to report**: these are separate line items, not merged into the existing
+  "Discount" row - `Order.discountTotal` is specifically the promo-code discount, and store credit/
+  loyalty are separate, differently-sourced reductions; the account page already had a precedent
+  "Store credit applied" row kept distinct from "Discount", so extending that same distinction was
+  more consistent than collapsing everything into one ambiguous row.
+- **Cancellation refund** (the task's explicit ask, plus the same-code-block, same-bug-class store
+  credit gap found alongside it): `updateOrderStatus()`'s existing `CANCELLED` branch (which already
+  restored product stock) now also reverses `storeCreditUsed` (new `StoreCreditTransaction`, reason
+  `"Refunded - order cancelled"`) and `loyaltyPointsUsed` (new `LoyaltyTransaction`, type `ADJUST`,
+  same note) back onto the customer's balance, in the same transaction as the status change. Chosen
+  default, as the task allowed: refund in full, matching how a reversed payment would be handled.
+  `CANCELLED` is a genuine terminal state (no valid transition back out of it), so this can only fire
+  once per order - no double-refund path exists.
+
+**Live end-to-end verification, not just "the config field exists now"**: logged in as a real
+customer (Farah Odeh, 828 points / 15.560 JD store credit), placed a real order applying both store
+credit and 300 loyalty points (`300 نقطة = 3.000 د.أ`, correctly read from the real config) - checkout
+summary, confirmation page, her own order page, the admin order page, and the staff order page all
+showed the identical `Subtotal → Store credit applied (-15.560) → Loyalty points redeemed (-3.000) →
+Shipping → Total` breakdown, math confirmed exactly (212.000 − 15.560 − 3.000 + 2.500 = 195.940).
+Cancelled the order as Admin: DB-confirmed before/after - `loyaltyPointsBalance` 528 → 828 (exactly
++300), `storeCreditBalance` 0 → 15.560 (exactly +15.560), a real `ADJUST` `LoyaltyTransaction` and a
+real `StoreCreditTransaction` row, both correctly linked to the order. Confirmed the wallet page
+renders both new transactions with proper translated labels ("معدّلة"/Adjusted, "مستبدلة"/Redeemed),
+not raw enum text. Confirmed a customer directly `PATCH`-ing `/api/orders/[id]/status` to
+self-cancel (and thus try to self-trigger a refund) still correctly gets `403` - this route's
+existing `requireApiRole("ADMIN","STAFF")` guard was untouched by this work. The cancelled test order
+and its real refund are left as-is, matching every prior phase's policy for a real, forward-only
+state-machine outcome exercised through the real UI - reverting it would mean hand-editing state the
+app itself has no path to reach.
+
+New i18n keys: `storefront.checkout.{storeCreditApplied,loyaltyPointsRedeemed}`,
+`storefront.confirmation.{storeCreditApplied,loyaltyPointsRedeemed}`,
+`account.orders.detail.loyaltyPointsRedeemed`, `admin.orders.detail.{storeCreditApplied,
+loyaltyPointsRedeemed}` (shared by staff via the same namespace) - en/ar, reusing the existing
+"Store credit applied"/"الرصيد المستخدم" wording already shipped for the account page. `tsc`/`lint`
+clean throughout.
+
+**Environment note - a real Turbopack-stale-Prisma-Client recurrence, same category as the Phase 13
+lesson but with a messier cleanup this time**: after running `prisma migrate dev` + an explicit
+`prisma generate` for the new `loyaltyRedemptionValue` column, the *already-running* dev server still
+threw `Unknown argument loyaltyRedemptionValue` - the regenerated client was on disk, but the live
+Turbopack process still held the pre-migration client in memory. Stopping it cleanly took several
+extra steps this time: `TaskStop` reported success but left the Next.js and Postgres processes (and
+a Postgres `io_worker` child) genuinely still listening on both ports; `Get-Process`/
+`Get-CimInstance` confirmed some of the reported PIDs were already dead while their ports remained
+bound (an orphaned child inheriting the listening socket handle, matching the existing documented
+`io_worker`-outlives-`taskkill`-without-`/T` pattern) - and a completely separate, unrelated second
+`npm run dev` tree was also found running and had to be cleaned up too. Recovery: `taskkill /PID
+<pid> /T /F` on every root, confirmed via `Get-NetTCPConnection` rather than trusting `taskkill`'s
+own exit code, removed the resulting stale `.pgdata/postmaster.pid` (owning PID confirmed dead
+first), cleared `.next`, restarted. Worth remembering for a future session: after any schema
+migration, assume the running dev server needs a full stop/restart, not just `prisma generate` -
+don't wait to hit the `Unknown argument` error first.
+
+### Item 3 — Dark-mode date-input calendar icon
+
+Found all 4 real `<input type="date">` sites in the app via grep (the task named 2, plus Delivery
+Support's filters; the audit found a 4th, `PromoCodeForm.tsx`'s start/expiry date fields, not named
+in the task). Rather than editing 4 files individually, added two global CSS rules to
+`globals.css` - `.dark input[type="date"] { color-scheme: dark; }` for the site-wide toggle (covers
+`DeliveryHistoryFilters`, `DeliverySupportFilters`, and `PromoCodeForm` automatically, zero
+component changes) and a separate `.analytics-theme input[type="date"] { color-scheme: dark; }` for
+the Analytics page's always-dark identity, which is independent of the site's own `.dark` class.
+
+Verified live via `getComputedStyle(...).colorScheme` (not a screenshot) across all 4 surfaces and
+both states: Analytics stayed `dark` with the site theme toggled to light (confirming
+theme-independence held); `DeliveryHistoryFilters` (as a real driver, Khaled Fares),
+`DeliverySupportFilters` (as Admin), and `PromoCodeForm` (as Admin) all correctly read `dark` when
+the site toggle was on and `normal` when it was off. Restored the one account whose theme preference
+was changed purely for this test (Khaled) back to its original `dark` state; the several other
+theme toggles exercised during this session's verification were not individually tracked/reverted,
+since a theme preference is a low-stakes, freely-reversible UI setting, not data. `tsc`/`lint` clean.
+
+### Part 2 — QA + security pass
+
+- **Role/ownership**: `PATCH /api/orders/[id]/status` (the route the Item 2 refund logic now runs
+  through) still correctly `403`s a Customer attempting to cancel their own order directly - its
+  pre-existing `requireApiRole("ADMIN","STAFF")` guard was never touched by this phase's work.
+  `checkout.ts`'s `loyaltyPointsToRedeem` input was already `z.number().int().min(0)`-validated
+  (from the Phase 15 hardening pass) before this phase started - confirmed still in place, not
+  something this phase needed to add.
+- **Cross-role verification**: the Item 2 order-total breakdown was independently confirmed
+  rendering identically (same figures, same line order) on the customer's own order page, the admin
+  order page, and the staff order page for the same real order - not just spot-checked on one.
+- **Cross-language**: Item 1 confirmed in English and Arabic; Item 2's full order flow was placed
+  and verified end-to-end in Arabic, then cross-checked in English on the admin/staff pages; Item 3
+  confirmed in both languages implicitly (the fix is locale-agnostic CSS, exercised across sessions
+  in both languages during the above).
+- **Cross-theme**: Item 1's gridline/tooltip fixes only apply within `.analytics-theme`, confirmed
+  unaffected by the site light/dark toggle (Phase 14's judgment call, re-confirmed unchanged again
+  this phase); Item 3 is the dark-mode fix itself, verified in both site states; Item 2's new line
+  items use the same theme-aware `text-ink-muted`/`Money` primitives as every other order-total row
+  in the app, so no separate dark-mode check was needed beyond confirming they render at all (they
+  do, confirmed across all 5 surfaces above).
+- No new mutating API routes were added this phase (Item 2 reuses the existing `/api/checkout` and
+  `/api/orders/[id]/status` routes with extended internal logic, not new endpoints), so no new
+  role-sweep surface existed beyond the one re-confirmed above.
+- `npx tsc --noEmit` and `npm run lint` clean after every file touched across all three items, not
+  just once at the end (confirmed via the terminal history: checkpoints after each item).
+- No leftover scratch files: the several standalone `tsx` diagnostic scripts used to query DB state
+  (checking existing `loyaltyPointsUsed`/`storeCreditUsed` counts, before/after balances) were all
+  temporary and deleted immediately after use, not committed to `scripts/`.
+
+### Known Issues update
+
+- The out-of-scope cart-merge/per-user-scoping bug flagged in Phase 16 (§13) was encountered again
+  incidentally during this phase's live testing (a fresh cart addition combined with a pre-existing
+  quantity rather than starting clean, and `localStorage.clear()` didn't fully prevent it, implying
+  the server-side synced cart also plays a role) - still not investigated or fixed, still flagged as
+  a standing background item, not addressed this phase since it remains unrelated to any of this
+  phase's three items.
+- Everything else in the running Known Issues list (i18n native-speaker review, no review-moderation
+  surface, no automated test suite, the environment's screenshot/`requestAnimationFrame` limitations)
+  is unchanged by this phase.

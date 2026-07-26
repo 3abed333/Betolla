@@ -6,8 +6,9 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { cn } from "@/lib/cn";
 import { Drawer, DrawerTrigger, DrawerContent } from "@/components/ui";
+import { NavBadge } from "@/components/NavBadge";
 
-export function AdminNav() {
+export function AdminNav({ unreadNotifications = 0 }: { unreadNotifications?: number }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const t = useTranslations("admin.nav");
@@ -24,6 +25,7 @@ export function AdminNav() {
     { href: "/admin/support", label: t("support") },
     { href: "/admin/delivery-support", label: t("deliverySupport") },
     { href: "/admin/analytics", label: t("analytics") },
+    { href: "/admin/notifications", label: t("notifications") },
     { href: "/admin/settings", label: t("settings") },
   ];
 
@@ -58,6 +60,7 @@ export function AdminNav() {
               {LINKS.map((link) => (
                 <Link key={link.href} href={link.href} onClick={() => setOpen(false)} className={linkClassName(isActive(link))}>
                   {link.label}
+                  {link.href === "/admin/notifications" && <NavBadge count={unreadNotifications} />}
                 </Link>
               ))}
             </nav>
@@ -68,6 +71,7 @@ export function AdminNav() {
         {LINKS.map((link) => (
           <Link key={link.href} href={link.href} className={linkClassName(isActive(link))}>
             {link.label}
+            {link.href === "/admin/notifications" && <NavBadge count={unreadNotifications} />}
           </Link>
         ))}
       </nav>

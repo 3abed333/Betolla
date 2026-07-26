@@ -1,6 +1,7 @@
 import "server-only";
 import { prisma } from "@/lib/db";
 import { syncOrderStatusFromDelivery } from "./orders";
+import { notifyRoles } from "./notifications";
 import type { DeliveryStatus } from "@/generated/prisma/client";
 
 export class DeliveryError extends Error {}
@@ -37,7 +38,10 @@ export async function updateDeliveryAssignmentStatus(params: {
     throw new DeliveryError("A reason is required to mark a delivery failed");
   }
 
-  const order = params.nextStatus === "DELIVERED" ? await prisma.order.findUnique({ where: { id: assignment.orderId } }) : null;
+  const order =
+    params.nextStatus === "DELIVERED" || params.nextStatus === "FAILED"
+      ? await prisma.order.findUnique({ where: { id: assignment.orderId } })
+      : null;
 
   const updated = await prisma.deliveryAssignment.update({
     where: { id: params.assignmentId },
@@ -51,6 +55,17 @@ export async function updateDeliveryAssignmentStatus(params: {
   });
 
   await syncOrderStatusFromDelivery(assignment.orderId, params.nextStatus);
+
+  if (params.nextStatus === "FAILED") {
+    await notifyRoles(["STAFF", "ADMIN"], {
+      category: "OPERATIONS",
+      title: "Delivery attempt failed",
+      body: `Attempt ${assignment.attemptNumber} for order ${order?.orderNumber ?? assignment.orderId} failed${
+        params.failedReason ? `: ${params.failedReason}` : ""
+      }. Reassign a driver.`,
+      relatedOrderId: assignment.orderId,
+    });
+  }
 
   return updated;
 }

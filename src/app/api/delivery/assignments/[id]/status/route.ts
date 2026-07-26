@@ -17,6 +17,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   if (typeof nextStatus !== "string" || !VALID_STATUSES.includes(nextStatus as DeliveryStatus)) {
     return NextResponse.json({ error: "Invalid status" }, { status: 400 });
   }
+  if (body.failedReason !== undefined && (typeof body.failedReason !== "string" || body.failedReason.length > 2000)) {
+    return NextResponse.json({ error: "failedReason must be a string under 2000 characters" }, { status: 400 });
+  }
 
   try {
     const updated = await updateDeliveryAssignmentStatus({

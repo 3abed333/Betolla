@@ -7,6 +7,7 @@ import { Button, Input, Textarea, Checkbox } from "@/components/ui";
 import { SingleImageUploader } from "@/components/ImageUploader";
 import { toast } from "@/lib/toast";
 import { formatCurrency } from "@/lib/format";
+import { localizedField } from "@/lib/localizedField";
 import type { AppLocale } from "@/i18n/config";
 
 export type BundleFormValues = {
@@ -25,7 +26,7 @@ export function BundleForm({
   initialValues,
   bundleId,
 }: {
-  products: { id: string; nameEn: string; price: string }[];
+  products: { id: string; nameEn: string; nameAr: string; price: string }[];
   initialValues?: BundleFormValues;
   bundleId?: string;
 }) {
@@ -140,7 +141,7 @@ export function BundleForm({
                 checked={values.itemProductIds.includes(p.id)}
                 onCheckedChange={() => toggleProduct(p.id)}
               />
-              {p.nameEn}
+              {localizedField(locale, p.nameEn, p.nameAr)}
             </label>
           ))}
         </div>

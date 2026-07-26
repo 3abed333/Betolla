@@ -1,9 +1,11 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { useCartStore } from "@/store/cart-store";
 import { Button } from "@/components/ui";
 import { toast } from "@/lib/toast";
+import { localizedField } from "@/lib/localizedField";
+import type { AppLocale } from "@/i18n/config";
 
 export function AddBundleToCartForm({
   id,
@@ -22,11 +24,12 @@ export function AddBundleToCartForm({
 }) {
   const t = useTranslations("storefront.bundles");
   const tToast = useTranslations("toast");
+  const locale = useLocale() as AppLocale;
   const addItem = useCartStore((s) => s.addItem);
 
   function addToCart() {
     addItem({ key: `bundle:${id}`, kind: "bundle", id, slug, nameEn, nameAr, price, imageUrl });
-    toast.success(tToast("addedToCartTitle"), nameEn);
+    toast.success(tToast("addedToCartTitle"), localizedField(locale, nameEn, nameAr));
   }
 
   return (

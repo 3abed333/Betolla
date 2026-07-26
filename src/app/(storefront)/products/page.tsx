@@ -55,7 +55,9 @@ export default async function ProductsPage({
               product={{
                 slug: product.slug,
                 nameEn: product.nameEn,
+                nameAr: product.nameAr,
                 descriptionEn: product.descriptionEn,
+                descriptionAr: product.descriptionAr,
                 price: Number(product.price),
                 compareAtPrice: product.compareAtPrice ? Number(product.compareAtPrice) : null,
                 mainImageUrl: product.mainImageUrl,

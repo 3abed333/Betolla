@@ -22,6 +22,12 @@ export function formatCurrency(value: number | string, locale: AppLocale): strin
   return `${formatted} ${CURRENCY_UNIT[locale]}`;
 }
 
+// Caps a count badge at "9+" rather than growing unbounded - matches the small fixed-size pill
+// used for the cart icon and nav notification badges, which has no room for a long number.
+export function formatBadgeCount(count: number): string {
+  return count > 9 ? "9+" : String(count);
+}
+
 export function formatDate(
   date: Date | string,
   locale: AppLocale,

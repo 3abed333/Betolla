@@ -22,7 +22,21 @@ export async function GET(request: NextRequest) {
     ];
   }
 
-  const customers = await prisma.user.findMany({ where, include: { customerStats: true } });
+  const customers = await prisma.user.findMany({
+    where,
+    select: {
+      firstName: true,
+      lastName: true,
+      email: true,
+      username: true,
+      phone: true,
+      storeCreditBalance: true,
+      loyaltyPointsBalance: true,
+      isActive: true,
+      createdAt: true,
+      customerStats: true,
+    },
+  });
 
   const csv = toCsv(
     customers.map((c) => ({

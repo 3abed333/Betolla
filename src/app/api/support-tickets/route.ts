@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCurrentSession } from "@/lib/auth/session";
 import { createTicketSchema } from "@/lib/validation/support";
+import { notifyRoles } from "@/lib/server/services/notifications";
 
 export async function GET() {
   const session = await getCurrentSession();
@@ -25,6 +26,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
   }
 
+  const order = await prisma.order.findUnique({ where: { id: parsed.data.orderId }, select: { id: true, userId: true } });
+  if (!order || order.userId !== session.userId) {
+    return NextResponse.json({ error: "Order not found" }, { status: 404 });
+  }
+
   const ticket = await prisma.supportTicket.create({
     data: {
       userId: session.userId,
@@ -34,5 +40,12 @@ export async function POST(request: NextRequest) {
       messages: { create: [{ senderId: session.userId, message: parsed.data.message }] },
     },
   });
+
+  await notifyRoles(["STAFF", "ADMIN"], {
+    category: "SUPPORT",
+    title: "New support ticket",
+    body: `${ticket.subject} needs a response.`,
+  });
+
   return NextResponse.json({ ticket });
 }

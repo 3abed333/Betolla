@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { EmptyState } from "@/components/ui";
 
 type StaffPerformance = {
@@ -30,24 +30,29 @@ export function StaffPerformanceChart({
 
   return (
     <div className="flex flex-col gap-4">
-      <ResponsiveContainer width="100%" height={240}>
-        <BarChart data={current.leaderboard} margin={{ top: 8, right: 8, left: 0, bottom: 48 }}>
+      <ResponsiveContainer width="100%" height={180}>
+        <BarChart data={current.leaderboard} margin={{ top: 8, right: 20, left: 0, bottom: 48 }}>
+          <CartesianGrid vertical={false} stroke="var(--analytics-border)" strokeOpacity={0.6} />
           <XAxis
             dataKey="name"
             angle={-35}
             textAnchor="end"
             interval={0}
-            tick={{ fill: "var(--ink-muted)", fontSize: 12 }}
-            axisLine={{ stroke: "var(--border)" }}
+            tick={{ fill: "var(--analytics-text-muted)", fontSize: 12 }}
+            axisLine={{ stroke: "var(--analytics-border)" }}
             tickLine={false}
           />
-          <YAxis allowDecimals={false} tick={{ fill: "var(--ink-muted)", fontSize: 12 }} axisLine={false} tickLine={false} />
+          <YAxis allowDecimals={false} tick={{ fill: "var(--analytics-text-muted)", fontSize: 12 }} axisLine={false} tickLine={false} />
           <Tooltip
-            cursor={{ fill: "var(--surface-secondary)" }}
-            contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, color: "var(--ink)" }}
-            formatter={(value) => [t("ordersProcessedTooltip", { count: value as number }), ""]}
+            cursor={{ fill: "var(--analytics-surface)" }}
+            contentStyle={{ background: "var(--analytics-bg)", border: "1px solid var(--analytics-border)", borderRadius: 8, color: "var(--analytics-text)" }}
+            itemStyle={{ color: "var(--analytics-text)" }}
+            labelStyle={{ color: "var(--analytics-text)" }}
+            formatter={(value) => [value as number, t("ordersLabel")]}
+            wrapperStyle={{ zIndex: 50 }}
+            allowEscapeViewBox={{ x: true, y: true }}
           />
-          <Bar dataKey="count" fill="var(--cta)" radius={[4, 4, 0, 0]} maxBarSize={48} />
+          <Bar dataKey="count" fill="var(--analytics-neutral)" radius={[4, 4, 0, 0]} maxBarSize={48} isAnimationActive={false} />
         </BarChart>
       </ResponsiveContainer>
 
@@ -63,8 +68,8 @@ export function StaffPerformanceChart({
                 onClick={() => setSelectedStaffId(s.staffId)}
                 className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
                   selectedStaffId === s.staffId
-                    ? "border-cta bg-cta text-cta-foreground"
-                    : "border-border text-ink-muted hover:bg-surface-secondary"
+                    ? "border-neutral bg-neutral text-inverse"
+                    : "border-analytics text-analytics-muted hover:bg-[var(--analytics-surface)]"
                 }`}
               >
                 {s.name} ({s.count}
@@ -74,19 +79,23 @@ export function StaffPerformanceChart({
           })}
         </div>
         {selected && selected.points.length > 0 ? (
-          <ResponsiveContainer width="100%" height={200}>
+          <ResponsiveContainer width="100%" height={140}>
             <LineChart data={selected.points} margin={{ top: 8, right: 8, left: 0, bottom: 8 }}>
-              <XAxis dataKey="date" tick={{ fill: "var(--ink-muted)", fontSize: 11 }} axisLine={{ stroke: "var(--border)" }} tickLine={false} />
-              <YAxis allowDecimals={false} tick={{ fill: "var(--ink-muted)", fontSize: 12 }} axisLine={false} tickLine={false} />
+              <XAxis dataKey="date" tick={{ fill: "var(--analytics-text-muted)", fontSize: 11 }} axisLine={{ stroke: "var(--analytics-border)" }} tickLine={false} />
+              <YAxis allowDecimals={false} tick={{ fill: "var(--analytics-text-muted)", fontSize: 12 }} axisLine={false} tickLine={false} />
               <Tooltip
-                contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, color: "var(--ink)" }}
+                contentStyle={{ background: "var(--analytics-bg)", border: "1px solid var(--analytics-border)", borderRadius: 8, color: "var(--analytics-text)" }}
+                itemStyle={{ color: "var(--analytics-text)" }}
+                labelStyle={{ color: "var(--analytics-text)" }}
                 formatter={(value) => [tCommon("ordersCount", { count: value as number }), selected.name]}
+                wrapperStyle={{ zIndex: 50 }}
+                allowEscapeViewBox={{ x: true, y: true }}
               />
-              <Line type="monotone" dataKey="count" stroke="var(--cta)" strokeWidth={2} dot={{ r: 3 }} />
+              <Line type="monotone" dataKey="count" stroke="var(--analytics-neutral)" strokeWidth={2} dot={{ r: 3 }} />
             </LineChart>
           </ResponsiveContainer>
         ) : (
-          <p className="text-sm text-ink-muted">{t("noTimelineData")}</p>
+          <p className="text-sm text-analytics-muted">{t("noTimelineData")}</p>
         )}
       </div>
     </div>

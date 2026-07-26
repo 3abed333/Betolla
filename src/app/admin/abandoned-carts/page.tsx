@@ -3,6 +3,7 @@ import { getTranslations, getLocale } from "next-intl/server";
 import { prisma } from "@/lib/db";
 import { Card, CardContent, EmptyState } from "@/components/ui";
 import { Money } from "@/components/Money";
+import { localizedField } from "@/lib/localizedField";
 import type { AppLocale } from "@/i18n/config";
 import { RemindButton } from "./RemindButton";
 
@@ -16,7 +17,12 @@ export default async function AbandonedCartsPage() {
     orderBy: { lastActivityAt: "desc" },
     include: {
       user: { select: { firstName: true, lastName: true, email: true } },
-      items: { include: { product: { select: { nameEn: true } }, bundle: { select: { nameEn: true } } } },
+      items: {
+        include: {
+          product: { select: { nameEn: true, nameAr: true } },
+          bundle: { select: { nameEn: true, nameAr: true } },
+        },
+      },
     },
   });
   const now = new Date();
@@ -56,12 +62,19 @@ export default async function AbandonedCartsPage() {
                     </div>
                   </div>
                   <ul className="mt-3 flex flex-col gap-1 border-t border-border pt-3 text-sm text-ink-muted">
-                    {cart.items.map((item) => (
-                      <li key={item.id}>
-                        {item.quantity} &times; {item.product?.nameEn ?? item.bundle?.nameEn ?? t("unknownItem")} &middot;{" "}
-                        <Money value={Number(item.priceAtAdd) * item.quantity} locale={locale} />
-                      </li>
-                    ))}
+                    {cart.items.map((item) => {
+                      const itemName = item.product
+                        ? localizedField(locale, item.product.nameEn, item.product.nameAr)
+                        : item.bundle
+                          ? localizedField(locale, item.bundle.nameEn, item.bundle.nameAr)
+                          : t("unknownItem");
+                      return (
+                        <li key={item.id}>
+                          {item.quantity} &times; {itemName} &middot;{" "}
+                          <Money value={Number(item.priceAtAdd) * item.quantity} locale={locale} />
+                        </li>
+                      );
+                    })}
                   </ul>
                 </CardContent>
               </Card>

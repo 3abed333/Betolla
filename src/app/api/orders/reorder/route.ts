@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getCurrentSession } from "@/lib/auth/session";
+
+const reorderSchema = z.object({ orderId: z.string().min(1) });
 
 // Returns the current, live details (price/stock/availability) for a past order's items so the
 // client can add them back to the cart - never trusts the historical price snapshot, since
@@ -10,8 +13,12 @@ export async function POST(request: NextRequest) {
   const session = await getCurrentSession();
   if (!session) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
-  const { orderId } = await request.json().catch(() => ({ orderId: null }));
-  if (!orderId) return NextResponse.json({ error: "orderId is required" }, { status: 400 });
+  const body = await request.json().catch(() => null);
+  const parsed = reorderSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
+  }
+  const { orderId } = parsed.data;
 
   const order = await prisma.order.findUnique({
     where: { id: orderId },

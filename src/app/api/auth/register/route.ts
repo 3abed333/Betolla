@@ -6,6 +6,7 @@ import { hashPassword } from "@/lib/auth/password";
 import { createSession } from "@/lib/auth/session";
 import { ROLE_HOME } from "@/lib/auth/guards";
 import { registerSchema } from "@/lib/validation/auth";
+import { isRateLimited, recordAttempt } from "@/lib/auth/rate-limit";
 import { THEME_COOKIE } from "@/lib/theme/config";
 import { LOCALE_COOKIE, isLocale } from "@/i18n/config";
 import { DEFAULT_NOTIFICATION_PREFERENCES } from "@/lib/server/services/notifications";
@@ -20,6 +21,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
   }
   const { firstName, lastName, email, username, password } = parsed.data;
+
+  const ip = request.headers.get("x-forwarded-for") ?? "unknown";
+  const rateLimitKey = `register:${ip}`;
+  if (isRateLimited(rateLimitKey)) {
+    return NextResponse.json(
+      { error: "Too many registration attempts. Please try again in a few minutes." },
+      { status: 429 },
+    );
+  }
+  recordAttempt(rateLimitKey);
 
   const existing = await prisma.user.findFirst({
     where: { OR: [{ email }, { username }] },

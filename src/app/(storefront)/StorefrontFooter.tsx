@@ -7,7 +7,7 @@ export async function StorefrontFooter() {
 
   return (
     <footer className="border-t border-border bg-surface-secondary">
-      <div className="mx-auto flex max-w-7xl flex-col gap-4 px-6 py-10 text-sm text-ink-muted sm:flex-row sm:items-center sm:justify-between">
+      <div className="mx-auto flex max-w-7xl flex-col gap-4 px-6 py-10 text-sm text-ink-faint sm:flex-row sm:items-center sm:justify-between">
         <p className="font-heading text-lg text-ink">{tCommon("brand")}</p>
         <nav className="flex flex-wrap gap-5">
           <Link href="/products" className="hover:text-ink">

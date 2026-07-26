@@ -1,5 +1,6 @@
 import "server-only";
 import { prisma } from "@/lib/db";
+import { notify } from "./notifications";
 
 /**
  * The one place raw customer spend aggregates get recomputed - called whenever an order's
@@ -25,6 +26,48 @@ export async function recomputeCustomerStatsForUser(userId: string) {
     create: { userId, totalSpent, orderCount, lastOrderAt },
     update: { totalSpent, orderCount, lastOrderAt },
   });
+}
+
+/**
+ * COD orders are created UNPAID at checkout (see checkout.ts) and nothing else in the codebase
+ * ever flips that - for Cash on Delivery specifically, delivery IS the payment-confirmation event
+ * (cash changes hands at the door, there's no separate "mark as paid" step in this business's
+ * workflow). Called when a COD order reaches DELIVERED: flips paymentStatus to PAID, credits the
+ * loyalty points checkout skipped (loyaltyPointsEarned was baked in as 0 for COD at checkout time,
+ * since it was gated on paymentStatus === "PAID" then), and recomputes CustomerStats so
+ * totalSpent/orderCount finally include this order. No-ops for anything that isn't an UNPAID
+ * Cash-on-Delivery order, so it's safe to call unconditionally - the one-time backfill script for
+ * already-delivered COD orders reuses this exact function rather than duplicating the logic.
+ */
+export async function confirmCodPaymentOnDelivery(orderId: string) {
+  const order = await prisma.order.findUnique({ where: { id: orderId } });
+  if (!order || order.paymentMethodLabel !== "Cash on Delivery" || order.paymentStatus !== "UNPAID") return;
+
+  const loyaltyConfig = await prisma.loyaltyConfig.findFirst();
+  const pointsPerJd = loyaltyConfig ? Number(loyaltyConfig.pointsPerJdSpent) : 1;
+  const earned = Math.floor(Number(order.total) * pointsPerJd);
+
+  await prisma.$transaction(async (tx) => {
+    await tx.order.update({ where: { id: orderId }, data: { paymentStatus: "PAID", loyaltyPointsEarned: earned } });
+    if (earned > 0) {
+      await tx.loyaltyTransaction.create({
+        data: { userId: order.userId, type: "EARN", points: earned, orderId, note: "COD payment confirmed on delivery" },
+      });
+      await tx.user.update({ where: { id: order.userId }, data: { loyaltyPointsBalance: { increment: earned } } });
+    }
+  });
+
+  await recomputeCustomerStatsForUser(order.userId);
+
+  if (earned > 0) {
+    await notify({
+      userId: order.userId,
+      category: "LOYALTY_AND_WALLET",
+      title: "Loyalty points earned",
+      body: `You earned ${earned} points on order ${order.orderNumber}.`,
+      relatedOrderId: order.id,
+    });
+  }
 }
 
 function quintileScore(values: number[], value: number, higherIsBetter: boolean) {

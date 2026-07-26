@@ -8,8 +8,10 @@ import { Card, CardContent } from "@/components/ui";
 import { OrderStatusBadge } from "@/components/orders/OrderStatusBadge";
 import { OrderTracker } from "@/components/orders/OrderTracker";
 import { OrderStatusActions } from "@/components/orders/OrderStatusActions";
+import { NoDriverAlert } from "@/components/orders/NoDriverAlert";
 import { Money } from "@/components/Money";
 import { FormattedDate } from "@/components/FormattedDate";
+import { localizedField } from "@/lib/localizedField";
 import type { AppLocale } from "@/i18n/config";
 
 export const metadata: Metadata = { title: "Order Details - Betolla Admin" };
@@ -21,7 +23,12 @@ export default async function AdminOrderDetailPage({ params }: { params: Promise
     prisma.order.findUnique({
       where: { id },
       include: {
-        items: true,
+        items: {
+          include: {
+            product: { select: { nameEn: true, nameAr: true } },
+            bundle: { select: { nameEn: true, nameAr: true } },
+          },
+        },
         statusHistory: { orderBy: { createdAt: "asc" } },
         user: true,
         deliveryAssignments: { orderBy: { assignedAt: "desc" }, include: { driver: true } },
@@ -39,6 +46,9 @@ export default async function AdminOrderDetailPage({ params }: { params: Promise
   const tPayment = await getTranslations("common.paymentStatus");
   const tDeliveryStatus = await getTranslations("common.deliveryStatus");
   const locale = (await getLocale()) as AppLocale;
+  const needsDriverAlert =
+    (order.status === "CONFIRMED" || order.status === "ON_DELIVERY") &&
+    !order.deliveryAssignments.some((da) => da.status !== "FAILED");
 
   return (
     <div className="flex flex-col gap-6">
@@ -55,10 +65,17 @@ export default async function AdminOrderDetailPage({ params }: { params: Promise
         <OrderStatusBadge status={order.status} />
       </div>
 
+      {needsDriverAlert && <NoDriverAlert />}
+
       <Card>
         <CardContent className="flex flex-col gap-4">
           <OrderTracker status={order.status} history={order.statusHistory} />
-          <OrderStatusActions orderId={order.id} status={order.status} drivers={drivers} />
+          <OrderStatusActions
+            orderId={order.id}
+            status={order.status}
+            drivers={drivers}
+            hasActiveAssignment={order.deliveryAssignments.some((da) => da.status !== "FAILED")}
+          />
         </CardContent>
       </Card>
 
@@ -81,19 +98,26 @@ export default async function AdminOrderDetailPage({ params }: { params: Promise
 
       <Card>
         <CardContent className="flex flex-col divide-y divide-border">
-          {order.items.map((item) => (
+          {order.items.map((item) => {
+            const itemName = item.product
+              ? localizedField(locale, item.product.nameEn, item.product.nameAr)
+              : item.bundle
+                ? localizedField(locale, item.bundle.nameEn, item.bundle.nameAr)
+                : item.nameSnapshot;
+            return (
             <div key={item.id} className="flex items-center gap-4 py-3 first:pt-0 last:pb-0">
               <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-surface-secondary">
-                <Image src={item.imageSnapshot} alt={item.nameSnapshot} fill sizes="56px" className="object-cover" />
+                <Image src={item.imageSnapshot} alt={itemName} fill sizes="56px" className="object-cover" />
               </div>
               <div className="flex-1">
-                <p className="font-medium text-ink">{item.nameSnapshot}</p>
+                <p className="font-medium text-ink">{itemName}</p>
                 <p className="text-sm text-ink-muted">
                   {t("qty")} {item.quantity} &middot; <Money value={Number(item.priceSnapshot)} locale={locale} /> {t("each")}
                 </p>
               </div>
             </div>
-          ))}
+            );
+          })}
         </CardContent>
       </Card>
 
@@ -112,6 +136,22 @@ export default async function AdminOrderDetailPage({ params }: { params: Promise
               </span>
               <span>
                 -<Money value={Number(order.discountTotal)} locale={locale} />
+              </span>
+            </div>
+          )}
+          {Number(order.storeCreditUsed) > 0 && (
+            <div className="flex justify-between text-ink-muted">
+              <span>{t("storeCreditApplied")}</span>
+              <span>
+                -<Money value={Number(order.storeCreditUsed)} locale={locale} />
+              </span>
+            </div>
+          )}
+          {Number(order.loyaltyRedemptionValue) > 0 && (
+            <div className="flex justify-between text-ink-muted">
+              <span>{t("loyaltyPointsRedeemed")}</span>
+              <span>
+                -<Money value={Number(order.loyaltyRedemptionValue)} locale={locale} />
               </span>
             </div>
           )}

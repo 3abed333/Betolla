@@ -20,32 +20,42 @@ export async function CartFunnelChart({ current, previous }: { current: FunnelDa
           return (
             <div key={stage.key} className="flex flex-col gap-1">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-ink">{t(`stages.${stage.key}`)}</span>
-                <span className="text-ink-muted">
+                <span className="text-analytics">{t(`stages.${stage.key}`)}</span>
+                <span className="text-analytics-muted">
                   {stage.count}
                   {conversionFromPrevious !== null && ` ${t("conversionOfPrevious", { percent: conversionFromPrevious.toFixed(0) })}`}
                 </span>
               </div>
-              <div className="h-6 rounded-md bg-surface-secondary">
-                <div className="h-6 rounded-md bg-cta" style={{ width: `${widthPercent}%` }} />
+              <div className="h-6 rounded-md bg-analytics-surface">
+                <div className="h-6 rounded-md bg-neutral" style={{ width: `${widthPercent}%` }} />
               </div>
             </div>
           );
         })}
       </div>
-      <p className="text-xs text-ink-muted">{t("footnote")}</p>
-      <div className="rounded-xl border border-border bg-surface-secondary p-4">
-        <p className="text-sm text-ink-muted">{t("recoverableRevenueLabel")}</p>
-        <p className="text-2xl font-semibold text-ink">
+      <p className="text-xs text-analytics-muted">{t("footnote")}</p>
+      <div className="rounded-xl border border-analytics bg-analytics-surface p-4">
+        <p className="text-sm text-analytics-muted">{t("recoverableRevenueLabel")}</p>
+        <p className="text-2xl font-semibold text-analytics">
           <Money value={current.recoverableRevenue} locale={locale} />
           {previous !== undefined && (
-            <span className="ms-2 text-sm font-normal text-ink-muted">
+            <span
+              className={`ms-2 text-sm font-normal ${
+                current.recoverableRevenue === previous.recoverableRevenue
+                  ? "text-analytics-muted"
+                  : // Recoverable cart revenue trending down is good (less money stuck in abandoned
+                    // carts) - same "down is good" direction as the KPI strip's own tile for this metric.
+                    current.recoverableRevenue < previous.recoverableRevenue
+                    ? "text-good"
+                    : "text-bad"
+              }`}
+            >
               ({current.recoverableRevenue >= previous.recoverableRevenue ? "+" : ""}
               {formatCurrency(current.recoverableRevenue - previous.recoverableRevenue, locale)} {tAnalytics("vsPriorPeriod")})
             </span>
           )}
         </p>
-        <p className="text-xs text-ink-muted">{t("abandonedCartCount", { count: current.abandonedCartCount })}</p>
+        <p className="text-xs text-analytics-muted">{t("abandonedCartCount", { count: current.abandonedCartCount })}</p>
       </div>
     </div>
   );

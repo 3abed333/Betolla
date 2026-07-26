@@ -33,10 +33,12 @@ export function OrderStatusActions({
   orderId,
   status,
   drivers,
+  hasActiveAssignment,
 }: {
   orderId: string;
   status: string;
   drivers: { id: string; firstName: string; lastName: string }[];
+  hasActiveAssignment: boolean;
 }) {
   const router = useRouter();
   const t = useTranslations("admin.ordersShared");
@@ -102,16 +104,20 @@ export function OrderStatusActions({
   }
 
   const next = NEXT_STATUS[status];
+  const needsDriver = (next === "ON_DELIVERY" || next === "DELIVERED") && !hasActiveAssignment;
 
   return (
     <div className="flex flex-wrap items-center gap-3">
       {next && (
-        <Button size="sm" onClick={advance} disabled={isPending}>
-          {t(`nextStatus.${status}`)}
-        </Button>
+        <div className="flex flex-col gap-1">
+          <Button size="sm" onClick={advance} disabled={isPending || needsDriver}>
+            {t(`nextStatus.${status}`)}
+          </Button>
+          {needsDriver && <p className="text-xs text-ink-muted">{t("noActiveDriverNote")}</p>}
+        </div>
       )}
 
-      {(status === "PENDING" || status === "CONFIRMED") && (
+      {(status === "PENDING" || status === "CONFIRMED" || status === "ON_DELIVERY") && (
         <div className="flex items-center gap-2">
           <Select value={driverId} onValueChange={setDriverId}>
             <SelectTrigger className="h-9 w-48">

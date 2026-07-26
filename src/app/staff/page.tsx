@@ -9,7 +9,15 @@ export default async function StaffHomePage() {
   const [pendingOrders, lowStockProducts, unassignedOrders, openDeliveryReports] = await Promise.all([
     prisma.order.count({ where: { status: "PENDING" } }),
     getLowStockProducts(),
-    prisma.order.count({ where: { status: { in: ["PENDING", "CONFIRMED"] }, deliveryAssignments: { none: {} } } }),
+    // "Active assignment" = status !== FAILED everywhere else in the app (guards, Today's
+    // Collections) - this used to be `deliveryAssignments: { none: {} }`, which undercounted any
+    // order whose only assignment had failed (it has a row, so `none: {}` was false even though
+    // there's no *active* driver). Also scoped to CONFIRMED/ON_DELIVERY only, matching the
+    // no-driver alert/badge everywhere else - a PENDING order not having a driver yet isn't the
+    // same risk as a CONFIRMED one.
+    prisma.order.count({
+      where: { status: { in: ["CONFIRMED", "ON_DELIVERY"] }, deliveryAssignments: { none: { status: { not: "FAILED" } } } },
+    }),
     prisma.deliverySupportTicket.count({ where: { status: { in: ["OPEN", "ASSIGNED", "IN_PROGRESS"] } } }),
   ]);
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useTranslations } from "next-intl";
 import {
   Dialog,
   DialogTrigger,
@@ -17,8 +18,8 @@ export function ConfirmDialog({
   trigger,
   title,
   description,
-  confirmLabel = "Confirm",
-  cancelLabel = "Cancel",
+  confirmLabel,
+  cancelLabel,
   destructive = true,
   onConfirm,
 }: {
@@ -30,6 +31,7 @@ export function ConfirmDialog({
   destructive?: boolean;
   onConfirm: () => void | Promise<void>;
 }) {
+  const t = useTranslations("common");
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
@@ -51,11 +53,11 @@ export function ConfirmDialog({
         <DialogFooter>
           <DialogClose asChild>
             <Button variant="outline" disabled={isPending}>
-              {cancelLabel}
+              {cancelLabel ?? t("cancel")}
             </Button>
           </DialogClose>
           <Button variant={destructive ? "destructive" : "primary"} onClick={confirm} disabled={isPending}>
-            {isPending ? "Working..." : confirmLabel}
+            {isPending ? t("working") : (confirmLabel ?? t("confirm"))}
           </Button>
         </DialogFooter>
       </DialogContent>
