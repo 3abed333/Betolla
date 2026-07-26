@@ -36,7 +36,7 @@ export default async function AdminOrdersPage({
       deliveryAssignments: { select: { status: true } },
     },
     orderBy: { createdAt: "desc" },
-    take: 100,
+    take: 2000,
   });
 
   const exportParams = new URLSearchParams();
@@ -54,19 +54,27 @@ export default async function AdminOrdersPage({
       <OrderFilters />
       <OrdersTable
         basePath="/admin/orders"
-        orders={orders.map((o) => ({
-          id: o.id,
-          orderNumber: o.orderNumber,
-          status: o.status,
-          paymentStatus: o.paymentStatus,
-          total: o.total.toString(),
-          createdAt: o.createdAt,
-          customerName: `${o.user.firstName} ${o.user.lastName}`,
-          itemCount: o.items.length,
-          needsDriver:
-            (o.status === "CONFIRMED" || o.status === "ON_DELIVERY") &&
-            !o.deliveryAssignments.some((da) => da.status !== "FAILED"),
-        }))}
+        orders={orders
+          .map((o) => ({
+            id: o.id,
+            orderNumber: o.orderNumber,
+            status: o.status,
+            paymentStatus: o.paymentStatus,
+            total: o.total.toString(),
+            createdAt: o.createdAt,
+            customerName: `${o.user.firstName} ${o.user.lastName}`,
+            itemCount: o.items.length,
+            needsDriver:
+              (o.status === "CONFIRMED" || o.status === "ON_DELIVERY") &&
+              !o.deliveryAssignments.some((da) => da.status !== "FAILED"),
+          }))
+          // Orders needing a driver are operationally urgent and must never be silently pushed
+          // out of view by older history once the list is truncated to the render cap below -
+          // float them to the top first (Array#sort is stable, so createdAt-desc order is
+          // preserved within each group), matching the "Orders Needing Driver" dashboard tile,
+          // which counts these with no cap at all.
+          .sort((a, b) => Number(b.needsDriver) - Number(a.needsDriver))
+          .slice(0, 100)}
       />
     </div>
   );

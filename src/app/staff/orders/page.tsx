@@ -34,7 +34,7 @@ export default async function StaffOrdersPage({
       deliveryAssignments: { select: { status: true } },
     },
     orderBy: { createdAt: "desc" },
-    take: 100,
+    take: 2000,
   });
 
   return (
@@ -43,19 +43,24 @@ export default async function StaffOrdersPage({
       <OrderFilters />
       <OrdersTable
         basePath="/staff/orders"
-        orders={orders.map((o) => ({
-          id: o.id,
-          orderNumber: o.orderNumber,
-          status: o.status,
-          paymentStatus: o.paymentStatus,
-          total: o.total.toString(),
-          createdAt: o.createdAt,
-          customerName: `${o.user.firstName} ${o.user.lastName}`,
-          itemCount: o.items.length,
-          needsDriver:
-            (o.status === "CONFIRMED" || o.status === "ON_DELIVERY") &&
-            !o.deliveryAssignments.some((da) => da.status !== "FAILED"),
-        }))}
+        orders={orders
+          .map((o) => ({
+            id: o.id,
+            orderNumber: o.orderNumber,
+            status: o.status,
+            paymentStatus: o.paymentStatus,
+            total: o.total.toString(),
+            createdAt: o.createdAt,
+            customerName: `${o.user.firstName} ${o.user.lastName}`,
+            itemCount: o.items.length,
+            needsDriver:
+              (o.status === "CONFIRMED" || o.status === "ON_DELIVERY") &&
+              !o.deliveryAssignments.some((da) => da.status !== "FAILED"),
+          }))
+          // See admin/orders/page.tsx for why: needs-driver orders float to the top so they
+          // can never be pushed out of the render cap by older history.
+          .sort((a, b) => Number(b.needsDriver) - Number(a.needsDriver))
+          .slice(0, 100)}
       />
     </div>
   );

@@ -33,7 +33,9 @@ export function DeliverySupportControls({
     const res = await fetch(`/api/admin/delivery-support/${reportId}/status`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: newStatus, staffNote: note || undefined }),
+      // `null` (not `undefined`) when empty, so an emptied note is actually persisted as cleared
+      // instead of Prisma silently leaving the previous value in place.
+      body: JSON.stringify({ status: newStatus, staffNote: note || null }),
     });
     const data = await res.json();
     setBusy(false);
@@ -50,7 +52,8 @@ export function DeliverySupportControls({
     const res = await fetch(`/api/admin/delivery-support/${reportId}/status`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status, staffNote: note || undefined }),
+      // `null` (not `undefined`) when empty - see updateStatus's comment above.
+      body: JSON.stringify({ status, staffNote: note || null }),
     });
     const data = await res.json();
     setBusy(false);

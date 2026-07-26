@@ -60,8 +60,11 @@ export async function updateDeliveryAssignmentStatus(params: {
     await notifyRoles(["STAFF", "ADMIN"], {
       category: "OPERATIONS",
       title: "Delivery attempt failed",
+      // Strip any trailing period(s) from the driver-supplied reason before appending the fixed
+      // ". Reassign a driver." sentence - otherwise a reason that already ends in punctuation
+      // (the normal case for a free-text sentence) produces a doubled ".." in the notification body.
       body: `Attempt ${assignment.attemptNumber} for order ${order?.orderNumber ?? assignment.orderId} failed${
-        params.failedReason ? `: ${params.failedReason}` : ""
+        params.failedReason ? `: ${params.failedReason.trim().replace(/\.+$/, "")}` : ""
       }. Reassign a driver.`,
       relatedOrderId: assignment.orderId,
     });

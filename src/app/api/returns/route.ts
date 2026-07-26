@@ -14,12 +14,27 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
   }
 
-  const order = await prisma.order.findUnique({ where: { id: parsed.data.orderId } });
+  const order = await prisma.order.findUnique({
+    where: { id: parsed.data.orderId },
+    include: { items: true },
+  });
   if (!order || order.userId !== session.userId) {
     return NextResponse.json({ error: "Order not found" }, { status: 404 });
   }
   if (order.status !== "DELIVERED") {
     return NextResponse.json({ error: "Only delivered orders can be returned" }, { status: 400 });
+  }
+
+  // The order-ownership check above only proves the *order* is the caller's - orderItemId is a
+  // separate, independently-supplied id and must be verified to actually belong to that same
+  // order, otherwise a customer could attach a return request (under their own, legitimately-owned
+  // order) to another customer's order item by id.
+  const orderItem = order.items.find((i) => i.id === parsed.data.orderItemId);
+  if (!orderItem) {
+    return NextResponse.json({ error: "Order item not found" }, { status: 404 });
+  }
+  if (parsed.data.quantity > orderItem.quantity) {
+    return NextResponse.json({ error: "Return quantity exceeds the quantity purchased" }, { status: 400 });
   }
 
   const existing = await prisma.returnRequestItem.findFirst({

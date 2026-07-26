@@ -21,7 +21,11 @@ export const createReportSchema = z
 
 export const reportStatusSchema = z.object({
   status: z.enum(["OPEN", "ASSIGNED", "IN_PROGRESS", "RESOLVED", "CLOSED"]),
-  staffNote: z.string().trim().max(2000).optional(),
+  // nullable (not just optional): the client sends `null` to explicitly clear a previously-set
+  // note. Prisma treats `undefined` as "don't touch this field" but `null` as "set it to NULL" -
+  // without `.nullable()` here, a genuine clear-the-note request would fail validation instead of
+  // persisting.
+  staffNote: z.string().trim().max(2000).nullable().optional(),
 });
 
 export const reportAssignSchema = z.object({
