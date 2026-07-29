@@ -1,6 +1,5 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
@@ -14,20 +13,38 @@ import {
   DialogClose,
   Button,
   Input,
+  Textarea,
   Checkbox,
 } from "@/components/ui";
 import { toast } from "@/lib/toast";
 import { localizedCity } from "@/lib/cityAr";
 import type { AppLocale } from "@/i18n/config";
 
-const MapPinPicker = dynamic(() => import("@/components/MapPinPicker").then((m) => m.MapPinPicker), {
-  ssr: false,
-  loading: () => <div className="h-[260px] w-full animate-pulse rounded-xl bg-surface-secondary" />,
-});
+type EditableAddress = {
+  id: string;
+  label: string;
+  recipientName: string;
+  phone: string;
+  city: string;
+  area: string;
+  street: string;
+  buildingInfo?: string | null;
+  floor?: string | null;
+  apartmentNo?: string | null;
+  landmark?: string | null;
+  deliveryNotes?: string | null;
+  isDefaultShipping: boolean;
+};
 
-const JORDAN_CITIES = ["Amman", "Zarqa", "Irbid", "Russeifa", "Aqaba", "As-Salt", "Mafraq"];
-
-export function AddressFormDialog({ trigger }: { trigger: React.ReactNode }) {
+export function AddressFormDialog({
+  trigger,
+  address,
+  shippingZones,
+}: {
+  trigger: React.ReactNode;
+  address?: EditableAddress;
+  shippingZones: { city: string }[];
+}) {
   const router = useRouter();
   const t = useTranslations("account.addresses");
   const tCommon = useTranslations("common");
@@ -35,22 +52,26 @@ export function AddressFormDialog({ trigger }: { trigger: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
-    label: t("form.defaultLabelValue"),
-    recipientName: "",
-    phone: "",
-    city: JORDAN_CITIES[0],
-    area: "",
-    street: "",
-    isDefaultShipping: false,
+    label: address?.label ?? t("form.defaultLabelValue"),
+    recipientName: address?.recipientName ?? "",
+    phone: address?.phone ?? "",
+    city: address?.city ?? shippingZones[0]?.city ?? "",
+    area: address?.area ?? "",
+    street: address?.street ?? "",
+    buildingInfo: address?.buildingInfo ?? "",
+    floor: address?.floor ?? "",
+    apartmentNo: address?.apartmentNo ?? "",
+    landmark: address?.landmark ?? "",
+    deliveryNotes: address?.deliveryNotes ?? "",
+    isDefaultShipping: address?.isDefaultShipping ?? false,
   });
-  const [coords, setCoords] = useState<{ lat: number | null; lng: number | null }>({ lat: null, lng: null });
 
   async function submit() {
     setSubmitting(true);
-    const res = await fetch("/api/addresses", {
-      method: "POST",
+    const res = await fetch(address ? `/api/addresses/${address.id}` : "/api/addresses", {
+      method: address ? "PATCH" : "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...form, lat: coords.lat ?? undefined, lng: coords.lng ?? undefined }),
+      body: JSON.stringify(form),
     });
     const data = await res.json();
     setSubmitting(false);
@@ -68,22 +89,23 @@ export function AddressFormDialog({ trigger }: { trigger: React.ReactNode }) {
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>{t("form.addNew")}</DialogTitle>
+          <DialogTitle>{address ? t("form.editAddress") : t("form.addNew")}</DialogTitle>
         </DialogHeader>
         <div className="flex flex-col gap-3">
-          <MapPinPicker
-            lat={coords.lat}
-            lng={coords.lng}
-            onChange={(lat, lng) => setCoords({ lat, lng })}
-          />
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Input label={t("form.label")} value={form.label} onChange={(e) => setForm({ ...form, label: e.target.value })} />
             <Input
               label={t("form.recipientName")}
               value={form.recipientName}
               onChange={(e) => setForm({ ...form, recipientName: e.target.value })}
             />
-            <Input label={t("form.phone")} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+            <Input
+              label={t("form.phone")}
+              type="tel"
+              dir="ltr"
+              value={form.phone}
+              onChange={(e) => setForm({ ...form, phone: e.target.value })}
+            />
             <div>
               <label className="text-sm font-medium text-ink">{t("form.city")}</label>
               <select
@@ -91,7 +113,7 @@ export function AddressFormDialog({ trigger }: { trigger: React.ReactNode }) {
                 onChange={(e) => setForm({ ...form, city: e.target.value })}
                 className="mt-1.5 h-11 w-full rounded-lg border border-border bg-surface px-4 text-sm text-ink"
               >
-                {JORDAN_CITIES.map((c) => (
+                {shippingZones.map(({ city: c }) => (
                   <option key={c} value={c}>
                     {localizedCity(c, locale)}
                   </option>
@@ -100,9 +122,39 @@ export function AddressFormDialog({ trigger }: { trigger: React.ReactNode }) {
             </div>
             <Input label={t("form.area")} value={form.area} onChange={(e) => setForm({ ...form, area: e.target.value })} />
             <Input
-              label={t("form.streetBuilding")}
+              label={t("form.street")}
               value={form.street}
               onChange={(e) => setForm({ ...form, street: e.target.value })}
+            />
+            <Input
+              label={t("form.buildingInfo")}
+              value={form.buildingInfo}
+              onChange={(e) => setForm({ ...form, buildingInfo: e.target.value })}
+            />
+            <Input
+              label={t("form.floor")}
+              value={form.floor}
+              onChange={(e) => setForm({ ...form, floor: e.target.value })}
+            />
+            <Input
+              label={t("form.apartmentNo")}
+              value={form.apartmentNo}
+              onChange={(e) => setForm({ ...form, apartmentNo: e.target.value })}
+            />
+            <Input
+              label={t("form.landmark")}
+              value={form.landmark}
+              onChange={(e) => setForm({ ...form, landmark: e.target.value })}
+              className="sm:col-span-2"
+            />
+          </div>
+          <div>
+            <label className="text-sm font-medium text-ink">{t("form.deliveryNotes")}</label>
+            <Textarea
+              placeholder={t("form.deliveryNotesPlaceholder")}
+              value={form.deliveryNotes}
+              onChange={(e) => setForm({ ...form, deliveryNotes: e.target.value })}
+              className="mt-1.5"
             />
           </div>
           <label className="flex items-center gap-2 text-sm text-ink">

@@ -10,7 +10,7 @@ export default async function StaffEditProductPage({ params }: { params: Promise
   const { id } = await params;
   const t = await getTranslations("admin.products");
   const [product, categories] = await Promise.all([
-    prisma.product.findUnique({ where: { id }, include: { images: { orderBy: { sortOrder: "asc" } } } }),
+    prisma.product.findUnique({ where: { id }, include: { images: { orderBy: { sortOrder: "asc" } }, knowledge: true } }),
     prisma.category.findMany({ orderBy: { sortOrder: "asc" } }),
   ]);
   if (!product) notFound();
@@ -36,6 +36,9 @@ export default async function StaffEditProductPage({ params }: { params: Promise
           mainImageUrl: product.mainImageUrl,
           galleryUrls: product.images.map((i) => i.url),
           isActive: product.isActive,
+          knowledgeHtmlEn: product.knowledge?.contentHtmlEn ?? "",
+          knowledgeHtmlAr: product.knowledge?.contentHtmlAr ?? "",
+          knowledgeActive: product.knowledge?.isActive ?? false,
         }}
       />
     </div>

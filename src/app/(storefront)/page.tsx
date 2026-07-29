@@ -6,12 +6,22 @@ import { Button } from "@/components/ui";
 import { ProductCard } from "./ProductCard";
 import { localizedField } from "@/lib/localizedField";
 import type { AppLocale } from "@/i18n/config";
+import { HeroCarousel } from "./HeroCarousel";
 
 export default async function HomePage() {
   const t = await getTranslations("storefront.home");
   const locale = (await getLocale()) as AppLocale;
   const [banners, categories, featuredProducts] = await Promise.all([
-    prisma.banner.findMany({ where: { isActive: true }, orderBy: { sortOrder: "asc" } }),
+    prisma.banner.findMany({
+      where: {
+        isActive: true,
+        AND: [
+          { OR: [{ startsAt: null }, { startsAt: { lte: new Date() } }] },
+          { OR: [{ endsAt: null }, { endsAt: { gt: new Date() } }] },
+        ],
+      },
+      orderBy: { sortOrder: "asc" },
+    }),
     prisma.category.findMany({ where: { isActive: true }, orderBy: { sortOrder: "asc" } }),
     prisma.product.findMany({
       where: { isActive: true },
@@ -20,24 +30,22 @@ export default async function HomePage() {
     }),
   ]);
 
-  const hero = banners[0];
-
   return (
-    <div className="flex flex-col gap-16">
-      {hero && (
-        <Link href={hero.linkUrl ?? "/products"} className="group relative block overflow-hidden rounded-3xl">
-          <div className="relative aspect-[3/1] w-full">
-            <Image src={hero.imageUrl} alt={hero.titleEn} fill sizes="100vw" className="object-cover" priority />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
-          </div>
-          <div className="absolute inset-x-0 bottom-0 p-8">
-            <h1 className="font-heading text-3xl font-semibold text-white sm:text-4xl">{hero.titleEn}</h1>
-            <span className="mt-3 inline-block rounded-full bg-cta px-5 py-2 text-sm font-medium text-cta-foreground">
-              {t("shopNow")}
-            </span>
-          </div>
-        </Link>
-      )}
+    <div className="flex flex-col gap-12 sm:gap-16">
+      {banners.length > 0 && <HeroCarousel label={t("carouselLabel")} slides={banners.map((banner) => ({
+        id: banner.id,
+        mediaType: banner.mediaType,
+        desktopMediaUrl: banner.desktopMediaUrl,
+        mobileMediaUrl: banner.mobileMediaUrl,
+        posterUrl: banner.posterUrl,
+        title: localizedField(locale, banner.titleEn, banner.titleAr),
+        subtitle: localizedField(locale, banner.subtitleEn ?? "", banner.subtitleAr) || null,
+        ctaLabel: localizedField(locale, banner.ctaLabelEn ?? "", banner.ctaLabelAr) || t("shopNow"),
+        linkUrl: banner.linkUrl ?? "/products",
+        focalPointX: banner.focalPointX,
+        focalPointY: banner.focalPointY,
+        autoAdvanceSeconds: banner.autoAdvanceSeconds,
+      }))} />}
 
       <section>
         <h2 className="font-heading text-2xl font-semibold text-ink">{t("shopByCategory")}</h2>

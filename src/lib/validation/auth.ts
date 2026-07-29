@@ -4,16 +4,33 @@ import { z } from "zod";
 // t(errors.field.message)), not literal display text - this is the one validation layer that
 // feeds directly into user-visible form errors on the two auth pages.
 export const registerSchema = z.object({
-  firstName: z.string().trim().min(1, "errors.firstNameRequired").max(60),
-  lastName: z.string().trim().min(1, "errors.lastNameRequired").max(60),
+  customerType: z.enum(["INDIVIDUAL", "PHARMACY"]).default("INDIVIDUAL"),
+  firstName: z.string().trim().max(60).optional().default(""),
+  lastName: z.string().trim().max(60).optional().default(""),
   email: z.string().trim().toLowerCase().email("errors.validEmail"),
   username: z
     .string()
     .trim()
-    .min(3, "errors.usernameMinLength")
     .max(30)
-    .regex(/^[a-zA-Z0-9._-]+$/, "errors.usernameCharset"),
+    .regex(/^[a-zA-Z0-9._-]*$/, "errors.usernameCharset")
+    .optional()
+    .default(""),
+  pharmacyName: z.string().trim().max(120).optional().default(""),
+  pharmacyLocation: z.string().trim().max(500).optional().default(""),
   password: z.string().min(8, "errors.passwordMinLength").max(200),
+  privacyAccepted: z.preprocess(
+    (value) => value === true || value === "true" || value === "on",
+    z.literal(true, { error: "errors.privacyRequired" }),
+  ),
+}).superRefine((value, ctx) => {
+  if (value.customerType === "INDIVIDUAL") {
+    if (!value.firstName) ctx.addIssue({ code: "custom", message: "errors.firstNameRequired", path: ["firstName"] });
+    if (!value.lastName) ctx.addIssue({ code: "custom", message: "errors.lastNameRequired", path: ["lastName"] });
+    if (value.username.length < 3) ctx.addIssue({ code: "custom", message: "errors.usernameMinLength", path: ["username"] });
+  } else {
+    if (!value.pharmacyName) ctx.addIssue({ code: "custom", message: "errors.pharmacyNameRequired", path: ["pharmacyName"] });
+    if (!value.pharmacyLocation) ctx.addIssue({ code: "custom", message: "errors.pharmacyLocationRequired", path: ["pharmacyLocation"] });
+  }
 });
 
 export const loginSchema = z.object({

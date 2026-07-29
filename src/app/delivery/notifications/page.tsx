@@ -13,7 +13,7 @@ export default async function DeliveryNotificationsPage() {
   const locale = (await getLocale()) as AppLocale;
 
   const notifications = await prisma.notification.findMany({
-    where: { userId: session.userId },
+    where: { userId: session.userId, channel: "IN_APP" },
     orderBy: { createdAt: "desc" },
     take: 200,
   });

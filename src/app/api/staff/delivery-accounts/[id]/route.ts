@@ -32,6 +32,12 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     },
     select: { id: true, email: true, username: true, firstName: true, lastName: true, phone: true, isActive: true, createdAt: true },
   });
+  if (isActive === false) {
+    await prisma.session.updateMany({
+      where: { userId: id, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+  }
 
   await logActivity({
     actorId: session.userId,
@@ -51,21 +57,43 @@ export async function DELETE(_request: NextRequest, { params }: { params: Promis
   if (session instanceof NextResponse) return session;
   const { id } = await params;
 
-  const driver = await prisma.user.findUnique({ where: { id } });
+  const driver = await prisma.user.findUnique({
+    where: { id },
+    include: {
+      _count: {
+        select: {
+          activityLogs: true,
+          deliveryAssignments: true,
+          deliveryReports: true,
+          orders: true,
+        },
+      },
+    },
+  });
   if (!driver || driver.role !== "DELIVERY") {
     return NextResponse.json({ error: "Delivery account not found" }, { status: 404 });
   }
 
-  // Soft delete, same reasoning as Staff: ActivityLog/DeliveryAssignment reference this user.
-  await prisma.user.update({ where: { id }, data: { isActive: false } });
+  const hasOperationalHistory = Object.values(driver._count).some((count) => count > 0);
+  if (hasOperationalHistory) {
+    return NextResponse.json(
+      { error: "This delivery account has recorded activity and cannot be permanently deleted. Deactivate it instead." },
+      { status: 409 },
+    );
+  }
 
-  await logActivity({
-    actorId: session.userId,
-    actorRole: session.role,
-    action: "DELIVERY_ACCOUNT_DELETE",
-    entityType: "User",
-    entityId: id,
-    beforeData: { email: driver.email },
+  await prisma.$transaction(async (tx) => {
+    await tx.activityLog.create({
+      data: {
+        actorId: session.userId,
+        actorRole: session.role,
+        action: "DELIVERY_ACCOUNT_DELETE",
+        entityType: "User",
+        entityId: id,
+        beforeData: { email: driver.email },
+      },
+    });
+    await tx.user.delete({ where: { id } });
   });
 
   return NextResponse.json({ ok: true });

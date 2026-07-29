@@ -7,9 +7,10 @@ import { prisma } from "@/lib/db";
 import { Card, CardContent } from "@/components/ui";
 import { DeliveryStatusBadge } from "@/components/DeliveryStatusBadge";
 import { DeliveryStatusActions } from "@/components/DeliveryStatusActions";
-import { DeliveryRouteMapLoader } from "@/components/DeliveryRouteMapLoader";
 import { ReportProblemDialog } from "@/components/ReportProblemDialog";
+import { CopyButton } from "@/components/CopyButton";
 import { Money } from "@/components/Money";
+import { DeliveryAssignmentAutoRefresh } from "@/components/DeliveryAssignmentAutoRefresh";
 import type { AppLocale } from "@/i18n/config";
 
 export const metadata: Metadata = { title: "Delivery - Betolla Delivery" };
@@ -28,7 +29,6 @@ export default async function DeliveryAssignmentPage({ params }: { params: Promi
         include: {
           items: true,
           user: { select: { firstName: true, lastName: true, phone: true } },
-          shippingAddress: { select: { lat: true, lng: true } },
         },
       },
     },
@@ -37,9 +37,15 @@ export default async function DeliveryAssignmentPage({ params }: { params: Promi
   assertOwnership(session, assignment.driverId);
 
   const { order } = assignment;
+  const isTerminal =
+    order.status === "DELIVERED" ||
+    order.status === "CANCELLED" ||
+    assignment.status === "DELIVERED" ||
+    assignment.status === "FAILED";
 
   return (
     <div className="flex flex-col gap-6">
+      <DeliveryAssignmentAutoRefresh enabled={!isTerminal} />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="font-heading text-2xl font-semibold text-ink">{order.orderNumber}</h2>
@@ -56,15 +62,40 @@ export default async function DeliveryAssignmentPage({ params }: { params: Promi
       <Card>
         <CardContent className="flex flex-col gap-3">
           <p className="text-sm text-ink">{order.shippingAddressSnapshot}</p>
-          {order.shippingAddress?.lat != null && order.shippingAddress?.lng != null ? (
-            <DeliveryRouteMapLoader lat={order.shippingAddress.lat} lng={order.shippingAddress.lng} />
-          ) : (
-            <p className="text-xs text-ink-muted">{t("noMapPin")}</p>
+          {(order.shippingRecipientPhone ?? order.user.phone) && (
+            <p className="text-sm text-ink">
+              <span className="font-medium">{t("recipientPhoneLabel")}: </span>
+              <span dir="ltr" className="inline-block">
+                {order.shippingRecipientPhone ?? order.user.phone}
+              </span>
+            </p>
           )}
-          <div className="flex flex-wrap items-center gap-3">
-            <DeliveryStatusActions assignmentId={assignment.id} status={assignment.status} />
-            <ReportProblemDialog deliveryAssignmentId={assignment.id} />
+          {order.shippingDeliveryNotes && (
+            <p className="text-sm text-ink">
+              <span className="font-medium">{t("deliveryNotesLabel")}: </span>
+              {order.shippingDeliveryNotes}
+            </p>
+          )}
+          <div className="flex flex-wrap items-center gap-2">
+            <CopyButton
+              value={order.shippingAddressSnapshot}
+              label={t("copyAddress")}
+              copiedLabel={t("copied")}
+            />
+            {(order.shippingRecipientPhone ?? order.user.phone) && (
+              <CopyButton
+                value={order.shippingRecipientPhone ?? order.user.phone ?? ""}
+                label={t("copyPhone")}
+                copiedLabel={t("copied")}
+              />
+            )}
           </div>
+          {!isTerminal && (
+            <div className="flex flex-wrap items-center gap-3">
+              <DeliveryStatusActions assignmentId={assignment.id} status={assignment.status} />
+              <ReportProblemDialog deliveryAssignmentId={assignment.id} />
+            </div>
+          )}
         </CardContent>
       </Card>
 

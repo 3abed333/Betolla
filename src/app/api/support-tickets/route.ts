@@ -26,9 +26,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
   }
 
-  const order = await prisma.order.findUnique({ where: { id: parsed.data.orderId }, select: { id: true, userId: true } });
-  if (!order || order.userId !== session.userId) {
-    return NextResponse.json({ error: "Order not found" }, { status: 404 });
+  if (parsed.data.orderId) {
+    const order = await prisma.order.findUnique({
+      where: { id: parsed.data.orderId },
+      select: { id: true, userId: true },
+    });
+    if (!order || order.userId !== session.userId) {
+      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    }
   }
 
   const ticket = await prisma.supportTicket.create({
@@ -36,7 +41,7 @@ export async function POST(request: NextRequest) {
       userId: session.userId,
       subject: parsed.data.subject,
       category: parsed.data.category,
-      orderId: parsed.data.orderId,
+      orderId: parsed.data.orderId ?? null,
       messages: { create: [{ senderId: session.userId, message: parsed.data.message }] },
     },
   });

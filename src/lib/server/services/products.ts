@@ -2,6 +2,7 @@ import "server-only";
 import { prisma } from "@/lib/db";
 import { slugify } from "@/lib/slugify";
 import type { ProductInput } from "@/lib/validation/product";
+import { sanitizeRichHtml } from "@/lib/server/sanitizeHtml";
 
 export class ProductError extends Error {}
 
@@ -24,6 +25,7 @@ export async function createProduct(input: ProductInput) {
 
   const slug = await uniqueSlug(input.nameEn);
 
+  const hasKnowledge = Boolean(input.knowledgeHtmlEn || input.knowledgeHtmlAr);
   return prisma.product.create({
     data: {
       sku: input.sku,
@@ -40,7 +42,17 @@ export async function createProduct(input: ProductInput) {
       mainImageUrl: input.mainImageUrl,
       isActive: input.isActive,
       images: { create: input.galleryUrls.map((url, i) => ({ url, sortOrder: i })) },
+      knowledge: hasKnowledge
+        ? {
+            create: {
+              contentHtmlEn: sanitizeRichHtml(input.knowledgeHtmlEn),
+              contentHtmlAr: sanitizeRichHtml(input.knowledgeHtmlAr),
+              isActive: input.knowledgeActive,
+            },
+          }
+        : undefined,
     },
+    include: { knowledge: true },
   });
 }
 
@@ -55,23 +67,46 @@ export async function updateProduct(id: string, input: ProductInput) {
 
   await prisma.productImage.deleteMany({ where: { productId: id } });
 
-  return prisma.product.update({
-    where: { id },
-    data: {
-      sku: input.sku,
-      slug,
-      nameEn: input.nameEn,
-      nameAr: input.nameAr,
-      descriptionEn: input.descriptionEn,
-      descriptionAr: input.descriptionAr,
-      price: input.price,
-      compareAtPrice: input.compareAtPrice ?? null,
-      stock: input.stock,
-      lowStockThreshold: input.lowStockThreshold ?? null,
-      categoryId: input.categoryId,
-      mainImageUrl: input.mainImageUrl,
-      isActive: input.isActive,
-      images: { create: input.galleryUrls.map((url, i) => ({ url, sortOrder: i })) },
-    },
+  const hasKnowledge = Boolean(input.knowledgeHtmlEn || input.knowledgeHtmlAr);
+  return prisma.$transaction(async (tx) => {
+    const product = await tx.product.update({
+      where: { id },
+      data: {
+        sku: input.sku,
+        slug,
+        nameEn: input.nameEn,
+        nameAr: input.nameAr,
+        descriptionEn: input.descriptionEn,
+        descriptionAr: input.descriptionAr,
+        price: input.price,
+        compareAtPrice: input.compareAtPrice ?? null,
+        stock: input.stock,
+        lowStockThreshold: input.lowStockThreshold ?? null,
+        categoryId: input.categoryId,
+        mainImageUrl: input.mainImageUrl,
+        isActive: input.isActive,
+        images: { create: input.galleryUrls.map((url, i) => ({ url, sortOrder: i })) },
+      },
+    });
+    if (hasKnowledge) {
+      await tx.productKnowledge.upsert({
+        where: { productId: id },
+        create: {
+          productId: id,
+          contentHtmlEn: sanitizeRichHtml(input.knowledgeHtmlEn),
+          contentHtmlAr: sanitizeRichHtml(input.knowledgeHtmlAr),
+          isActive: input.knowledgeActive,
+        },
+        update: {
+          contentHtmlEn: sanitizeRichHtml(input.knowledgeHtmlEn),
+          contentHtmlAr: sanitizeRichHtml(input.knowledgeHtmlAr),
+          isActive: input.knowledgeActive,
+        },
+      });
+    } else {
+      await tx.productKnowledge.deleteMany({ where: { productId: id } });
+    }
+    const knowledge = await tx.productKnowledge.findUnique({ where: { productId: id } });
+    return { ...product, knowledge };
   });
 }

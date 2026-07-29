@@ -37,13 +37,16 @@ export type CurrentSession = {
   userId: string;
   role: Role;
   sessionId: string;
+  mustChangePassword: boolean;
 };
 
 /**
  * The authoritative auth check: verifies the JWT AND re-checks the DB Session row on every
  * call, so a revoked/expired session dies immediately regardless of the JWT's own expiry.
  */
-export async function getCurrentSession(): Promise<CurrentSession | null> {
+export async function getCurrentSession(options?: {
+  allowPasswordChangeRequired?: boolean;
+}): Promise<CurrentSession | null> {
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE)?.value;
   if (!token) return null;
@@ -51,15 +54,31 @@ export async function getCurrentSession(): Promise<CurrentSession | null> {
   const payload = await verifySessionToken(token);
   if (!payload) return null;
 
-  const session = await prisma.session.findUnique({ where: { id: payload.sid } });
+  const session = await prisma.session.findUnique({
+    where: { id: payload.sid },
+    include: {
+      user: {
+        select: { role: true, isActive: true, mustChangePassword: true },
+      },
+    },
+  });
   if (!session || session.userId !== payload.sub) return null;
   if (session.revokedAt || session.expiresAt < new Date()) return null;
+  // JWT role/active-state claims are only hints. The current database user is authoritative so
+  // deactivation and role changes take effect on the very next request.
+  if (!session.user.isActive || session.user.role !== payload.role) return null;
+  if (session.user.mustChangePassword && !options?.allowPasswordChangeRequired) return null;
 
   prisma.session
     .update({ where: { id: session.id }, data: { lastActiveAt: new Date() } })
     .catch(() => undefined);
 
-  return { userId: payload.sub, role: payload.role, sessionId: session.id };
+  return {
+    userId: payload.sub,
+    role: session.user.role,
+    sessionId: session.id,
+    mustChangePassword: session.user.mustChangePassword,
+  };
 }
 
 export async function destroySession() {

@@ -20,7 +20,7 @@ export default async function PreferencesPage() {
         <CardHeader>
           <CardTitle>{t("interfaceTitle")}</CardTitle>
         </CardHeader>
-        <CardContent className="flex items-center gap-6">
+        <CardContent className="flex flex-wrap items-center gap-5 sm:gap-6">
           <div>
             <p className="text-sm font-medium text-ink">{t("theme")}</p>
             <div className="mt-2">

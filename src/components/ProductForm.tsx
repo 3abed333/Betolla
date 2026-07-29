@@ -23,6 +23,9 @@ export type ProductFormValues = {
   mainImageUrl: string;
   galleryUrls: string[];
   isActive: boolean;
+  knowledgeHtmlEn: string;
+  knowledgeHtmlAr: string;
+  knowledgeActive: boolean;
 };
 
 const EMPTY: ProductFormValues = {
@@ -39,6 +42,9 @@ const EMPTY: ProductFormValues = {
   mainImageUrl: "",
   galleryUrls: [],
   isActive: true,
+  knowledgeHtmlEn: "",
+  knowledgeHtmlAr: "",
+  knowledgeActive: false,
 };
 
 export function ProductForm({
@@ -82,6 +88,9 @@ export function ProductForm({
       mainImageUrl: values.mainImageUrl,
       galleryUrls: values.galleryUrls,
       isActive: values.isActive,
+      knowledgeHtmlEn: values.knowledgeHtmlEn,
+      knowledgeHtmlAr: values.knowledgeHtmlAr,
+      knowledgeActive: values.knowledgeActive,
     };
     const res = await fetch(productId ? `/api/products/${productId}` : "/api/products", {
       method: productId ? "PATCH" : "POST",
@@ -168,6 +177,42 @@ export function ProductForm({
         <Checkbox checked={values.isActive} onCheckedChange={(c) => set("isActive", c === true)} />
         {t("activeCheckbox")}
       </label>
+
+      <section className="rounded-xl border border-border bg-surface-secondary p-4">
+        <div className="mb-4">
+          <h3 className="font-heading text-lg font-semibold text-ink">Know more about this product</h3>
+          <p className="text-sm text-ink-muted">
+            Safe HTML is supported. Scripts, embedded frames, forms, and unsafe links are removed automatically.
+          </p>
+        </div>
+        <div className="flex flex-col gap-4">
+          <Textarea
+            label="English HTML"
+            rows={10}
+            value={values.knowledgeHtmlEn}
+            onChange={(e) => set("knowledgeHtmlEn", e.target.value)}
+            placeholder="<h2>Key facts</h2><p>...</p>"
+            className="font-mono"
+          />
+          <Textarea
+            label="Arabic HTML"
+            rows={10}
+            value={values.knowledgeHtmlAr}
+            onChange={(e) => set("knowledgeHtmlAr", e.target.value)}
+            placeholder="<h2>معلومات مهمة</h2><p>...</p>"
+            className="font-mono"
+            dir="rtl"
+          />
+          <label className="flex items-center gap-2 text-sm text-ink">
+            <Checkbox
+              checked={values.knowledgeActive}
+              onCheckedChange={(checked) => set("knowledgeActive", checked === true)}
+            />
+            Show the “Know more” button to customers
+          </label>
+          <p className="text-xs text-ink-muted">Clear both HTML boxes and save to delete this product’s extra content.</p>
+        </div>
+      </section>
 
       <Button onClick={submit} disabled={submitting} className="w-fit">
         {submitting ? t("saving") : productId ? t("saveChanges") : t("createProduct")}

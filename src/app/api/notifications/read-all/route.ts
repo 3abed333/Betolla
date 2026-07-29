@@ -7,7 +7,7 @@ export async function PATCH() {
   if (!session) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
   await prisma.notification.updateMany({
-    where: { userId: session.userId, isRead: false },
+    where: { userId: session.userId, channel: "IN_APP", isRead: false },
     data: { isRead: true },
   });
   return NextResponse.json({ ok: true });

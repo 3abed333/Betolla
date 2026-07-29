@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getCurrentSession } from "@/lib/auth/session";
-
-const updateAddressSchema = z.object({ isDefaultShipping: z.boolean() });
+import { updateAddressSchema } from "@/lib/validation/address";
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getCurrentSession();
@@ -21,11 +19,25 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
   }
-  const { isDefaultShipping } = parsed.data;
-  if (isDefaultShipping) {
-    await prisma.address.updateMany({ where: { userId: session.userId }, data: { isDefaultShipping: false } });
+  const { isDefaultShipping, city } = parsed.data;
+  if (city) {
+    const zone = await prisma.shippingZone.findFirst({
+      where: { cityEn: city, isActive: true },
+      select: { id: true },
+    });
+    if (!zone) {
+      return NextResponse.json({ error: "That shipping city is not currently supported" }, { status: 400 });
+    }
   }
-  const updated = await prisma.address.update({ where: { id }, data: { isDefaultShipping: !!isDefaultShipping } });
+  const updated = await prisma.$transaction(async (tx) => {
+    if (isDefaultShipping) {
+      await tx.address.updateMany({
+        where: { userId: session.userId },
+        data: { isDefaultShipping: false },
+      });
+    }
+    return tx.address.update({ where: { id }, data: parsed.data });
+  });
   return NextResponse.json({ address: updated });
 }
 

@@ -118,6 +118,7 @@
   --analytics-good: #39ff88; /* electric green - always "good/high/on-target" */
   --analytics-bad: #ff3b5c; /* vivid red-pink - always "bad/low/at-risk" */
   --analytics-neutral: #3ea9ff; /* bright blue - plain magnitude/count data, neither good nor bad */
+  --analytics-comparison: #a78bfa; /* purple - comparison/rate series */
 }
 
 /* New semantic utility classes - used directly in analytics components for plain JSX text/background

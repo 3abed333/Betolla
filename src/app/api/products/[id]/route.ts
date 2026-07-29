@@ -18,7 +18,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
   }
 
-  const before = await prisma.product.findUnique({ where: { id } });
+  const before = await prisma.product.findUnique({ where: { id }, include: { knowledge: true } });
   try {
     const product = await updateProduct(id, parsed.data);
     await logActivity({
@@ -30,6 +30,25 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       beforeData: before ? { price: before.price.toString(), stock: before.stock, isActive: before.isActive } : undefined,
       afterData: { price: product.price.toString(), stock: product.stock, isActive: product.isActive },
     });
+    const knowledgeAction =
+      !before?.knowledge && product.knowledge
+        ? "PRODUCT_KNOWLEDGE_CREATE"
+        : before?.knowledge && !product.knowledge
+          ? "PRODUCT_KNOWLEDGE_DELETE"
+          : before?.knowledge && product.knowledge
+            ? "PRODUCT_KNOWLEDGE_UPDATE"
+            : null;
+    if (knowledgeAction) {
+      await logActivity({
+        actorId: session.userId,
+        actorRole: session.role,
+        action: knowledgeAction,
+        entityType: "ProductKnowledge",
+        entityId: product.knowledge?.id ?? before?.knowledge?.id,
+        beforeData: before?.knowledge ? { productId: id, isActive: before.knowledge.isActive } : undefined,
+        afterData: product.knowledge ? { productId: id, isActive: product.knowledge.isActive } : undefined,
+      });
+    }
 
     if (before) {
       await notifyWishlistsOnProductChange({

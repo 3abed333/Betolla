@@ -14,6 +14,9 @@ export const productSchema = z.object({
   mainImageUrl: z.string().min(1),
   galleryUrls: z.array(z.string()).default([]),
   isActive: z.boolean().default(true),
+  knowledgeHtmlEn: z.string().trim().max(100_000).optional().default(""),
+  knowledgeHtmlAr: z.string().trim().max(100_000).optional().default(""),
+  knowledgeActive: z.boolean().optional().default(false),
 });
 
 export type ProductInput = z.infer<typeof productSchema>;

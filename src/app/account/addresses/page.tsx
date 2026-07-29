@@ -11,28 +11,36 @@ export const metadata: Metadata = { title: "Addresses - Betolla Cosmetics" };
 export default async function AddressesPage() {
   const session = await requireRole("CUSTOMER");
   const t = await getTranslations("account.addresses");
-  const addresses = await prisma.address.findMany({
-    where: { userId: session.userId },
-    orderBy: [{ isDefaultShipping: "desc" }, { createdAt: "desc" }],
-  });
+  const [addresses, shippingZones] = await Promise.all([
+    prisma.address.findMany({
+      where: { userId: session.userId },
+      orderBy: [{ isDefaultShipping: "desc" }, { createdAt: "desc" }],
+    }),
+    prisma.shippingZone.findMany({
+      where: { isActive: true },
+      select: { cityEn: true },
+      orderBy: { cityEn: "asc" },
+    }),
+  ]);
+  const zones = shippingZones.map((zone) => ({ city: zone.cityEn }));
 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <h2 className="font-heading text-2xl font-semibold text-ink">{t("heading")}</h2>
-        <AddressFormDialog trigger={<Button size="sm">{t("addAddress")}</Button>} />
+        <AddressFormDialog shippingZones={zones} trigger={<Button size="sm">{t("addAddress")}</Button>} />
       </div>
 
       {addresses.length === 0 ? (
         <EmptyState
           title={t("noSavedTitle")}
           description={t("noSavedDescription")}
-          action={<AddressFormDialog trigger={<Button>{t("addAddress")}</Button>} />}
+          action={<AddressFormDialog shippingZones={zones} trigger={<Button>{t("addAddress")}</Button>} />}
         />
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {addresses.map((address) => (
-            <AddressCard key={address.id} address={address} />
+            <AddressCard key={address.id} address={address} shippingZones={zones} />
           ))}
         </div>
       )}

@@ -39,7 +39,7 @@ export function AccountNav({ unreadNotifications = 0 }: { unreadNotifications?: 
 
   return (
     <>
-      <div className="flex items-center border-b border-border px-6 py-3 sm:hidden">
+      <div className="flex items-center gap-3 border-b border-border px-4 py-3 sm:hidden">
         <Drawer open={open} onOpenChange={setOpen}>
           <DrawerTrigger asChild>
             <button
@@ -66,6 +66,7 @@ export function AccountNav({ unreadNotifications = 0 }: { unreadNotifications?: 
             </div>
           </DrawerContent>
         </Drawer>
+        <span className="text-sm font-medium text-ink">{t("menuTitle")}</span>
       </div>
       <nav className="hidden gap-1 border-e border-border px-6 py-6 sm:flex sm:w-56 sm:flex-col">
         {LINKS.map((link) => (

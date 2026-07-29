@@ -1,10 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
 import { useCartStore } from "@/store/cart-store";
-import { Button, Input, Card, CardContent, Checkbox } from "@/components/ui";
+import { Button, Input, Textarea, Card, CardContent, Checkbox } from "@/components/ui";
 import { toast } from "@/lib/toast";
 import { Money } from "@/components/Money";
 import { localizedCity } from "@/lib/cityAr";
@@ -20,22 +20,19 @@ type Address = {
   city: string;
   isDefaultShipping: boolean;
 };
-type PaymentMethod = { id: string; type: "CASH_ON_DELIVERY" | "MOCK_CARD"; label: string; isDefault: boolean };
-
-const JORDAN_CITIES = ["Amman", "Zarqa", "Irbid", "Russeifa", "Aqaba", "As-Salt", "Mafraq"];
 
 export function CheckoutForm({
   addresses: initialAddresses,
-  paymentMethods: initialPaymentMethods,
   storeCreditBalance,
   loyaltyPointsBalance,
   loyaltyRedemptionRate,
+  shippingZones,
 }: {
   addresses: Address[];
-  paymentMethods: PaymentMethod[];
   storeCreditBalance: number;
   loyaltyPointsBalance: number;
   loyaltyRedemptionRate: number;
+  shippingZones: { city: string; fee: number }[];
 }) {
   const t = useTranslations("storefront.checkout");
   const tToast = useTranslations("toast");
@@ -52,14 +49,15 @@ export function CheckoutForm({
     label: t("defaultAddressLabel"),
     recipientName: "",
     phone: "",
-    city: JORDAN_CITIES[0],
+    city: shippingZones[0]?.city ?? "",
     area: "",
     street: "",
+    buildingInfo: "",
+    floor: "",
+    apartmentNo: "",
+    landmark: "",
+    deliveryNotes: "",
   });
-
-  const [paymentType, setPaymentType] = useState<"CASH_ON_DELIVERY" | "MOCK_CARD">(
-    initialPaymentMethods[0]?.type ?? "CASH_ON_DELIVERY",
-  );
 
   const [promoCode, setPromoCode] = useState("");
   const [promoResult, setPromoResult] = useState<{ discountAmount: number } | { error: string } | null>(null);
@@ -70,6 +68,9 @@ export function CheckoutForm({
 
   const [placingOrder, setPlacingOrder] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
+  // Keep the same key across a timeout/retry so the server returns the original order instead of
+  // placing a second one.
+  const idempotencyKey = useRef(crypto.randomUUID());
 
   const subtotal = Number(subtotalRaw.toFixed(2));
   const discountAmount = promoResult && "discountAmount" in promoResult ? promoResult.discountAmount : 0;
@@ -79,7 +80,10 @@ export function CheckoutForm({
     [loyaltyPointsToRedeem, loyaltyRedemptionRate],
   );
   const selectedAddress = addresses.find((a) => a.id === selectedAddressId);
-  const shippingFee = selectedAddress?.city === "Amman" ? 0 : selectedAddress ? 3 : 0;
+  const shippingCity = selectedAddress?.city ?? (showNewAddress ? newAddress.city : undefined);
+  const shippingFee = shippingCity
+    ? (shippingZones.find((zone) => zone.city === shippingCity)?.fee ?? 0)
+    : 0;
   const estimatedTotal = Math.max(0, subtotal - discountAmount - storeCreditApplied - loyaltyValue) + shippingFee;
 
   async function validatePromo() {
@@ -128,10 +132,11 @@ export function CheckoutForm({
       body: JSON.stringify({
         items: items.map((i) => ({ kind: i.kind, id: i.id, quantity: i.quantity })),
         shippingAddressId: addressId,
-        paymentMethodType: paymentType,
+        paymentMethodType: "CASH_ON_DELIVERY",
         promoCode: promoResult && "discountAmount" in promoResult ? promoCode : undefined,
         useStoreCredit,
         loyaltyPointsToRedeem,
+        idempotencyKey: idempotencyKey.current,
       }),
     });
     const data = await res.json();
@@ -190,7 +195,7 @@ export function CheckoutForm({
               <span className="text-sm font-medium text-ink">{t("addNewAddress")}</span>
             </label>
             {showNewAddress && (
-              <div className="grid grid-cols-2 gap-3 rounded-xl bg-surface-secondary p-4">
+              <div className="grid grid-cols-1 gap-3 rounded-xl bg-surface-secondary p-4 sm:grid-cols-2">
                 <Input
                   label={t("recipientName")}
                   value={newAddress.recipientName}
@@ -198,6 +203,8 @@ export function CheckoutForm({
                 />
                 <Input
                   label={t("phone")}
+                  type="tel"
+                  dir="ltr"
                   value={newAddress.phone}
                   onChange={(e) => setNewAddress({ ...newAddress, phone: e.target.value })}
                 />
@@ -208,7 +215,7 @@ export function CheckoutForm({
                     onChange={(e) => setNewAddress({ ...newAddress, city: e.target.value })}
                     className="mt-1.5 h-11 w-full rounded-lg border border-border bg-surface px-4 text-sm text-ink"
                   >
-                    {JORDAN_CITIES.map((c) => (
+                    {shippingZones.map(({ city: c }) => (
                       <option key={c} value={c}>
                         {localizedCity(c, locale)}
                       </option>
@@ -221,10 +228,40 @@ export function CheckoutForm({
                   onChange={(e) => setNewAddress({ ...newAddress, area: e.target.value })}
                 />
                 <Input
-                  label={t("streetBuilding")}
+                  label={t("street")}
                   value={newAddress.street}
                   onChange={(e) => setNewAddress({ ...newAddress, street: e.target.value })}
                 />
+                <Input
+                  label={t("buildingInfo")}
+                  value={newAddress.buildingInfo}
+                  onChange={(e) => setNewAddress({ ...newAddress, buildingInfo: e.target.value })}
+                />
+                <Input
+                  label={t("floor")}
+                  value={newAddress.floor}
+                  onChange={(e) => setNewAddress({ ...newAddress, floor: e.target.value })}
+                />
+                <Input
+                  label={t("apartmentNo")}
+                  value={newAddress.apartmentNo}
+                  onChange={(e) => setNewAddress({ ...newAddress, apartmentNo: e.target.value })}
+                />
+                <Input
+                  label={t("landmark")}
+                  value={newAddress.landmark}
+                  onChange={(e) => setNewAddress({ ...newAddress, landmark: e.target.value })}
+                  className="col-span-2"
+                />
+                <div className="col-span-2">
+                  <label className="text-sm font-medium text-ink">{t("deliveryNotes")}</label>
+                  <Textarea
+                    placeholder={t("deliveryNotesPlaceholder")}
+                    value={newAddress.deliveryNotes}
+                    onChange={(e) => setNewAddress({ ...newAddress, deliveryNotes: e.target.value })}
+                    className="mt-1.5"
+                  />
+                </div>
               </div>
             )}
           </div>
@@ -233,25 +270,8 @@ export function CheckoutForm({
         <section>
           <h2 className="font-heading text-lg font-semibold text-ink">{t("paymentMethod")}</h2>
           <p className="mt-1 text-xs text-ink-muted">{t("paymentMethodNote")}</p>
-          <div className="mt-3 flex flex-col gap-3">
-            <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-border p-4 has-[:checked]:border-cta">
-              <input
-                type="radio"
-                name="payment"
-                checked={paymentType === "CASH_ON_DELIVERY"}
-                onChange={() => setPaymentType("CASH_ON_DELIVERY")}
-              />
-              <span className="text-sm font-medium text-ink">{t("cashOnDelivery")}</span>
-            </label>
-            <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-border p-4 has-[:checked]:border-cta">
-              <input
-                type="radio"
-                name="payment"
-                checked={paymentType === "MOCK_CARD"}
-                onChange={() => setPaymentType("MOCK_CARD")}
-              />
-              <span className="text-sm font-medium text-ink">{t("cardMock")}</span>
-            </label>
+          <div className="mt-3 rounded-xl border border-cta bg-cta/5 p-4">
+            <span className="text-sm font-medium text-ink">{t("cashOnDelivery")}</span>
           </div>
         </section>
       </div>

@@ -10,19 +10,19 @@ export default async function DeliveryLayout({ children }: { children: React.Rea
   const session = await requireRole("DELIVERY");
   const [user, unreadNotifications] = await Promise.all([
     prisma.user.findUniqueOrThrow({ where: { id: session.userId }, select: { firstName: true } }),
-    prisma.notification.count({ where: { userId: session.userId, isRead: false } }),
+    prisma.notification.count({ where: { userId: session.userId, channel: "IN_APP", isRead: false } }),
   ]);
   const t = await getTranslations("delivery.layout");
 
   return (
     <div className="flex flex-1 flex-col">
-      <header className="flex items-center justify-between border-b border-border px-6 py-4">
-        <div>
+      <header className="flex flex-col gap-3 border-b border-border px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+        <div className="min-w-0">
           <p className="text-xs tracking-widest text-ink-muted uppercase">{t("kicker")}</p>
           <h1 className="font-heading text-lg font-semibold text-ink">{t("heading")}</h1>
         </div>
-        <div className="flex items-center gap-4">
-          <p className="text-sm text-ink-muted">{t("welcome", { name: user.firstName })}</p>
+        <div className="flex min-w-0 flex-wrap items-center gap-2 sm:justify-end sm:gap-4">
+          <p className="w-full truncate text-sm text-ink-muted sm:w-auto">{t("welcome", { name: user.firstName })}</p>
           <LanguageSwitcher />
           <ThemeToggle />
           <LogoutButton />

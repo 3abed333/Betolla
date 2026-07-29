@@ -33,11 +33,8 @@ export async function POST(request: NextRequest) {
     data: {
       userId: session.userId,
       type: parsed.data.type,
-      label: parsed.data.type === "CASH_ON_DELIVERY" ? "Cash on Delivery" : "Card on file",
-      maskedDisplay:
-        parsed.data.type === "MOCK_CARD" && parsed.data.mockCardNumber
-          ? `**** **** **** ${parsed.data.mockCardNumber.slice(-4)}`
-          : null,
+      label: "Cash on Delivery",
+      maskedDisplay: null,
       isDefault: parsed.data.isDefault ?? false,
     },
   });

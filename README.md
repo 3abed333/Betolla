@@ -50,6 +50,20 @@ The seed script creates one of each role, plus 20 demo customers, ~190 orders, r
 
 Next.js (App Router) + TypeScript + Tailwind CSS, PostgreSQL + Prisma, custom JWT auth with DB-backed sessions, React Query + Zustand, Recharts, Leaflet, next-intl.
 
+## Banner media in production
+
+Homepage banner images/videos are stored under `public/uploads/banners` by the current local/VPS storage adapter. Back up this directory with the database and serve it through the same persistent VPS volume. If the app later runs on ephemeral or multi-instance hosting, replace the storage adapter in `src/lib/server/storage.ts` with S3-compatible object storage/CDN; the Admin UI and stored media URLs can remain unchanged. Images are capped at 8MB and videos at 25MB; MP4/WebM videos should normally be 6–15 seconds.
+
+## Production safety checklist
+
+- Use a managed or backed-up PostgreSQL database and run `npm exec prisma migrate deploy` during release. The embedded project-local database is for development, not a resilient production database.
+- Set a unique high-entropy `JWT_SECRET`, HTTPS `NEXT_PUBLIC_APP_URL`, and strong Admin credentials through the deployment secret manager.
+- Checkout is Cash on Delivery only. Card data is never requested, stored, or processed.
+- Set `TRUST_PROXY=true` only behind a proxy you control that overwrites forwarded-IP headers. Authentication rate limits are stored in PostgreSQL and shared across app instances.
+- Persist and back up `public/uploads` and `uploads-private`, or replace the storage adapter with private object storage plus signed URLs before using ephemeral/multi-instance hosting.
+- Terminate TLS at the proxy/platform. Production responses include CSP, HSTS, frame, MIME-sniffing, referrer, and permissions-policy headers.
+- Schedule database backups and an orphan-upload cleanup job, monitor 5xx/payment/refund/stock events, and test a restore before launch.
+
 ## Environment variables
 
 See `.env.example`. `DATABASE_URL` points at the local Postgres server by default - only change it if you point at a different Postgres instance. `ADMIN_EMAIL`/`ADMIN_PASSWORD` set the one seeded Admin account (Admin accounts are never created through the UI).

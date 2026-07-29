@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations, getLocale } from "next-intl/server";
 import { prisma } from "@/lib/db";
-import { Badge } from "@/components/ui";
+import { Badge, Button } from "@/components/ui";
 import { StarRatingDisplay } from "@/components/ui/StarRating";
 import { Gallery } from "./Gallery";
 import { AddToCartForm } from "./AddToCartForm";
@@ -35,7 +36,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
   const locale = (await getLocale()) as AppLocale;
   const product = await prisma.product.findUnique({
     where: { slug },
-    include: { images: { orderBy: { sortOrder: "asc" } }, category: true },
+    include: { images: { orderBy: { sortOrder: "asc" } }, category: true, knowledge: true },
   });
   if (!product || !product.isActive) notFound();
 
@@ -71,7 +72,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
             <p className="text-sm text-accent">{t("onlyLeftInStock", { count: product.stock })}</p>
           )}
           <div className="mt-2 flex items-start gap-3">
-            <div className="flex-1">
+            <div className="flex flex-1 flex-col gap-3">
               <AddToCartForm
                 id={product.id}
                 slug={product.slug}
@@ -81,6 +82,11 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
                 imageUrl={product.mainImageUrl}
                 stock={product.stock}
               />
+              {product.knowledge?.isActive && (
+                <Button asChild variant="outline" className="w-full">
+                  <Link href={`/products/${product.slug}/learn`}>{t("knowMore")}</Link>
+                </Button>
+              )}
             </div>
             <AddToWishlistButton productId={product.id} />
           </div>

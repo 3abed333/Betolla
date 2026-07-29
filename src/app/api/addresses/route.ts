@@ -24,16 +24,24 @@ export async function POST(request: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
   }
-
-  if (parsed.data.isDefaultShipping) {
-    await prisma.address.updateMany({
-      where: { userId: session.userId },
-      data: { isDefaultShipping: false },
-    });
+  const zone = await prisma.shippingZone.findFirst({
+    where: { cityEn: parsed.data.city, isActive: true },
+    select: { id: true },
+  });
+  if (!zone) {
+    return NextResponse.json({ error: "That shipping city is not currently supported" }, { status: 400 });
   }
 
-  const address = await prisma.address.create({
-    data: { ...parsed.data, userId: session.userId },
+  const address = await prisma.$transaction(async (tx) => {
+    if (parsed.data.isDefaultShipping) {
+      await tx.address.updateMany({
+        where: { userId: session.userId },
+        data: { isDefaultShipping: false },
+      });
+    }
+    return tx.address.create({
+      data: { ...parsed.data, userId: session.userId },
+    });
   });
   return NextResponse.json({ address });
 }

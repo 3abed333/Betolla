@@ -11,11 +11,14 @@ import { notify } from "./notifications";
  */
 export async function recomputeCustomerStatsForUser(userId: string) {
   const paidOrders = await prisma.order.findMany({
-    where: { userId, paymentStatus: "PAID" },
-    select: { total: true, createdAt: true },
+    where: { userId, paymentStatus: "PAID", status: { not: "CANCELLED" } },
+    select: { total: true, refundedAmount: true, createdAt: true },
   });
 
-  const totalSpent = paidOrders.reduce((sum, o) => sum + Number(o.total), 0);
+  const totalSpent = paidOrders.reduce(
+    (sum, order) => sum + Number(order.total) - Number(order.refundedAmount),
+    0,
+  );
   const orderCount = paidOrders.length;
   const lastOrderAt = paidOrders.length
     ? paidOrders.reduce((latest, o) => (o.createdAt > latest ? o.createdAt : latest), paidOrders[0].createdAt)
@@ -40,32 +43,46 @@ export async function recomputeCustomerStatsForUser(userId: string) {
  * already-delivered COD orders reuses this exact function rather than duplicating the logic.
  */
 export async function confirmCodPaymentOnDelivery(orderId: string) {
-  const order = await prisma.order.findUnique({ where: { id: orderId } });
-  if (!order || order.paymentMethodLabel !== "Cash on Delivery" || order.paymentStatus !== "UNPAID") return;
-
-  const loyaltyConfig = await prisma.loyaltyConfig.findFirst();
-  const pointsPerJd = loyaltyConfig ? Number(loyaltyConfig.pointsPerJdSpent) : 1;
-  const earned = Math.floor(Number(order.total) * pointsPerJd);
-
-  await prisma.$transaction(async (tx) => {
-    await tx.order.update({ where: { id: orderId }, data: { paymentStatus: "PAID", loyaltyPointsEarned: earned } });
+  const result = await prisma.$transaction(async (tx) => {
+    const order = await tx.order.findUnique({ where: { id: orderId } });
+    if (
+      !order ||
+      order.status !== "DELIVERED" ||
+      order.paymentMethodLabel !== "Cash on Delivery" ||
+      order.paymentStatus !== "UNPAID"
+    ) return null;
+    const loyaltyConfig = await tx.loyaltyConfig.findFirst();
+    const pointsPerJd = loyaltyConfig ? Number(loyaltyConfig.pointsPerJdSpent) : 1;
+    const earned = Math.floor(Number(order.total) * pointsPerJd);
+    const changed = await tx.order.updateMany({
+      where: {
+        id: orderId,
+        status: "DELIVERED",
+        paymentMethodLabel: "Cash on Delivery",
+        paymentStatus: "UNPAID",
+      },
+      data: { paymentStatus: "PAID", loyaltyPointsEarned: earned },
+    });
+    if (changed.count !== 1) return null;
     if (earned > 0) {
       await tx.loyaltyTransaction.create({
         data: { userId: order.userId, type: "EARN", points: earned, orderId, note: "COD payment confirmed on delivery" },
       });
       await tx.user.update({ where: { id: order.userId }, data: { loyaltyPointsBalance: { increment: earned } } });
     }
+    return { order, earned };
   });
+  if (!result) return;
 
-  await recomputeCustomerStatsForUser(order.userId);
+  await recomputeCustomerStatsForUser(result.order.userId);
 
-  if (earned > 0) {
+  if (result.earned > 0) {
     await notify({
-      userId: order.userId,
+      userId: result.order.userId,
       category: "LOYALTY_AND_WALLET",
       title: "Loyalty points earned",
-      body: `You earned ${earned} points on order ${order.orderNumber}.`,
-      relatedOrderId: order.id,
+      body: `You earned ${result.earned} points on order ${result.order.orderNumber}.`,
+      relatedOrderId: result.order.id,
     });
   }
 }

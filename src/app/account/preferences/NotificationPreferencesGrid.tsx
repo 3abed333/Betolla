@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { Switch } from "@/components/ui";
 
 const CATEGORY_KEYS = ["ORDER_UPDATES", "PROMOTIONS", "BACK_IN_STOCK", "LOYALTY_AND_WALLET", "SUPPORT"] as const;
-const CHANNEL_KEYS = ["EMAIL", "SMS", "PUSH", "IN_APP"] as const;
+const CHANNEL_KEYS = ["EMAIL", "PUSH", "IN_APP"] as const;
 
 type Preference = { category: string; channel: string; enabled: boolean };
 
@@ -37,8 +37,27 @@ export function NotificationPreferencesGrid() {
     });
   }
 
+  const rows = CATEGORY_KEYS.map((catKey) => (
+    <div key={catKey} className="rounded-xl border border-border p-4">
+      <p className="mb-3 font-medium text-ink">{t(`categories.${catKey}`)}</p>
+      <div className="grid grid-cols-2 gap-3">
+        {CHANNEL_KEYS.map((chKey) => (
+          <label key={chKey} className="flex min-h-11 items-center justify-between gap-2 rounded-lg bg-surface px-3 py-2 text-sm text-ink-muted">
+            <span>{t(`channels.${chKey}`)}</span>
+            <Switch checked={isEnabled(catKey, chKey)} onCheckedChange={(checked) => toggle(catKey, chKey, checked === true)} />
+          </label>
+        ))}
+      </div>
+    </div>
+  ));
+
   return (
-    <div className="overflow-x-auto">
+    <>
+      <p className="mb-4 rounded-xl border border-border bg-surface-secondary p-4 text-sm text-ink-muted">
+        {t("pushExplanation")}
+      </p>
+      <div className="grid gap-3 sm:hidden">{rows}</div>
+      <div className="hidden overflow-x-auto sm:block">
       <table className="w-full text-sm">
         <thead>
           <tr>
@@ -66,6 +85,7 @@ export function NotificationPreferencesGrid() {
           ))}
         </tbody>
       </table>
-    </div>
+      </div>
+    </>
   );
 }

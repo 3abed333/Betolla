@@ -13,7 +13,7 @@ export async function ReviewsSection({ productId }: { productId: string }) {
   const locale = (await getLocale()) as AppLocale;
   const [reviews, session] = await Promise.all([
     prisma.review.findMany({
-      where: { productId },
+      where: { productId, isPublished: true },
       include: { user: { select: { firstName: true, lastName: true } } },
       orderBy: { createdAt: "desc" },
     }),
