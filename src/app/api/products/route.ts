@@ -23,8 +23,23 @@ export async function POST(request: NextRequest) {
       action: "PRODUCT_CREATE",
       entityType: "Product",
       entityId: product.id,
-      afterData: { sku: product.sku, nameEn: product.nameEn, price: product.price.toString() },
+      afterData: {
+        sku: product.sku,
+        nameEn: product.nameEn,
+        price: product.price.toString(),
+        isFeatured: product.isFeatured,
+      },
     });
+    if (product.knowledge) {
+      await logActivity({
+        actorId: session.userId,
+        actorRole: session.role,
+        action: "PRODUCT_KNOWLEDGE_CREATE",
+        entityType: "ProductKnowledge",
+        entityId: product.knowledge.id,
+        afterData: { productId: product.id, isActive: product.knowledge.isActive },
+      });
+    }
     return NextResponse.json({ product });
   } catch (err) {
     if (err instanceof ProductError) return NextResponse.json({ error: err.message }, { status: 409 });

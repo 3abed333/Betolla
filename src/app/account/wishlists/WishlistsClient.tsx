@@ -70,14 +70,14 @@ export function WishlistsClient({ initialWishlists }: { initialWishlists: Wishli
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="font-heading text-2xl font-semibold text-ink">{t("heading")}</h2>
-        <div className="flex gap-2">
+        <div className="flex w-full gap-2 sm:w-auto">
           <Input
             placeholder={t("newListPlaceholder")}
             value={newListName}
             onChange={(e) => setNewListName(e.target.value)}
-            className="h-10 w-40"
+            className="h-10 min-w-0 flex-1 sm:w-40"
           />
           <Button size="sm" onClick={createList}>
             {t("createList")}

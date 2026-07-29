@@ -16,6 +16,11 @@ enum Role {
   ADMIN
 }
 
+enum CustomerType {
+  INDIVIDUAL
+  PHARMACY
+}
+
 enum Locale {
   EN
   AR
@@ -116,7 +121,6 @@ enum NotificationCategory {
 
 enum PaymentMethodType {
   CASH_ON_DELIVERY
-  MOCK_CARD
 }
 
 enum CartStatus {
@@ -141,17 +145,74 @@ enum RfmSegment {
   LOST
 }
 
+enum BannerMediaType {
+  IMAGE
+  VIDEO
+  YOUTUBE
+}
+
+enum BannerEventType {
+  IMPRESSION
+  CLICK
+}
+
+enum StaticPageType {
+  PRIVACY_POLICY
+  ABOUT_US
+}
+
+enum PopupTemplate {
+  SALE
+  ANNOUNCEMENT
+  NEW_PRODUCT
+  WELCOME
+  LIMITED_TIME
+  FREE_SHIPPING
+  LOYALTY
+  BACK_IN_STOCK
+  EVENT
+  CUSTOM
+}
+
+enum PopupTrigger {
+  ANY_STOREFRONT_PAGE
+  HOME_PAGE
+  PRODUCTS
+  PRODUCT_DETAIL
+  CART
+  CHECKOUT
+  BLOG
+  BUNDLES
+}
+
+enum PopupAudienceType {
+  EVERYONE
+  INDIVIDUAL_CUSTOMERS
+  PHARMACIES
+}
+
+enum PopupCustomerSegment {
+  ALL
+  TOP_30
+  BOTTOM_30
+  NEW_CUSTOMERS
+  INACTIVE_CUSTOMERS
+}
+
 // ==================== Identity ====================
 
 model User {
-  id           String  @id @default(cuid())
-  email        String  @unique
-  username     String  @unique
-  passwordHash String
-  role         Role    @default(CUSTOMER)
-  firstName    String
-  lastName     String
-  phone        String?
+  id               String       @id @default(cuid())
+  email            String       @unique
+  username         String       @unique
+  passwordHash     String
+  role             Role         @default(CUSTOMER)
+  customerType     CustomerType @default(INDIVIDUAL)
+  firstName        String
+  lastName         String
+  phone            String?
+  pharmacyName     String?
+  pharmacyLocation String?
 
   locale          Locale          @default(EN)
   themePreference ThemePreference @default(SYSTEM)
@@ -191,8 +252,10 @@ model User {
   customerStats           CustomerStats?
   returnRequests          ReturnRequest[]
   promoCodeUsages         PromoCodeUsage[]
+  authoredBlogPosts       BlogPost[]               @relation("BlogAuthor")
 
   @@index([role])
+  @@index([customerType])
 }
 
 model Session {
@@ -220,6 +283,11 @@ model Address {
   area              String
   street            String
   buildingInfo      String?
+  floor             String?
+  apartmentNo       String?
+  landmark          String?
+  deliveryNotes     String?
+  // Unused legacy fields from a removed map-pin picker - left nullable, no longer written to.
   lat               Float?
   lng               Float?
   isDefaultShipping Boolean  @default(false)
@@ -282,20 +350,35 @@ model Product {
   category          Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   mainImageUrl      String
   isActive          Boolean  @default(true)
+  isFeatured        Boolean  @default(false)
   avgRating         Decimal  @default(0) @db.Decimal(2, 1)
   reviewCount       Int      @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  images        ProductImage[]
-  bundleItems   ProductBundleItem[]
-  reviews       Review[]
-  wishlistItems WishlistItem[]
-  orderItems    OrderItem[]
-  cartItems     CartItem[]
+  images                ProductImage[]
+  bundleItems           ProductBundleItem[]
+  reviews               Review[]
+  wishlistItems         WishlistItem[]
+  orderItems            OrderItem[]
+  cartItems             CartItem[]
+  inventoryReservations OrderInventoryReservation[]
+  knowledge             ProductKnowledge?
 
   @@index([categoryId])
+  @@index([isFeatured, isActive])
+}
+
+model ProductKnowledge {
+  id            String   @id @default(cuid())
+  productId     String   @unique
+  product       Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  contentHtmlEn String
+  contentHtmlAr String
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 model ProductImage {
@@ -341,17 +424,45 @@ model ProductBundleItem {
 }
 
 model Banner {
-  id        String    @id @default(cuid())
-  titleEn   String
-  titleAr   String
-  imageUrl  String
-  linkUrl   String?
-  sortOrder Int       @default(0)
-  isActive  Boolean   @default(true)
-  startsAt  DateTime?
-  endsAt    DateTime?
+  id                 String          @id @default(cuid())
+  mediaType          BannerMediaType @default(IMAGE)
+  desktopMediaUrl    String
+  mobileMediaUrl     String?
+  posterUrl          String?
+  titleEn            String
+  titleAr            String
+  subtitleEn         String?
+  subtitleAr         String?
+  ctaLabelEn         String?
+  ctaLabelAr         String?
+  linkUrl            String?
+  focalPointX        Int             @default(50)
+  focalPointY        Int             @default(50)
+  sortOrder          Int             @default(0)
+  autoAdvanceSeconds Int             @default(6)
+  isActive           Boolean         @default(true)
+  startsAt           DateTime?
+  endsAt             DateTime?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
 
-  createdAt DateTime @default(now())
+  events BannerEvent[]
+
+  @@index([isActive, sortOrder])
+  @@index([startsAt, endsAt])
+}
+
+model BannerEvent {
+  id        String          @id @default(cuid())
+  bannerId  String
+  banner    Banner          @relation(fields: [bannerId], references: [id], onDelete: Cascade)
+  type      BannerEventType
+  visitorId String
+  dateKey   String
+  createdAt DateTime        @default(now())
+
+  @@unique([bannerId, type, visitorId, dateKey])
+  @@index([createdAt])
 }
 
 // ==================== Commerce ====================
@@ -390,6 +501,9 @@ model CartItem {
 model Order {
   id                 String        @id @default(cuid())
   orderNumber        String        @unique
+  // Stable client-generated key prevents a retried/double-clicked checkout from creating
+  // a second order or charging/decrementing inventory twice.
+  checkoutKey        String?       @unique
   userId             String
   user               User          @relation(fields: [userId], references: [id], onDelete: Restrict)
   status             OrderStatus   @default(PENDING)
@@ -402,8 +516,8 @@ model Order {
   shippingFee   Decimal @default(0) @db.Decimal(10, 2)
   total         Decimal @db.Decimal(10, 2)
 
-  storeCreditUsed     Decimal @default(0) @db.Decimal(10, 2)
-  loyaltyPointsUsed   Int     @default(0)
+  storeCreditUsed        Decimal @default(0) @db.Decimal(10, 2)
+  loyaltyPointsUsed      Int     @default(0)
   // JD value of loyaltyPointsUsed, snapshotted at order-placement time (same reasoning as
   // discountTotal/PromoCodeUsage.discountAmount - the redemption rate is admin-configurable and can
   // change later, so this must not be recomputed from the live LoyaltyConfig rate after the fact).
@@ -418,6 +532,8 @@ model Order {
   shippingAddressId       String?
   shippingAddress         Address? @relation(fields: [shippingAddressId], references: [id], onDelete: SetNull)
   shippingAddressSnapshot String
+  shippingRecipientPhone  String?
+  shippingDeliveryNotes   String?
   shippingCity            String
 
   paymentMethodId    String?
@@ -427,12 +543,13 @@ model Order {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  items               OrderItem[]
-  statusHistory       OrderStatusHistory[]
-  returnRequests      ReturnRequest[]
-  deliveryAssignments DeliveryAssignment[]
-  promoUsage          PromoCodeUsage?
-  supportTickets      SupportTicket[]
+  items                 OrderItem[]
+  statusHistory         OrderStatusHistory[]
+  returnRequests        ReturnRequest[]
+  deliveryAssignments   DeliveryAssignment[]
+  promoUsage            PromoCodeUsage?
+  supportTickets        SupportTicket[]
+  inventoryReservations OrderInventoryReservation[]
 
   @@index([userId])
   @@index([status])
@@ -459,6 +576,21 @@ model OrderItem {
   returnItems ReturnRequestItem[]
 
   @@index([orderId])
+}
+
+// Immutable inventory ledger written at checkout. Unlike rebuilding bundle contents from the
+// current catalog during cancellation, this restores exactly what the order reserved even if an
+// admin later changes a bundle.
+model OrderInventoryReservation {
+  id        String  @id @default(cuid())
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+  quantity  Int
+
+  @@unique([orderId, productId])
+  @@index([productId])
 }
 
 // Customer/admin-facing fulfillment timeline. `changedById` is an unrelated plain id (no FK) -
@@ -488,7 +620,8 @@ model ReturnRequest {
   createdAt           DateTime     @default(now())
   resolvedAt          DateTime?
 
-  items ReturnRequestItem[]
+  items         ReturnRequestItem[]
+  statusHistory ReturnStatusHistory[]
 
   @@index([orderId])
   @@index([userId])
@@ -498,11 +631,23 @@ model ReturnRequestItem {
   id              String        @id @default(cuid())
   returnRequestId String
   returnRequest   ReturnRequest @relation(fields: [returnRequestId], references: [id], onDelete: Cascade)
-  orderItemId     String
+  orderItemId     String        @unique
   orderItem       OrderItem     @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
   quantity        Int
   reason          String
   reasonNote      String?
+
+  @@index([returnRequestId])
+}
+
+model ReturnStatusHistory {
+  id              String        @id @default(cuid())
+  returnRequestId String
+  returnRequest   ReturnRequest @relation(fields: [returnRequestId], references: [id], onDelete: Cascade)
+  status          ReturnStatus
+  note            String?
+  changedById     String?
+  createdAt       DateTime      @default(now())
 
   @@index([returnRequestId])
 }
@@ -515,16 +660,38 @@ model Review {
   product            Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
   userId             String
   user               User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  orderItemId        String?
+  orderItemId        String?    @unique
   orderItem          OrderItem? @relation(fields: [orderItemId], references: [id], onDelete: SetNull)
   rating             Int
   comment            String?
   photoUrl           String?
   isVerifiedPurchase Boolean    @default(false)
+  isPublished        Boolean    @default(false)
   createdAt          DateTime   @default(now())
 
   @@index([productId])
   @@index([userId])
+}
+
+// Database-backed fixed-window buckets are shared by every app instance, unlike an in-memory
+// Map which resets on deploy and can be bypassed by spreading attempts across replicas.
+model RateLimitBucket {
+  key         String   @id
+  windowStart DateTime
+  count       Int      @default(0)
+  updatedAt   DateTime @updatedAt
+}
+
+// Daily upload accounting provides an enforceable per-account byte/file quota across replicas.
+model UploadQuota {
+  id        String   @id @default(cuid())
+  userId    String
+  dayKey    String
+  fileCount Int      @default(0)
+  byteCount Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, dayKey])
 }
 
 model Wishlist {
@@ -655,12 +822,102 @@ model Notification {
   relatedOrderId String?
   isRead         Boolean              @default(false)
   createdAt      DateTime             @default(now())
+  // Identifies the logical event a row was created for (e.g. "order:123:status:CONFIRMED"),
+  // scoped per channel so a retried notify() call for the same event is a no-op instead of a
+  // duplicate row. Null on legacy rows and on calls that don't pass one - Postgres allows
+  // multiple NULLs under a unique index, so those are never treated as conflicting.
+  eventKey       String?
 
+  @@unique([userId, channel, eventKey])
   @@index([userId])
   @@index([createdAt])
 }
 
 // ==================== Marketing / Ops ====================
+
+model SiteSettings {
+  id           String   @id
+  whatsapp     String?
+  instagramUrl String?
+  facebookUrl  String?
+  linkedinUrl  String?
+  updatedAt    DateTime @updatedAt
+}
+
+model StaticPage {
+  id            String         @id @default(cuid())
+  type          StaticPageType @unique
+  titleEn       String
+  titleAr       String
+  contentHtmlEn String
+  contentHtmlAr String
+  isPublished   Boolean        @default(true)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model BlogPost {
+  id            String    @id @default(cuid())
+  slug          String    @unique
+  titleEn       String
+  titleAr       String
+  excerptEn     String?
+  excerptAr     String?
+  contentHtmlEn String
+  contentHtmlAr String
+  coverImageUrl String?
+  isPublished   Boolean   @default(false)
+  publishedAt   DateTime?
+  authorId      String?
+  author        User?     @relation("BlogAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([isPublished, publishedAt])
+  @@index([authorId])
+}
+
+model Faq {
+  id           String   @id @default(cuid())
+  questionEn   String
+  questionAr   String
+  answerHtmlEn String
+  answerHtmlAr String
+  sortOrder    Int      @default(0)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([isActive, sortOrder])
+}
+
+model PopupCampaign {
+  id              String               @id @default(cuid())
+  name            String
+  template        PopupTemplate
+  trigger         PopupTrigger         @default(ANY_STOREFRONT_PAGE)
+  audienceType    PopupAudienceType    @default(EVERYONE)
+  customerSegment PopupCustomerSegment @default(ALL)
+  imageUrl        String?
+  titleEn         String
+  titleAr         String
+  announcementEn  String?
+  announcementAr  String?
+  bodyHtmlEn      String
+  bodyHtmlAr      String
+  ctaLabelEn      String?
+  ctaLabelAr      String?
+  ctaUrl          String?
+  isActive        Boolean              @default(false)
+  startsAt        DateTime?
+  endsAt          DateTime?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  @@index([isActive, startsAt, endsAt])
+  @@index([trigger, isActive])
+  @@index([audienceType, customerSegment, isActive])
+}
 
 model PromoCode {
   id                String             @id @default(cuid())

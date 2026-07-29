@@ -7,9 +7,11 @@ import { Card, CardContent, Badge, Button, ConfirmDialog } from "@/components/ui
 import { toast } from "@/lib/toast";
 import { localizedCity } from "@/lib/cityAr";
 import type { AppLocale } from "@/i18n/config";
+import { AddressFormDialog } from "./AddressFormDialog";
 
 export function AddressCard({
   address,
+  shippingZones,
 }: {
   address: {
     id: string;
@@ -19,8 +21,14 @@ export function AddressCard({
     street: string;
     area: string;
     city: string;
+    buildingInfo?: string | null;
+    floor?: string | null;
+    apartmentNo?: string | null;
+    landmark?: string | null;
+    deliveryNotes?: string | null;
     isDefaultShipping: boolean;
   };
+  shippingZones: { city: string }[];
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -58,8 +66,17 @@ export function AddressCard({
           </div>
           <p className="mt-1 text-sm text-ink-muted">{address.recipientName}</p>
           <p className="text-sm text-ink-muted">
-            {address.street}, {address.area}, {localizedCity(address.city, locale)}
+            {[address.street, address.buildingInfo, address.floor, address.apartmentNo]
+              .filter(Boolean)
+              .join(", ")}
+            , {address.area}, {localizedCity(address.city, locale)}
           </p>
+          {address.landmark && (
+            <p className="text-sm text-ink-muted">
+              {t("nearLandmark", { landmark: address.landmark })}
+            </p>
+          )}
+          {address.deliveryNotes && <p className="text-sm text-ink-muted">{address.deliveryNotes}</p>}
           <p className="text-sm text-ink-muted">
             <span dir="ltr" className="inline-block">
               {address.phone}
@@ -67,6 +84,11 @@ export function AddressCard({
           </p>
         </div>
         <div className="flex shrink-0 flex-col gap-2">
+          <AddressFormDialog
+            address={address}
+            shippingZones={shippingZones}
+            trigger={<Button variant="outline" size="sm">{t("edit")}</Button>}
+          />
           {!address.isDefaultShipping && (
             <Button variant="outline" size="sm" onClick={setDefault} disabled={isPending}>
               {t("setAsDefault")}

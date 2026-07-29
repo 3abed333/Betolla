@@ -1,8 +1,8 @@
 import "server-only";
+import { Prisma, type OrderStatus } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db";
 import { recomputeCustomerStatsForUser, confirmCodPaymentOnDelivery } from "./customerStats";
 import { notify, notifyRoles } from "./notifications";
-import type { OrderStatus } from "@/generated/prisma/client";
 
 export class OrderError extends Error {}
 
@@ -25,7 +25,9 @@ function orderStatusNotification(status: OrderStatus, orderNumber: string, cance
     case "CANCELLED":
       return {
         title: "Order cancelled",
-        body: cancellationReason ? `Your order ${orderNumber} was cancelled: ${cancellationReason}` : `Your order ${orderNumber} was cancelled.`,
+        body: cancellationReason
+          ? `Your order ${orderNumber} was cancelled: ${cancellationReason}`
+          : `Your order ${orderNumber} was cancelled.`,
       };
     default:
       return null;
@@ -38,97 +40,193 @@ export async function updateOrderStatus(params: {
   cancellationReason?: string;
   changedById: string;
 }) {
-  const order = await prisma.order.findUnique({ where: { id: params.orderId } });
-  if (!order) throw new OrderError("Order not found");
-
-  if (!VALID_TRANSITIONS[order.status].includes(params.nextStatus)) {
-    throw new OrderError(`Cannot move an order from ${order.status} to ${params.nextStatus}`);
-  }
-  if (params.nextStatus === "CANCELLED" && !params.cancellationReason?.trim()) {
-    throw new OrderError("A cancellation reason is required");
-  }
-  // A driver must be actively assigned before an order can be sent out for delivery or marked
-  // delivered - checked on both transitions since a FAILED assignment leaves Order.status at
-  // ON_DELIVERY (see syncOrderStatusFromDelivery below), which would otherwise let staff push
-  // straight to DELIVERED with no active driver.
-  if (params.nextStatus === "ON_DELIVERY" || params.nextStatus === "DELIVERED") {
-    const activeAssignments = await prisma.deliveryAssignment.count({
-      where: { orderId: params.orderId, status: { not: "FAILED" } },
-    });
-    if (activeAssignments === 0) {
-      throw new OrderError(
-        params.nextStatus === "ON_DELIVERY"
-          ? "Assign a delivery driver before starting delivery"
-          : "Assign a delivery driver before marking this order delivered",
-      );
-    }
-  }
-
-  const updated = await prisma.$transaction(async (tx) => {
-    const result = await tx.order.update({
+  const { order, updated } = await prisma.$transaction(async (tx) => {
+    const current = await tx.order.findUnique({
       where: { id: params.orderId },
-      data: {
-        status: params.nextStatus,
-        cancellationReason: params.nextStatus === "CANCELLED" ? params.cancellationReason : order.cancellationReason,
+      include: {
+        inventoryReservations: true,
+        items: { include: { bundle: { include: { items: true } } } },
       },
     });
+    if (!current) throw new OrderError("Order not found");
+    if (!VALID_TRANSITIONS[current.status].includes(params.nextStatus)) {
+      throw new OrderError(`Cannot move an order from ${current.status} to ${params.nextStatus}`);
+    }
+    if (params.nextStatus === "CANCELLED" && !params.cancellationReason?.trim()) {
+      throw new OrderError("A cancellation reason is required");
+    }
+    if (params.nextStatus === "ON_DELIVERY" || params.nextStatus === "DELIVERED") {
+      const activeAssignments = await tx.deliveryAssignment.count({
+        where: { orderId: params.orderId, status: { in: ["ASSIGNED", "PICKED_UP", "EN_ROUTE"] } },
+      });
+      if (activeAssignments === 0) {
+        throw new OrderError(
+          params.nextStatus === "ON_DELIVERY"
+            ? "Assign a delivery driver before starting delivery"
+            : "Assign a delivery driver before marking this order delivered",
+        );
+      }
+    }
+
+    const changed = await tx.order.updateMany({
+      where: { id: params.orderId, status: current.status },
+      data: {
+        status: params.nextStatus,
+        cancellationReason:
+          params.nextStatus === "CANCELLED"
+            ? params.cancellationReason?.trim()
+            : current.cancellationReason,
+        ...(params.nextStatus === "CANCELLED" && current.paymentStatus === "PAID"
+          ? { paymentStatus: "REFUNDED" as const, refundedAmount: current.total }
+          : {}),
+      },
+    });
+    if (changed.count !== 1) throw new OrderError("Order status changed. Refresh and try again.");
+
     await tx.orderStatusHistory.create({
       data: {
         orderId: params.orderId,
         status: params.nextStatus,
-        note: params.nextStatus === "CANCELLED" ? params.cancellationReason : undefined,
+        note: params.nextStatus === "CANCELLED" ? params.cancellationReason?.trim() : undefined,
         changedById: params.changedById,
       },
     });
-    // Cancelling restores stock that was reserved at checkout, and reverses any wallet balance the
-    // customer spent on an order that never actually completed - same reasoning for both: an order
-    // that's cancelled shouldn't leave the customer permanently out the store credit/points they
-    // put toward it, matching how a refunded payment would be reversed.
+
+    if (params.nextStatus === "DELIVERED") {
+      const deliveredAt = new Date();
+      await tx.deliveryAssignment.updateMany({
+        where: {
+          orderId: current.id,
+          status: { in: ["ASSIGNED", "PICKED_UP", "EN_ROUTE"] },
+        },
+        data: {
+          status: "DELIVERED",
+          deliveredAt,
+          earningsAmount: current.shippingFee,
+        },
+      });
+    }
+
     if (params.nextStatus === "CANCELLED") {
-      const items = await tx.orderItem.findMany({ where: { orderId: params.orderId } });
-      for (const item of items) {
-        if (item.productId) {
-          await tx.product.update({ where: { id: item.productId }, data: { stock: { increment: item.quantity } } });
+      // New orders use the immutable reservation ledger. The fallback handles older orders that
+      // predate it, including bundle components rather than only direct product lines.
+      const restore = new Map<string, number>();
+      if (current.inventoryReservations.length > 0) {
+        for (const reservation of current.inventoryReservations) {
+          restore.set(reservation.productId, reservation.quantity);
+        }
+      } else {
+        for (const item of current.items) {
+          if (item.productId) {
+            restore.set(item.productId, (restore.get(item.productId) ?? 0) + item.quantity);
+          }
+          for (const bundleItem of item.bundle?.items ?? []) {
+            const quantity = bundleItem.quantity * item.quantity;
+            restore.set(bundleItem.productId, (restore.get(bundleItem.productId) ?? 0) + quantity);
+          }
         }
       }
-      if (Number(order.storeCreditUsed) > 0) {
+      for (const [productId, quantity] of restore) {
+        await tx.product.update({
+          where: { id: productId },
+          data: { stock: { increment: quantity } },
+        });
+      }
+
+      if (Number(current.storeCreditUsed) > 0) {
+        const amount = Number(current.storeCreditUsed);
         await tx.storeCreditTransaction.create({
-          data: { userId: order.userId, amount: Number(order.storeCreditUsed), reason: "Refunded - order cancelled", orderId: order.id },
+          data: {
+            userId: current.userId,
+            amount,
+            reason: "Refunded - order cancelled",
+            orderId: current.id,
+          },
         });
-        await tx.user.update({ where: { id: order.userId }, data: { storeCreditBalance: { increment: Number(order.storeCreditUsed) } } });
+        await tx.user.update({
+          where: { id: current.userId },
+          data: { storeCreditBalance: { increment: amount } },
+        });
       }
-      if (order.loyaltyPointsUsed > 0) {
+      if (current.loyaltyPointsUsed > 0) {
         await tx.loyaltyTransaction.create({
-          data: { userId: order.userId, type: "ADJUST", points: order.loyaltyPointsUsed, orderId: order.id, note: "Refunded - order cancelled" },
+          data: {
+            userId: current.userId,
+            type: "ADJUST",
+            points: current.loyaltyPointsUsed,
+            orderId: current.id,
+            note: "Redemption refunded - order cancelled",
+          },
         });
-        await tx.user.update({ where: { id: order.userId }, data: { loyaltyPointsBalance: { increment: order.loyaltyPointsUsed } } });
+        await tx.user.update({
+          where: { id: current.userId },
+          data: { loyaltyPointsBalance: { increment: current.loyaltyPointsUsed } },
+        });
       }
+      if (current.loyaltyPointsEarned > 0) {
+        await tx.loyaltyTransaction.create({
+          data: {
+            userId: current.userId,
+            type: "ADJUST",
+            points: -current.loyaltyPointsEarned,
+            orderId: current.id,
+            note: "Earned points reversed - order cancelled",
+          },
+        });
+        // A negative balance records points already spent elsewhere as a real liability and makes
+        // future earnings pay that debt back instead of silently gifting exploitable points.
+        await tx.user.update({
+          where: { id: current.userId },
+          data: { loyaltyPointsBalance: { decrement: current.loyaltyPointsEarned } },
+        });
+      }
+
+      await tx.promoCodeUsage.deleteMany({ where: { orderId: current.id } });
+      await tx.deliveryAssignment.updateMany({
+        where: {
+          orderId: current.id,
+          status: { in: ["ASSIGNED", "PICKED_UP", "EN_ROUTE"] },
+        },
+        data: { status: "FAILED", failedReason: "Order cancelled" },
+      });
     }
-    return result;
+
+    const result = await tx.order.findUniqueOrThrow({ where: { id: params.orderId } });
+    return { order: current, updated: result };
+  }, {
+    isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+    maxWait: 5_000,
+    timeout: 20_000,
   });
 
-  // A Cash-on-Delivery order reaching DELIVERED is this business's payment-confirmation event
-  // (cash changes hands at the door) - see confirmCodPaymentOnDelivery's docstring. Any other
-  // already-PAID order still gets its stats recomputed on every transition, as before.
-  if (params.nextStatus === "DELIVERED" && order.paymentMethodLabel === "Cash on Delivery" && order.paymentStatus === "UNPAID") {
+  if (
+    params.nextStatus === "DELIVERED" &&
+    order.paymentMethodLabel === "Cash on Delivery" &&
+    order.paymentStatus === "UNPAID"
+  ) {
     await confirmCodPaymentOnDelivery(params.orderId);
-  } else if (order.paymentStatus === "PAID") {
+  } else if (order.paymentStatus === "PAID" || params.nextStatus === "CANCELLED") {
     await recomputeCustomerStatsForUser(order.userId);
   }
 
-  const notification = orderStatusNotification(params.nextStatus, updated.orderNumber, params.cancellationReason);
+  const notification = orderStatusNotification(
+    params.nextStatus,
+    updated.orderNumber,
+    params.cancellationReason,
+  );
   if (notification) {
-    await notify({ userId: order.userId, category: "ORDER_UPDATES", ...notification, relatedOrderId: order.id });
+    await notify({
+      userId: order.userId,
+      category: "ORDER_UPDATES",
+      ...notification,
+      relatedOrderId: order.id,
+      eventKey: `order:${order.id}:status:${params.nextStatus}`,
+    });
   }
 
-  // Staff/Admin operational alert: a driver still needs to be assigned. In practice this branch
-  // is rarely reached with zero assignments - assigning a driver to a PENDING/CONFIRMED order
-  // bumps Order.status to CONFIRMED directly (see assign-driver/route.ts) without going through
-  // this function - but the check is kept as a real correctness guard, not dead code, in case
-  // that other path ever changes.
   if (params.nextStatus === "CONFIRMED") {
     const activeAssignments = await prisma.deliveryAssignment.count({
-      where: { orderId: params.orderId, status: { not: "FAILED" } },
+      where: { orderId: params.orderId, status: { in: ["ASSIGNED", "PICKED_UP", "EN_ROUTE"] } },
     });
     if (activeAssignments === 0) {
       await notifyRoles(["STAFF", "ADMIN"], {
@@ -139,14 +237,12 @@ export async function updateOrderStatus(params: {
       });
     }
   }
-
   return updated;
 }
 
 /**
- * The single place DeliveryAssignment status and Order status are kept in sync (see the
- * schema's documented design) - called whenever a delivery status changes, from either the
- * delivery driver's own dashboard or admin/staff order tools.
+ * Delivery may only advance a non-terminal order forward. CANCELLED/DELIVERED are immutable here,
+ * and a stale delivery request can never regress them.
  */
 export async function syncOrderStatusFromDelivery(orderId: string, deliveryStatus: string) {
   const nextOrderStatus: OrderStatus | null =
@@ -154,26 +250,39 @@ export async function syncOrderStatusFromDelivery(orderId: string, deliveryStatu
       ? "ON_DELIVERY"
       : deliveryStatus === "DELIVERED"
         ? "DELIVERED"
-        : null; // FAILED: admin/staff decide the next step manually (reassign or cancel)
-
+        : null;
   if (!nextOrderStatus) return;
 
-  const order = await prisma.order.findUnique({ where: { id: orderId } });
-  if (!order || order.status === nextOrderStatus) return;
-
-  await prisma.order.update({ where: { id: orderId }, data: { status: nextOrderStatus } });
-  await prisma.orderStatusHistory.create({ data: { orderId, status: nextOrderStatus } });
+  const allowedCurrent: OrderStatus[] =
+    nextOrderStatus === "ON_DELIVERY" ? ["CONFIRMED"] : ["ON_DELIVERY"];
+  const result = await prisma.$transaction(async (tx) => {
+    const order = await tx.order.findUnique({ where: { id: orderId } });
+    if (!order || !allowedCurrent.includes(order.status)) return null;
+    const changed = await tx.order.updateMany({
+      where: { id: orderId, status: { in: allowedCurrent } },
+      data: { status: nextOrderStatus },
+    });
+    if (changed.count !== 1) return null;
+    await tx.orderStatusHistory.create({ data: { orderId, status: nextOrderStatus } });
+    return order;
+  });
+  if (!result) return;
 
   if (nextOrderStatus === "DELIVERED") {
-    if (order.paymentMethodLabel === "Cash on Delivery" && order.paymentStatus === "UNPAID") {
+    if (result.paymentMethodLabel === "Cash on Delivery" && result.paymentStatus === "UNPAID") {
       await confirmCodPaymentOnDelivery(orderId);
-    } else if (order.paymentStatus === "PAID") {
-      await recomputeCustomerStatsForUser(order.userId);
+    } else if (result.paymentStatus === "PAID") {
+      await recomputeCustomerStatsForUser(result.userId);
     }
   }
-
-  const notification = orderStatusNotification(nextOrderStatus, order.orderNumber);
+  const notification = orderStatusNotification(nextOrderStatus, result.orderNumber);
   if (notification) {
-    await notify({ userId: order.userId, category: "ORDER_UPDATES", ...notification, relatedOrderId: order.id });
+    await notify({
+      userId: result.userId,
+      category: "ORDER_UPDATES",
+      ...notification,
+      relatedOrderId: result.id,
+      eventKey: `order:${result.id}:status:${nextOrderStatus}`,
+    });
   }
 }

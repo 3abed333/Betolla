@@ -39,7 +39,7 @@ export function NewTicketDialog({ orders }: { orders: { id: string; label: strin
     const res = await fetch("/api/support-tickets", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ subject, category, message, orderId }),
+      body: JSON.stringify({ subject, category, message, orderId: orderId || undefined }),
     });
     const data = await res.json();
     setSubmitting(false);
@@ -103,7 +103,7 @@ export function NewTicketDialog({ orders }: { orders: { id: string; label: strin
               {tCommon("cancel")}
             </Button>
           </DialogClose>
-          <Button onClick={submit} disabled={submitting || !subject.trim() || !message.trim() || !orderId}>
+          <Button onClick={submit} disabled={submitting || !subject.trim() || !message.trim()}>
             {submitting ? t("sending") : t("send")}
           </Button>
         </DialogFooter>

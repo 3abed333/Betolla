@@ -171,6 +171,19 @@ export default async function AdminOrderDetailPage({ params }: { params: Promise
             {t("paymentPrefix")} {order.paymentMethodLabel} ({tPayment(order.paymentStatus)}) &middot; {t("shipToPrefix")}{" "}
             {order.shippingAddressSnapshot}
           </p>
+          {order.shippingRecipientPhone && (
+            <p className="text-xs text-ink-muted">
+              {t("recipientPhonePrefix")}{" "}
+              <span dir="ltr" className="inline-block">
+                {order.shippingRecipientPhone}
+              </span>
+            </p>
+          )}
+          {order.shippingDeliveryNotes && (
+            <p className="text-xs text-ink-muted">
+              {t("deliveryNotesPrefix")} {order.shippingDeliveryNotes}
+            </p>
+          )}
         </CardContent>
       </Card>
     </div>

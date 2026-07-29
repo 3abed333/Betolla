@@ -17,6 +17,7 @@ import { ReorderButton } from "../ReorderButton";
 import { ReturnRequestDialog } from "../ReturnRequestDialog";
 import { WriteOrderItemReviewDialog } from "./WriteOrderItemReviewDialog";
 import { WriteDeliveryRatingDialog } from "./WriteDeliveryRatingDialog";
+import { CancelOrderButton } from "./CancelOrderButton";
 
 export const metadata: Metadata = { title: "Order Details - Betolla Cosmetics" };
 
@@ -58,6 +59,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
         <div className="flex items-center gap-2">
           <OrderStatusBadge status={order.status} />
           {order.status === "DELIVERED" && <ReorderButton orderId={order.id} />}
+          {order.status === "PENDING" && <CancelOrderButton orderId={order.id} />}
         </div>
       </div>
 
@@ -170,6 +172,11 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
           <p className="mt-2 text-xs text-ink-muted">
             {t("shippingToPrefix")} {order.shippingAddressSnapshot} &middot; {t("paymentPrefix")} {order.paymentMethodLabel}
           </p>
+          {order.shippingDeliveryNotes && (
+            <p className="text-xs text-ink-muted">
+              {t("deliveryNotesPrefix")} {order.shippingDeliveryNotes}
+            </p>
+          )}
           {order.cancellationReason && (
             <p className="mt-1 text-xs text-red-600">{t("cancellationReasonPrefix")} {order.cancellationReason}</p>
           )}

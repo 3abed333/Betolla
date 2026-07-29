@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { requireApiRole } from "@/lib/auth/api-guard";
 import { saveUploadedImage, type UploadSubfolder } from "@/lib/server/storage";
+import { reserveUploadQuota, releaseUploadQuota } from "@/lib/server/uploadQuota";
 
 const MAX_SIZE_BYTES = 8 * 1024 * 1024;
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -15,6 +16,9 @@ export async function POST(request: NextRequest) {
   if (!contentType.includes("multipart/form-data") || !contentLength) {
     return NextResponse.json({ error: "A file is required" }, { status: 400 });
   }
+  if (contentLength > MAX_SIZE_BYTES + 1024 * 1024) {
+    return NextResponse.json({ error: "Upload request is too large" }, { status: 413 });
+  }
 
   const formData = await request.formData().catch(() => null);
   const file = formData?.get("file");
@@ -26,6 +30,13 @@ export async function POST(request: NextRequest) {
   }
   if (file.size > MAX_SIZE_BYTES) {
     return NextResponse.json({ error: "Image must be under 8MB" }, { status: 400 });
+  }
+  const reserved = await reserveUploadQuota(session.userId, session.role, file.size);
+  if (!reserved) {
+    return NextResponse.json(
+      { error: "Daily upload quota reached. Please try again tomorrow." },
+      { status: 429 },
+    );
   }
 
   // Never trust the client for the destination folder - a DELIVERY session's uploads always go
@@ -39,6 +50,8 @@ export async function POST(request: NextRequest) {
     subfolder = "delivery-reports";
   } else if (session.role === "CUSTOMER") {
     subfolder = "reviews";
+  } else if (requestedSubfolder === "popups" && session.role === "ADMIN") {
+    subfolder = "popups";
   } else if (requestedSubfolder === "avatars") {
     subfolder = "avatars";
   }
@@ -52,6 +65,7 @@ export async function POST(request: NextRequest) {
     const url = await saveUploadedImage(file, subfolder);
     return NextResponse.json({ url });
   } catch {
+    await releaseUploadQuota(session.userId, file.size);
     return NextResponse.json({ error: "The file could not be read as a valid image" }, { status: 400 });
   }
 }

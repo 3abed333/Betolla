@@ -12,13 +12,23 @@ function dateRangeWhere(range?: DateRange) {
   };
 }
 
-/** Total PAID-order revenue in a range (or all-time when no range is given) - the KPI-strip figure. */
+const recognizedOrderWhere = { paymentStatus: "PAID" as const, status: { not: "CANCELLED" as const } };
+
+function ammanDateKey(date: Date) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Amman", year: "numeric", month: "2-digit", day: "2-digit",
+  }).formatToParts(date);
+  const value = (type: string) => parts.find((part) => part.type === type)?.value ?? "";
+  return `${value("year")}-${value("month")}-${value("day")}`;
+}
+
+/** Recognized paid revenue, excluding cancelled orders and subtracting recorded refunds. */
 export async function getTotalRevenue(range?: DateRange) {
-  const result = await prisma.order.aggregate({
-    where: { paymentStatus: "PAID", createdAt: dateRangeWhere(range) },
-    _sum: { total: true },
+  const orders = await prisma.order.findMany({
+    where: { ...recognizedOrderWhere, createdAt: dateRangeWhere(range) },
+    select: { total: true, refundedAmount: true },
   });
-  return Number(result._sum.total ?? 0);
+  return orders.reduce((sum, order) => sum + Number(order.total) - Number(order.refundedAmount), 0);
 }
 
 /**
@@ -30,13 +40,13 @@ export async function getTotalRevenue(range?: DateRange) {
  */
 export async function getNetRevenueOverTime(range?: DateRange) {
   const orders = await prisma.order.findMany({
-    where: { paymentStatus: "PAID", createdAt: dateRangeWhere(range) },
+    where: { ...recognizedOrderWhere, createdAt: dateRangeWhere(range) },
     select: { createdAt: true, subtotal: true, discountTotal: true, refundedAmount: true },
   });
 
   const byDate = new Map<string, number>();
   for (const o of orders) {
-    const dateKey = o.createdAt.toISOString().slice(0, 10);
+    const dateKey = ammanDateKey(o.createdAt);
     const net = Number(o.subtotal) - Number(o.discountTotal) - Number(o.refundedAmount);
     byDate.set(dateKey, (byDate.get(dateKey) ?? 0) + net);
   }
@@ -58,7 +68,10 @@ export async function getFrequentlyBoughtTogether(limit = 10, range?: DateRange)
   const items = await prisma.orderItem.findMany({
     where: {
       productId: { not: null },
-      ...(createdAtWhere ? { order: { createdAt: createdAtWhere } } : {}),
+      order: {
+        ...recognizedOrderWhere,
+        ...(createdAtWhere ? { createdAt: createdAtWhere } : {}),
+      },
     },
     select: { orderId: true, productId: true, product: { select: { nameEn: true, nameAr: true } } },
   });
@@ -134,14 +147,21 @@ export async function getTopCustomersByLifetimeValue(limit = 10, range?: DateRan
     }));
   }
 
-  const groups = await prisma.order.groupBy({
-    by: ["userId"],
-    where: { paymentStatus: "PAID", createdAt: createdAtWhere },
-    _sum: { total: true },
-    _count: { _all: true },
-    orderBy: { _sum: { total: "desc" } },
-    take: limit,
+  const paidOrders = await prisma.order.findMany({
+    where: { ...recognizedOrderWhere, createdAt: createdAtWhere },
+    select: { userId: true, total: true, refundedAmount: true },
   });
+  const totals = new Map<string, { totalSpent: number; orderCount: number }>();
+  for (const order of paidOrders) {
+    const row = totals.get(order.userId) ?? { totalSpent: 0, orderCount: 0 };
+    row.totalSpent += Number(order.total) - Number(order.refundedAmount);
+    row.orderCount += 1;
+    totals.set(order.userId, row);
+  }
+  const groups = [...totals.entries()]
+    .map(([userId, value]) => ({ userId, ...value }))
+    .sort((a, b) => b.totalSpent - a.totalSpent)
+    .slice(0, limit);
   const userIds = groups.map((g) => g.userId);
   const [users, statsRows] = await Promise.all([
     prisma.user.findMany({ where: { id: { in: userIds } }, select: { id: true, firstName: true, lastName: true, email: true } }),
@@ -156,8 +176,8 @@ export async function getTopCustomersByLifetimeValue(limit = 10, range?: DateRan
       userId: g.userId,
       name: u ? `${u.firstName} ${u.lastName}` : "Unknown",
       email: u?.email ?? "",
-      totalSpent: Number(g._sum.total ?? 0),
-      orderCount: g._count._all,
+      totalSpent: g.totalSpent,
+      orderCount: g.orderCount,
       segment: segmentByUserId.get(g.userId) ?? null,
     };
   });
@@ -177,8 +197,8 @@ const TIME_BLOCKS = [
 /** Day-of-week x 4-hour-block grid of paid-order volume/revenue, for a sales heatmap. */
 export async function getSalesHeatmap(range?: DateRange) {
   const orders = await prisma.order.findMany({
-    where: { paymentStatus: "PAID", createdAt: dateRangeWhere(range) },
-    select: { createdAt: true, total: true },
+    where: { ...recognizedOrderWhere, createdAt: dateRangeWhere(range) },
+    select: { createdAt: true, total: true, refundedAmount: true },
   });
 
   const grid = Array.from({ length: 7 }, (_, dayIndex) => ({
@@ -187,12 +207,19 @@ export async function getSalesHeatmap(range?: DateRange) {
   }));
 
   for (const order of orders) {
-    const dayIndex = order.createdAt.getDay();
-    const hour = order.createdAt.getHours();
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: "Asia/Amman",
+      weekday: "short",
+      hour: "numeric",
+      hourCycle: "h23",
+    }).formatToParts(order.createdAt);
+    const weekday = parts.find((part) => part.type === "weekday")?.value ?? "Sun";
+    const hour = Number(parts.find((part) => part.type === "hour")?.value ?? 0);
+    const dayIndex = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(weekday);
     const blockIndex = TIME_BLOCKS.findIndex((b, i) => hour >= b.startHour && (i === TIME_BLOCKS.length - 1 || hour < TIME_BLOCKS[i + 1].startHour));
     const cell = grid[dayIndex].blocks[blockIndex];
     cell.count += 1;
-    cell.revenue += Number(order.total);
+    cell.revenue += Number(order.total) - Number(order.refundedAmount);
   }
 
   return grid;
@@ -386,7 +413,7 @@ export async function getCartAbandonmentFunnel(range?: DateRange) {
     prisma.cart.count({ where: { createdAt: createdAtWhere } }),
     prisma.order.findMany({ where: { createdAt: createdAtWhere }, select: { userId: true }, distinct: ["userId"] }),
     prisma.order.findMany({
-      where: { createdAt: createdAtWhere, paymentStatus: "PAID" },
+      where: { createdAt: createdAtWhere, ...recognizedOrderWhere },
       select: { userId: true },
       distinct: ["userId"],
     }),
@@ -415,14 +442,143 @@ export async function getCartAbandonmentFunnel(range?: DateRange) {
 
 /** Orders grouped by the 7 fixed shipping cities (Order.shippingCity, already indexed). */
 export async function getGeographicOrderDistribution(range?: DateRange) {
-  const groups = await prisma.order.groupBy({
-    by: ["shippingCity"],
+  const orders = await prisma.order.findMany({
+    where: { createdAt: dateRangeWhere(range), ...recognizedOrderWhere },
+    select: { shippingCity: true, total: true, refundedAmount: true },
+  });
+  const groups = new Map<string, { city: string; count: number; revenue: number }>();
+  for (const order of orders) {
+    const row = groups.get(order.shippingCity) ?? { city: order.shippingCity, count: 0, revenue: 0 };
+    row.count += 1;
+    row.revenue += Number(order.total) - Number(order.refundedAmount);
+    groups.set(order.shippingCity, row);
+  }
+  return [...groups.values()]
+    .sort((a, b) => b.revenue - a.revenue);
+}
+
+/** Unique daily visitors who saw/clicked each homepage banner, with click-through rate. */
+export async function getBannerPerformance(range?: DateRange) {
+  const groups = await prisma.bannerEvent.groupBy({
+    by: ["bannerId", "type"],
     where: { createdAt: dateRangeWhere(range) },
     _count: { _all: true },
-    _sum: { total: true },
   });
+  const bannerIds = [...new Set(groups.map((group) => group.bannerId))];
+  const banners = await prisma.banner.findMany({
+    where: { id: { in: bannerIds } },
+    select: { id: true, titleEn: true, titleAr: true, sortOrder: true },
+  });
+  const counts = new Map(groups.map((group) => [`${group.bannerId}:${group.type}`, group._count._all]));
+  return banners
+    .map((banner) => {
+      const impressions = counts.get(`${banner.id}:IMPRESSION`) ?? 0;
+      const clicks = counts.get(`${banner.id}:CLICK`) ?? 0;
+      return { ...banner, impressions, clicks, ctr: impressions > 0 ? (clicks / impressions) * 100 : 0 };
+    })
+    .sort((a, b) => a.sortOrder - b.sortOrder);
+}
 
-  return groups
-    .map((g) => ({ city: g.shippingCity, count: g._count._all, revenue: Number(g._sum.total ?? 0) }))
-    .sort((a, b) => b.revenue - a.revenue);
+/** Owner-level commercial and financial signals for a comparable reporting window. */
+export async function getBusinessOverview(range: DateRange) {
+  const createdAt = dateRangeWhere(range);
+  const [sessions, orders, registeredCustomers, returns] = await Promise.all([
+    prisma.session.findMany({
+      where: { lastActiveAt: createdAt, user: { role: "CUSTOMER", isActive: true } },
+      select: { userId: true },
+      distinct: ["userId"],
+    }),
+    prisma.order.findMany({
+      where: { createdAt },
+      select: {
+        id: true, userId: true, status: true, paymentStatus: true, subtotal: true,
+        discountTotal: true, loyaltyRedemptionValue: true, shippingFee: true, total: true,
+        refundedAmount: true, createdAt: true,
+      },
+    }),
+    prisma.user.count({ where: { role: "CUSTOMER", isActive: true, createdAt } }),
+    prisma.returnRequest.count({ where: { createdAt } }),
+  ]);
+
+  const recognized = orders.filter((order) => order.paymentStatus === "PAID" && order.status !== "CANCELLED");
+  const orderedUsers = new Set(orders.map((order) => order.userId));
+  // Placing an authenticated order is itself proof the customer signed in during the period.
+  // Session.lastActiveAt can lag (its write is intentionally non-blocking), so union both signals
+  // to keep this denominator complete and the conversion rate mathematically bounded at 100%.
+  const signedInUsers = new Set([...sessions.map((session) => session.userId), ...orderedUsers]);
+  const paidBuyers = new Set(recognized.map((order) => order.userId));
+  const grossMerchandiseValue = recognized.reduce((sum, order) => sum + Number(order.subtotal), 0);
+  const discounts = recognized.reduce(
+    (sum, order) => sum + Number(order.discountTotal) + Number(order.loyaltyRedemptionValue),
+    0,
+  );
+  const refunds = recognized.reduce((sum, order) => sum + Number(order.refundedAmount), 0);
+  const netCollectedRevenue = recognized.reduce(
+    (sum, order) => sum + Number(order.total) - Number(order.refundedAmount),
+    0,
+  );
+  const cancelledOrders = orders.filter((order) => order.status === "CANCELLED").length;
+  const firstOrders = await prisma.order.groupBy({
+    by: ["userId"],
+    where: { userId: { in: [...orderedUsers] }, status: { not: "CANCELLED" } },
+    _min: { createdAt: true },
+  });
+  const firstOrderByUser = new Map(firstOrders.map((row) => [row.userId, row._min.createdAt]));
+  const newBuyerIds = new Set(
+    orders.filter((order) => {
+      const first = firstOrderByUser.get(order.userId);
+      return first && range.from && first >= range.from && (!range.to || first <= range.to);
+    }).map((order) => order.userId),
+  );
+  const repeatBuyerIds = new Set([...paidBuyers].filter((userId) => !newBuyerIds.has(userId)));
+
+  const daily = new Map<string, { date: string; revenue: number; orders: number }>();
+  for (const order of recognized) {
+    const date = ammanDateKey(order.createdAt);
+    const row = daily.get(date) ?? { date, revenue: 0, orders: 0 };
+    row.revenue += Number(order.total) - Number(order.refundedAmount);
+    row.orders += 1;
+    daily.set(date, row);
+  }
+
+  return {
+    signedInCustomers: signedInUsers.size,
+    orderingCustomers: orderedUsers.size,
+    paidBuyers: paidBuyers.size,
+    signInToOrderRate: signedInUsers.size > 0 ? (orderedUsers.size / signedInUsers.size) * 100 : 0,
+    orderToPaidRate: orders.length > 0 ? (recognized.length / orders.length) * 100 : 0,
+    registeredCustomers,
+    orders: orders.length,
+    paidOrders: recognized.length,
+    cancelledOrders,
+    cancellationRate: orders.length > 0 ? (cancelledOrders / orders.length) * 100 : 0,
+    returnRequestRate: recognized.length > 0 ? (returns / recognized.length) * 100 : 0,
+    grossMerchandiseValue,
+    discounts,
+    refunds,
+    netCollectedRevenue,
+    averageOrderValue: recognized.length > 0 ? netCollectedRevenue / recognized.length : 0,
+    newBuyers: newBuyerIds.size,
+    repeatBuyers: repeatBuyerIds.size,
+    repeatBuyerRate: paidBuyers.size > 0 ? (repeatBuyerIds.size / paidBuyers.size) * 100 : 0,
+    daily: [...daily.values()].sort((a, b) => a.date.localeCompare(b.date)),
+  };
+}
+
+export async function getProductPerformance(range: DateRange, limit = 10) {
+  const items = await prisma.orderItem.findMany({
+    where: {
+      order: { ...recognizedOrderWhere, createdAt: dateRangeWhere(range) },
+    },
+    select: { nameSnapshot: true, quantity: true, priceSnapshot: true, productId: true, bundleId: true },
+  });
+  const rows = new Map<string, { key: string; name: string; units: number; revenue: number; kind: "product" | "bundle" }>();
+  for (const item of items) {
+    const key = item.productId ? `product:${item.productId}` : `bundle:${item.bundleId}`;
+    const row = rows.get(key) ?? { key, name: item.nameSnapshot, units: 0, revenue: 0, kind: item.productId ? "product" : "bundle" };
+    row.units += item.quantity;
+    row.revenue += Number(item.priceSnapshot) * item.quantity;
+    rows.set(key, row);
+  }
+  return [...rows.values()].sort((a, b) => b.revenue - a.revenue).slice(0, limit);
 }

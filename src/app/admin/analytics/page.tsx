@@ -17,6 +17,9 @@ import {
   getGeographicOrderDistribution,
   getTotalRevenue,
   getNetRevenueOverTime,
+  getBannerPerformance,
+  getBusinessOverview,
+  getProductPerformance,
   type DateRange,
 } from "@/lib/server/services/analytics";
 import { KpiStrip } from "./KpiStrip";
@@ -31,6 +34,9 @@ import { DeliveryPerformanceSection } from "./DeliveryPerformanceSection";
 import { CohortRetentionHeatmap } from "./CohortRetentionHeatmap";
 import { CartFunnelChart } from "./CartFunnelChart";
 import { GeographicOrderTable } from "./GeographicOrderTable";
+import { BannerPerformanceChart } from "./BannerPerformanceChart";
+import { BusinessOverview } from "./BusinessOverview";
+import { ProductPerformanceChart } from "./ProductPerformanceChart";
 
 export const metadata: Metadata = { title: "Analytics - Betolla Admin" };
 
@@ -57,9 +63,13 @@ export default async function AdminAnalyticsPage({
   const t = await getTranslations("admin.analytics");
   const tSegment = await getTranslations("common.rfmSegment");
   const locale = (await getLocale()) as AppLocale;
+  const now = new Date();
+  const defaultFrom = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+  const parsedFrom = from && /^\d{4}-\d{2}-\d{2}$/.test(from) ? new Date(`${from}T00:00:00+03:00`) : null;
+  const parsedTo = to && /^\d{4}-\d{2}-\d{2}$/.test(to) ? new Date(`${to}T23:59:59.999+03:00`) : null;
   const currentRange: DateRange = {
-    from: from ? new Date(from) : undefined,
-    to: to ? new Date(`${to}T23:59:59.999`) : undefined,
+    from: parsedFrom && !Number.isNaN(parsedFrom.getTime()) ? parsedFrom : defaultFrom,
+    to: parsedTo && !Number.isNaN(parsedTo.getTime()) ? parsedTo : now,
   };
   const previousRange = getPreviousRange(currentRange);
 
@@ -92,6 +102,10 @@ export default async function AdminAnalyticsPage({
     previousRevenue,
     netRevenueCurrent,
     netRevenuePrevious,
+    bannerPerformance,
+    businessCurrent,
+    businessPrevious,
+    productPerformance,
   ] = await Promise.all([
     getStaffPerformance(currentRange),
     previousRange ? getStaffPerformance(previousRange) : Promise.resolve(undefined),
@@ -105,6 +119,10 @@ export default async function AdminAnalyticsPage({
     previousRange ? getTotalRevenue(previousRange) : Promise.resolve(undefined),
     getNetRevenueOverTime(currentRange),
     previousRange ? getNetRevenueOverTime(previousRange) : Promise.resolve(undefined),
+    getBannerPerformance(currentRange),
+    getBusinessOverview(currentRange),
+    getBusinessOverview(previousRange!),
+    getProductPerformance(currentRange),
   ]);
 
   const segmentCounts: Record<string, number> = {};
@@ -135,6 +153,14 @@ export default async function AdminAnalyticsPage({
           },
         ]}
       />
+
+      <Card className={CARD_CLASS}>
+        <CardContent className={CONTENT_CLASS}>
+          <p className="mb-1 font-medium text-analytics">{t("business.title")}</p>
+          <p className="mb-4 text-sm text-analytics-muted">{t("business.description")}</p>
+          <BusinessOverview current={businessCurrent} previous={businessPrevious} />
+        </CardContent>
+      </Card>
 
       <Card className={CARD_CLASS}>
         <CardContent className={`flex flex-col gap-3 ${CONTENT_CLASS}`}>
@@ -242,6 +268,22 @@ export default async function AdminAnalyticsPage({
         <h3 className="mb-3 font-heading text-lg font-semibold text-analytics">{t("extendedHeading")}</h3>
 
         <div className="flex flex-col gap-4">
+          <Card className={CARD_CLASS}>
+            <CardContent className={CONTENT_CLASS}>
+              <p className="mb-1 font-medium text-analytics">{t("productPerformance.title")}</p>
+              <p className="mb-3 text-sm text-analytics-muted">{t("productPerformance.description")}</p>
+              <ProductPerformanceChart rows={productPerformance} />
+            </CardContent>
+          </Card>
+
+          <Card className={CARD_CLASS}>
+            <CardContent className={CONTENT_CLASS}>
+              <p className="mb-1 font-medium text-analytics">{t("bannerPerformance.title")}</p>
+              <p className="mb-3 text-sm text-analytics-muted">{t("bannerPerformance.description")}</p>
+              <BannerPerformanceChart rows={bannerPerformance} />
+            </CardContent>
+          </Card>
+
           <Card className={CARD_CLASS}>
             <CardContent className={CONTENT_CLASS}>
               <p className="mb-1 font-medium text-analytics">{t("netRevenue.title")}</p>

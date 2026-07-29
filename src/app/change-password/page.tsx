@@ -6,7 +6,7 @@ import { ChangePasswordForm } from "./ChangePasswordForm";
 export const metadata: Metadata = { title: "Change password - Betolla Cosmetics" };
 
 export default async function ChangePasswordPage() {
-  const session = await getCurrentSession();
+  const session = await getCurrentSession({ allowPasswordChangeRequired: true });
   if (!session) redirect("/login");
 
   return (

@@ -10,6 +10,6 @@ export const updateNotificationPreferenceSchema = z.object({
     "DELIVERY_ASSIGNMENTS",
     "OPERATIONS",
   ]),
-  channel: z.enum(["EMAIL", "SMS", "PUSH", "IN_APP"]),
+  channel: z.enum(["EMAIL", "PUSH", "IN_APP"]),
   enabled: z.boolean(),
 });

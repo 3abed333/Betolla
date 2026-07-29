@@ -38,13 +38,13 @@ export async function updateDeliveryAssignmentStatus(params: {
     throw new DeliveryError("A reason is required to mark a delivery failed");
   }
 
-  const order =
-    params.nextStatus === "DELIVERED" || params.nextStatus === "FAILED"
-      ? await prisma.order.findUnique({ where: { id: assignment.orderId } })
-      : null;
+  const order = await prisma.order.findUnique({ where: { id: assignment.orderId } });
+  if (!order || order.status === "CANCELLED" || order.status === "DELIVERED") {
+    throw new DeliveryError("This order is already in a terminal state");
+  }
 
-  const updated = await prisma.deliveryAssignment.update({
-    where: { id: params.assignmentId },
+  const changed = await prisma.deliveryAssignment.updateMany({
+    where: { id: params.assignmentId, status: assignment.status, driverId: params.driverId },
     data: {
       status: params.nextStatus,
       failedReason: params.nextStatus === "FAILED" ? params.failedReason : undefined,
@@ -52,6 +52,10 @@ export async function updateDeliveryAssignmentStatus(params: {
       deliveredAt: params.nextStatus === "DELIVERED" ? new Date() : undefined,
       earningsAmount: params.nextStatus === "DELIVERED" ? (order?.shippingFee ?? 0) : undefined,
     },
+  });
+  if (changed.count !== 1) throw new DeliveryError("Delivery status changed. Refresh and try again.");
+  const updated = await prisma.deliveryAssignment.findUniqueOrThrow({
+    where: { id: params.assignmentId },
   });
 
   await syncOrderStatusFromDelivery(assignment.orderId, params.nextStatus);

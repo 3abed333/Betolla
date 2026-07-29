@@ -2740,3 +2740,735 @@ since a theme preference is a low-stakes, freely-reversible UI setting, not data
 - Everything else in the running Known Issues list (i18n native-speaker review, no review-moderation
   surface, no automated test suite, the environment's screenshot/`requestAnimationFrame` limitations)
   is unchanged by this phase.
+
+---
+
+## §16 — Phase 19: production health signals and automated auth/checkout security QA
+
+**Completed and verified on 2026-07-26.** This section supersedes the older statement above that no
+automated test suite exists. The scope was the first three requested launch-safety items: a
+database-aware health check, safe structured operational logging, and browser automation for the
+highest-risk authentication, COD checkout, role, and ownership flows.
+
+### Monitoring foundations
+
+- Added `GET /api/health`. It performs a real database query and returns HTTP 200 with
+  `status: "healthy"` only when the application and database are reachable; it returns HTTP 503
+  with a deliberately generic response when the database check fails.
+- Health responses are dynamic and send `Cache-Control: no-store` plus a unique `X-Request-Id`,
+  making the endpoint suitable for an external uptime monitor and incident correlation.
+- Added Next.js instrumentation for application startup and uncaught request errors.
+- Added one-line JSON logs for health failures, rejected/rate-limited/successful logins, invalid or
+  failed/successful checkouts, and notification persistence failures.
+- The logger redacts sensitive keys (including authorization, cookies, credentials, tokens, email,
+  phone, and address fields), limits field depth/size, and exposes only error names in production.
+  Login and checkout APIs now return generic 500 responses instead of leaking unexpected internal
+  error details and include `X-Request-Id`.
+- Files: `src/app/api/health/route.ts`, `src/instrumentation.ts`,
+  `src/lib/server/logger.ts`, `src/lib/server/request-id.ts`,
+  `src/app/api/auth/login/route.ts`, `src/app/api/checkout/route.ts`, and
+  `src/lib/server/services/notifications.ts`.
+
+This establishes the application-side monitoring signals. A production hosting provider or
+third-party service still needs to poll `/api/health`, collect stdout JSON logs, and alert the owner
+by email/SMS. No external monitoring account, paid service, deployment, or production alert
+destination was configured in this local-only phase.
+
+### Playwright browser and security suite
+
+- Added Playwright 1.62 and scripts: `npm run test:e2e`, `npm run test:e2e:ui`, and
+  `npm run e2e:server`. Production build is run before the standard E2E command.
+- Added guarded fixtures that refuse a remote database unless its database name is clearly marked
+  as a test database. Local fixture users use only `@betolla.test` addresses and deterministic
+  `E2E` catalog data. The fixture resets only those test users' sessions/carts and does not delete
+  normal customer data.
+- Automated coverage:
+  - health endpoint, database reachability, no-cache header, and request ID;
+  - customer registration, logout, login, and generic invalid-credential failure;
+  - Admin, Staff, Delivery, and Customer redirects away from another role's area;
+  - one customer cannot view or submit a return for another customer's order;
+  - complete Cash on Delivery order placement in desktop Chromium and Pixel 5 mobile emulation;
+  - saved order record is verified as `Cash on Delivery`;
+  - a manually forged `MOCK_CARD` checkout is rejected by the server;
+  - mobile checkout has no document-level horizontal overflow.
+- Playwright reports, traces, screenshots, videos, and auth state are excluded from Git.
+- Files: `playwright.config.ts`, `e2e/global-setup.ts`, `e2e/support/*`,
+  `e2e/auth.spec.ts`, `e2e/authorization.spec.ts`, `e2e/checkout.spec.ts`,
+  `e2e/monitoring.spec.ts`, `package.json`, `package-lock.json`, and `.gitignore`.
+
+### Verification results
+
+- `npm exec playwright test`: **14/14 passed** (desktop Chromium plus Pixel 5 checkout coverage).
+- Existing `npm test`: **9/9 passed**.
+- `npm run lint`: **clean**.
+- `npx tsc --noEmit --incremental false`: **clean**.
+- `next build`: **production build passed**.
+- The health endpoint was also observed correctly returning unhealthy while the local PostgreSQL
+  process was stopped, then healthy after it restarted. This verified the failure path, not only
+  the success response.
+- The local development stack was restored after verification; `http://127.0.0.1:3000/api/health`
+  returned HTTP 200 with the database reported as reachable.
+
+### Outstanding launch work
+
+- Configure the deployed host to poll `/api/health`, ingest JSON logs, and send alerts. The exact
+  setup depends on the hosting provider selected.
+- Configure automated PostgreSQL backups and practice a restore. Backups were not part of these
+  three code changes.
+- Expand E2E coverage to cancellation/stock restoration, delivery/COD collection, returns/refunds,
+  promotions, loyalty/store credit, uploads, wishlists, full Arabic/RTL journeys, and the
+  simultaneous-last-item inventory race.
+- An independent penetration test remains recommended before handling meaningful production
+  volume.
+- Installing Playwright caused npm to report 16 dependency advisories (1 moderate, 15 high), but a
+  detailed `npm audit` advisory query was not authorized by the execution policy because it sends
+  the dependency manifest to npm. No `npm audit fix` or forced package upgrade was run.
+
+---
+
+## §17 — Phase 20: credential-in-URL fallback vulnerability
+
+**Fixed and verified on 2026-07-26.**
+
+### Finding and root cause
+
+A real local request was observed as
+`GET /login?email=...&password=...`. The JavaScript login handler already used a JSON `POST`, but
+the underlying HTML `<form>` had no native `method` or `action`. If the form was submitted before
+React hydration, with JavaScript disabled, or after a client-side failure, the browser used HTML's
+default `GET` behavior and placed credentials in the URL. That could expose passwords through
+browser history, server/access logs, analytics, monitoring systems, copied links, and screenshots.
+Registration and forced password-change forms had the same unsafe fallback pattern.
+
+### Fix
+
+- Login now declares `method="post"` and `action="/api/auth/login"`.
+- Registration now declares `method="post"` and `action="/api/auth/register"`.
+- Password change now declares `method="post"` and `action="/api/auth/change-password"`.
+- Added a server-only request-body helper that accepts either the existing JSON requests or native
+  `application/x-www-form-urlencoded`/`multipart/form-data` form bodies.
+- All three authentication endpoints keep their existing JSON behavior for hydrated React clients,
+  while successful native form submissions return HTTP 303 with a relative same-origin `Location`.
+  Relative redirects deliberately avoid proxy hostname mismatches and Host-header/open-redirect
+  risks.
+- Added a Chromium regression test with JavaScript fully disabled. It verifies all three forms have
+  POST actions, performs a real native login, confirms the login request is POST, and checks every
+  captured request URL for `email`, `password`, or the test password.
+
+Files: `src/app/(auth)/login/LoginForm.tsx`,
+`src/app/(auth)/register/RegisterForm.tsx`,
+`src/app/change-password/ChangePasswordForm.tsx`,
+`src/app/api/auth/login/route.ts`,
+`src/app/api/auth/register/route.ts`,
+`src/app/api/auth/change-password/route.ts`,
+`src/lib/server/request-body.ts`, and `e2e/auth.spec.ts`.
+
+### Verification
+
+- `npm exec playwright test`: **15/15 passed**, including the JavaScript-disabled regression,
+  desktop/mobile COD checkout, role boundaries, cross-customer ownership, forged-card rejection,
+  health monitoring, and mobile overflow.
+- `npm test`: **9/9 passed**.
+- `npm run lint`: **clean**.
+- `npx tsc --noEmit --incremental false`: **clean**.
+- `npm run build`: **production build passed**.
+
+Operational cleanup outside the codebase is still required for the credential already shown before
+this fix: change that password if it was real or reused, clear the affected browser-history entry,
+and remove/sanitize any terminal or retained access log containing the old query string.
+
+---
+
+## 10. QA Fix Session (2026-07-27)
+
+Five focused fixes from a QA pass, implemented in one pass per the standing instructions for that
+session.
+
+### 10.1 — Prisma Decimal serialization crash on product pages
+
+`getReviewableOrderItems()` (`src/lib/server/services/reviews.ts`) returned the full `OrderItem`
+model, including `priceSnapshot: Decimal`, straight into the client component `WriteReviewForm`.
+Fixed by adding an explicit `select: { id, order: { select: { orderNumber } } }` so only the two
+fields the form actually uses ever cross the Server→Client boundary — no Decimal, no Date. No other
+code changed; `WriteReviewForm`'s prop type already matched this narrower shape.
+
+Files: `src/lib/server/services/reviews.ts`.
+
+### 10.2 — Removed the Leaflet map picker; replaced with a full written address form
+
+Per updated direction mid-session, the broken map-pin picker was **removed entirely** rather than
+repaired (CSP fix + Leaflet invalidateSize/geolocation button were explicitly ruled out). Customers
+now enter a complete written address instead of a map pin.
+
+- **Schema (additive only):** `Address` gained `floor`, `apartmentNo`, `landmark`, `deliveryNotes`
+  (all nullable). `Order` gained `shippingRecipientPhone`, `shippingDeliveryNotes` (nullable),
+  captured immutably at checkout from the source `Address` so later address edits/deletes never
+  change a past order's shipping record. `Address.lat`/`lng` were **left in place, unused** — no
+  destructive migration. Migration: `20260727081114_add_delivery_address_fields`.
+- **Validation:** new `src/lib/validation/phone.ts` — Jordanian mobile regex/normalizer (accepts
+  `07[789]XXXXXXX`, `+9627...`, `00962 7...`; normalizes to `07XXXXXXXX`). Wired into
+  `createAddressSchema`/`updateAddressSchema`, which also dropped `lat`/`lng` entirely and added
+  `floor`/`apartmentNo`/`landmark`/`deliveryNotes` (all optional) plus the existing `buildingInfo`
+  (previously in the schema but never exposed in the UI — now wired up).
+- **City/governorate stays a controlled dropdown**, now sourced from the existing `ShippingZone`
+  table (via a `shippingZones` prop, matching `CheckoutForm`'s existing pattern) instead of a
+  duplicated hardcoded city list. **Area has no reliable predefined data anywhere in this codebase**,
+  so it correctly stays a required free-text field rather than a fabricated dropdown.
+- **Removed:** `src/components/MapPinPicker.tsx`, `DeliveryRouteMap.tsx`, `DeliveryRouteMapLoader.tsx`,
+  and the `leaflet`/`react-leaflet`/`@types/leaflet` npm dependencies (confirmed unused elsewhere
+  first). `next.config.ts`'s CSP was never touched — the OSM tile host had never actually been added,
+  so there was nothing to revert.
+- **UI:** `AddressFormDialog.tsx` and `CheckoutForm.tsx`'s inline new-address form both gained the
+  new fields (mobile-first single-column stack, verified at 375px width). `AddressCard.tsx` displays
+  the new fields. `delivery/[id]/page.tsx` dropped the map block and gained a "copy address"/"copy
+  phone" affordance (new `src/components/CopyButton.tsx`, `navigator.clipboard`) plus a distinct
+  delivery-notes callout. Customer/admin/staff order-detail pages now also render
+  `shippingRecipientPhone`/`shippingDeliveryNotes` alongside the existing address snapshot line.
+- **i18n:** removed `mapInstructions`/`noMapPin`; added governorate/floor/apartment/landmark/notes
+  labels and copy-affordance strings to both `en.json` and `ar.json`.
+
+Files: `prisma/schema.prisma`, `src/lib/validation/{address,phone}.ts`,
+`src/lib/server/services/checkout.ts`, `src/app/account/addresses/{AddressFormDialog,AddressCard,page}.tsx`,
+`src/app/(storefront)/checkout/CheckoutForm.tsx`, `src/app/delivery/[id]/page.tsx`,
+`src/app/{account,admin,staff}/orders/[id]/page.tsx`, `src/components/CopyButton.tsx`, `package.json`,
+`src/i18n/messages/{en,ar}.json`. Deleted: `src/components/{MapPinPicker,DeliveryRouteMap,DeliveryRouteMapLoader}.tsx`.
+
+### 10.3 — Duplicated order notifications
+
+`notify()` (`src/lib/server/services/notifications.ts`) fans out one `Notification` row per enabled
+channel (IN_APP/EMAIL/SMS) for a single logical event, but every notification list page and unread
+badge queried without a channel filter — so a customer with all 3 channels enabled saw "Order
+placed" three times.
+
+- Added `channel: "IN_APP"` to the `where` clause of all 4 notification list pages
+  (`{account,admin,staff,delivery}/notifications/page.tsx`), all 4 layout unread-count queries
+  (`{account,admin,staff,delivery}/layout.tsx`), and `read-all/route.ts`'s `updateMany` — this alone
+  fixes the reported 3x duplication with no data migration, since it's a display/query-layer bug.
+- Added a nullable `Notification.eventKey` column with `@@unique([userId, channel, eventKey])`
+  (migration `20260727081717_add_notification_event_key`) and an optional `eventKey` param on
+  `notify()`/`notifyRoles()`, switching the `createMany` call to `skipDuplicates: true`. A retried
+  call with the same key is now a no-op per channel instead of a duplicate row, while distinct events
+  (placed/confirmed/delivered) use distinct keys and remain separate. Wired into the order
+  status-change and "order placed" notify call sites in `orders.ts`/`checkout.ts`
+  (`order:${orderId}:status:${status}` / `order:${orderId}:placed`).
+
+Files: `prisma/schema.prisma`, `src/lib/server/services/{notifications,orders,checkout}.ts`,
+`src/app/{account,admin,staff,delivery}/notifications/page.tsx`,
+`src/app/{account,admin,staff,delivery}/layout.tsx`, `src/app/api/notifications/read-all/route.ts`.
+
+### 10.4 — Admin review moderation: reject/delete + star/status filters
+
+Previously pending reviews could only be approved and published reviews could only be hidden — no
+reject or permanent delete. `Review.isPublished` remains the only moderation field (no new status
+enum needed: both "reject" and "delete permanently" are literal deletions, nothing needs to retain a
+rejected review for audit — activity logging covers that instead).
+
+- New `deleteReview()` in `reviews.ts`: delete + recompute the product's `avgRating`/`reviewCount`
+  in one transaction, remove any uploaded review photo via the existing `deleteUploadedImage()`, and
+  `logActivity()` with `REVIEW_REJECT` (was pending) or `REVIEW_DELETE` (was published).
+  `PATCH .../api/admin/reviews/[id]` now also logs `REVIEW_APPROVE`/`REVIEW_HIDE` (previously
+  unlogged). New `DELETE` handler, **Admin-only** (`requireApiRole("ADMIN")`, stricter than PATCH's
+  existing Admin+Staff scope), verified server-side — not just hidden in the UI.
+- `ReviewModerationActions.tsx` now shows two buttons per state (Approve/Reject for pending,
+  Hide/Delete-permanently for published), the destructive ones behind `ConfirmDialog` with the exact
+  required copy, disabled while a request is in flight, with success/error toasts.
+- `admin/reviews/page.tsx` accepts `?rating=` and `?status=pending|published` search params (new
+  `ReviewFilters.tsx` client component, URL-persisted, combinable), with an empty state when nothing
+  matches.
+- Review text was already rendered as plain text (no `dangerouslySetInnerHTML`) — confirmed still
+  the case; manually verified in-browser that a comment containing `<script>`/`<img onerror>` renders
+  as literal escaped text.
+
+Files: `src/lib/server/services/reviews.ts`, `src/app/api/admin/reviews/[id]/route.ts`,
+`src/app/admin/reviews/{page,ReviewModerationActions,ReviewFilters}.tsx`,
+`src/i18n/messages/{en,ar}.json`.
+
+### 10.5 — Customer order cancellation
+
+New `POST /api/account/orders/[id]/cancel`, deliberately separate from the existing admin/staff-only
+`PATCH /api/orders/[id]/status` (which customers already get 403 from). Requires `CUSTOMER` role,
+verifies ownership (404 — not 403 — for another customer's order, so existence isn't leaked), rejects
+non-`PENDING` orders with 400, then calls the **existing** `updateOrderStatus()` service unchanged —
+no duplicated stock/wallet/loyalty/promo/payment logic. That function's own optimistic-concurrency
+check (`updateMany({ where: { id, status: current.status } })`) makes a retried or racing request
+fail cleanly with `OrderError` instead of double-applying restoration, which is what makes this
+idempotent and race-safe against a concurrent staff confirmation.
+
+UI: `CancelOrderButton.tsx` on the customer order-detail page, shown only for the owner's `PENDING`
+order, using the existing `ConfirmDialog` component with the exact required confirmation copy.
+
+Files: `src/app/api/account/orders/[id]/cancel/route.ts`,
+`src/app/account/orders/[id]/{page,CancelOrderButton}.tsx`, `src/i18n/messages/{en,ar}.json`.
+
+### Tests added
+
+- `tests/validation.test.ts` — Jordanian phone normalization/validation, address required-field
+  coverage for the new form fields.
+- `tests/notifications.test.ts` — one event across 3 channels shows as 1 IN_APP row; unread counts
+  exclude EMAIL/SMS; retried `eventKey` doesn't duplicate; distinct events for the same order stay
+  distinct. (Runs directly against the local dev DB via Prisma, since `notifications.ts` imports
+  `"server-only"` and can't be imported outside the Next runtime.)
+- `tests/reviews.test.ts` — deleting a published review recomputes the aggregate correctly; deleting
+  a pending review leaves the published aggregate untouched; star/status filter query shapes.
+- `e2e/authorization.spec.ts` — only Admin (not Staff, not anonymous) can call the review `DELETE`
+  route.
+- `e2e/order-cancellation.spec.ts` — owner can cancel a PENDING order with stock restored exactly
+  once (including on a retried request); a different customer gets 404; unauthenticated gets 401; a
+  CONFIRMED order can no longer be customer-cancelled.
+
+### Verification
+
+- `npm test` (`tsx --test tests/**/*.test.ts`): **18/18 passed**.
+- `npm run lint`: **clean**.
+- `npx tsc --noEmit`: **clean**.
+- `npx prisma validate`: **schema valid**.
+- `npm run build`: **production build passed** (all routes compiled, including the new cancel route).
+- `npx playwright test` (full suite, desktop + mobile projects): **20/20 passed**, including both new
+  spec files.
+- Manual in-browser verification (dev server): admin review filters (`?status=pending` correctly
+  narrows the list), XSS test string renders as literal text, reject-confirmation dialog shows the
+  exact required copy; customer address form (EN+AR, desktop+375px mobile) shows no map and all new
+  fields with correct RTL layout; customer order cancellation exercised end-to-end (PENDING →
+  Cancelled, reason recorded, button disappears); notification center confirmed showing "Order
+  placed"/"Order cancelled" exactly once each despite multiple enabled channels.
+- No server left running: the manual-verification dev server (`next dev`) was stopped after use. The
+  project's persistent local Postgres (`embedded-postgres`, port 5433) was already running before
+  this session started and was left running, as it's the standing local dev database, not a
+  session-specific test server.
+
+### Outstanding / not done
+
+- `e2e/order-cancellation.spec.ts` and the review-deletion DB tests were not run against every edge
+  case in the task's full regression list (e.g. a live two-request race for order cancellation was
+  exercised sequentially, not with genuinely concurrent requests — the optimistic-concurrency
+  mechanism this relies on is shared with the pre-existing admin/staff status endpoint and was not
+  re-derived, only reused).
+- Review photo deletion (`deleteUploadedImage` on permanent delete) was implemented and code-reviewed
+  but not exercised against a review that actually has an uploaded photo in this session's manual
+  pass.
+
+### 10.6 — Final acceptance corrections
+
+Two follow-up checks requested before acceptance:
+
+1. **Cancel-order live update.** Reproduced in-browser (place order → cancel → observe without
+   navigating): the page already updates to "Cancelled" and the Cancel button disappears on its own
+   within ~1-2s via `CancelOrderButton.tsx`'s existing `router.refresh()` inside `ConfirmDialog`'s
+   `startTransition` — no code change was needed here; the original spot-check that suggested a
+   manual reload was required was an artifact of checking the page too quickly, not a real bug.
+2. **Delivery detail screen missing a visible recipient phone.** This one was a real gap: the
+   recipient's phone (`Order.shippingRecipientPhone`) was only reachable via the "Copy phone" button
+   (whose visible label is the generic action text, not the number) — the number itself was never
+   rendered as text. Fixed in `src/app/delivery/[id]/page.tsx` by adding a labelled
+   "Recipient phone: <number>" line (new `delivery.detail.recipientPhoneLabel` i18n key, EN+AR)
+   alongside the existing address/notes/copy-button block. Manually verified end-to-end (placed a
+   real order against an address with floor/apartment/landmark/notes filled in, confirmed it as
+   Staff, assigned a driver, and viewed the assignment as that driver): the delivery screen now shows
+   the full written address — recipient name, street, building, floor, apartment, area, city,
+   landmark — plus a separate "Recipient phone" line and "Delivery notes" line, at both desktop and
+   375px mobile width. (A pre-existing, unrelated ~119px horizontal overflow on this page at mobile
+   width was traced to the delivery layout's top `<header>` nav bar, not to this address block or any
+   change made this session — left untouched per "don't change anything else.")
+
+Also re-confirmed at this stage: `leaflet`/`react-leaflet`/`@types/leaflet` are absent from both
+`package.json` and `package-lock.json` (`grep -i leaflet` on both returns nothing); `next.config.ts`'s
+CSP `img-src` contains no OpenStreetMap/tile-host entry; no dev server was left running (verified via
+`netstat` on port 3000 after `preview_stop`).
+
+**Re-verification commands:** `npx tsc --noEmit` (clean), `npx eslint .` (clean), `npm test`
+(**18/18 passed**, unchanged) — these were the only tests relevant to a presentation-only i18n/JSX
+change; no schema, service, or API logic changed in this follow-up pass, so the full Playwright suite
+was not re-run.
+
+### 10.7 — Delivery header mobile overflow
+
+- Fixed the delivery layout header so its identity and account controls stack/wrap below the
+  `sm` breakpoint instead of forcing one fixed-width row beyond the viewport.
+- Tightened mobile horizontal padding while preserving the existing desktop row layout.
+- Verified the authenticated delivery dashboard at a 375x812 viewport: document and header
+  `scrollWidth` are both 375px, and every header button remains inside the viewport.
+- Focused verification passed: `npm run lint -- src/app/delivery/layout.tsx` and
+  `npx tsc --noEmit`.
+
+### 10.8 — Local production-data cleanup
+
+- Created a verified physical PostgreSQL backup before deletion:
+  `C:\Users\VICTUS\Desktop\betolla-db-backups\betolla-before-test-customer-cleanup-20260727-124842.tar.gz`.
+- Removed 35 seeded/QA/E2E customer accounts and their 212 associated test orders in one
+  transaction. Customer-owned dependent data was removed by the schema's cascades.
+- Preserved `abed7elrahman@gmail.com` (3 orders) and `abed7@gmail.com` (0 orders).
+- Did not target administrators, staff, delivery accounts, products, categories, bundles,
+  banners, promotions, shipping zones, settings, or uploaded files.
+- Recomputed all product review aggregates after the associated test reviews were removed;
+  verification found zero aggregate mismatches.
+- Prisma validation passed, all 11 migrations are applied, and the database schema is current.
+- Created a second verified physical backup of the cleaned state:
+  `C:\Users\VICTUS\Desktop\betolla-db-backups\betolla-cleaned-20260727-125146.tar.gz`.
+
+### 10.9 — Permanent deletion for unused staff accounts
+
+- Corrected `DELETE /api/admin/staff/[id]`: it now permanently deletes an unused staff account
+  instead of silently performing another deactivation.
+- Accounts with operational history (activity logs, support messages, deliveries, delivery
+  reports, or orders) return HTTP 409 and must be deactivated so historical records are preserved.
+- The deletion audit entry and hard delete run in one transaction.
+- Updated the English and Arabic confirmation copy to describe permanent deletion and its
+  history-preservation restriction accurately.
+- Verification passed: focused ESLint, TypeScript, all 18 unit tests, and the production build.
+
+### 10.10 — Staff and delivery password reset / delivery-account deletion
+
+- Added an administrator-only password-reset endpoint and UI action for staff accounts.
+- Added a staff-only password-reset endpoint and UI action for delivery accounts.
+- Each reset generates a one-time temporary password, stores only its bcrypt hash, marks the
+  account to require a password change at the next sign-in, revokes all active sessions, and writes
+  an audit entry. The temporary password is displayed to the authorized operator once.
+- Corrected delivery-account deletion to permanently delete unused delivery accounts.
+- Delivery accounts with operational history (activity logs, delivery assignments, delivery
+  reports, or orders) return HTTP 409 and must be deactivated instead, preserving business records.
+- Updated the English and Arabic interfaces and confirmation copy for both roles.
+- No Prisma schema change or database migration was required.
+- Verification passed: ESLint, TypeScript, all 18 unit tests, and the production build.
+
+### 10.11 — Admin/staff delivery-terminal synchronization
+
+- Corrected the admin/staff order-status workflow so marking an order `DELIVERED` also marks its
+  active delivery assignment `DELIVERED` in the same serializable database transaction.
+- The synchronized assignment records its delivery timestamp and delivery earnings, preventing the
+  driver dashboard, history, collections, and analytics from disagreeing with the order.
+- Delivery detail pages now refresh every five seconds while an assignment is active, so an
+  administrator or staff status change appears without requiring the driver to reload manually.
+- Pickup/failure/report controls are hidden as soon as either the order or assignment is terminal,
+  preventing impossible API requests from stale browser screens.
+- A one-time production reconciliation query is included in the deployment procedure for assignments
+  that were already left active while their orders were delivered or cancelled.
+- Verification passed: ESLint, TypeScript, all 18 unit tests, and the production build.
+
+## 11. Local content, pharmacy, contact, popup, and audit expansion (28 July 2026)
+
+Implemented locally only. Nothing in this section has been copied to the Ubuntu production server;
+production deployment is intentionally deferred until manual acceptance testing.
+
+### 11.1 Additive database design and migrations
+
+- Added `CustomerType` (`INDIVIDUAL`, `PHARMACY`) without changing the existing role model.
+  Pharmacies remain `CUSTOMER` accounts, so they use the same secure storefront/account/checkout
+  permissions rather than creating a new privileged role.
+- Added optional pharmacy name/location fields to `User`; pharmacy registration generates a unique
+  internal username while the customer signs in with email/password.
+- Added relational models for `SiteSettings`, `StaticPage`, `BlogPost`, `Faq`, `PopupCampaign`, and
+  one-to-one `ProductKnowledge`.
+- Added ten popup templates: Sale, Announcement, New Product, Welcome, Limited Time, Free Shipping,
+  Loyalty, Back in Stock, Event, and Custom.
+- Applied two additive migrations:
+  `20260728120000_add_content_pharmacy_and_marketing` and
+  `20260728121000_seed_site_content_defaults`.
+- Seeded editable bilingual Privacy Policy and About Us starting content with conflict-safe inserts.
+- No schema reset, destructive migration, or existing business-record deletion was used.
+
+### 11.2 Storefront and registration
+
+- Added responsive Blog and Contact Us navigation links. When a WhatsApp number is configured,
+  Contact Us opens `wa.me/<international-number>`; until then it safely falls back to the About page.
+- Added accessible WhatsApp, Instagram, Facebook, and LinkedIn footer icons. Empty settings hide
+  their respective icons; external links open with `noopener noreferrer`.
+- Added Blog listing/detail, Privacy Policy, About Us, FAQ, and product-facts public routes.
+- Added the product-detail `Know more about this product` button and bilingual rich-content page.
+- Added individual/pharmacy selection to registration. Pharmacy fields are pharmacy name, email,
+  location, and password; the account is authenticated exactly like any other customer.
+- Privacy consent is required by both client and server validation. The policy link uses normal
+  same-tab navigation. Returning with browser/phone Back restores every field, including password,
+  from memory; the password is never written to sessionStorage/localStorage. Only non-sensitive
+  draft fields have a storage fallback.
+- Added a responsive customer popup renderer that displays the newest eligible active campaign once
+  per browser session and respects optional start/end dates and CTA links.
+
+### 11.3 Admin and staff management
+
+- Admin and Staff can create, edit, publish/unpublish, and delete bilingual Blog posts with HTML
+  bodies.
+- Admin Site Content management covers WhatsApp/social links, Privacy Policy, About Us, FAQs, and
+  popup campaigns.
+- FAQs support bilingual HTML answers, order, visibility, edit, and permanent deletion.
+- Popups support bilingual title, announcement, HTML body, optional CTA, optional schedule, active
+  status, and all ten visual templates.
+- Product create/edit forms for both Admin and Staff now manage bilingual product-facts HTML. Clearing
+  both bodies deletes the one-to-one record; the customer button appears only while it is active.
+- Added admin-only Staff Footprint cards and per-staff audit detail pages. The detail view defaults
+  to the last 30 days and filters by exact action and date range, showing up to 500 audit records
+  with recorded before/after details.
+- New content actions write `ActivityLog` entries (`BLOG_*`, `FAQ_*`, `POPUP_*`,
+  `STATIC_PAGE_UPDATE`, `SITE_SETTINGS_UPDATE`, and `PRODUCT_KNOWLEDGE_*`).
+- Staff cannot open Staff Footprint; live verification confirmed redirection back to `/staff`.
+
+### 11.4 Rich-HTML and notification security
+
+- Added `sanitize-html` plus TypeScript definitions.
+- Blog, FAQ, popup, static-page, and product-facts HTML is sanitized on the server before persistence.
+  Scripts, event handlers, iframes, forms, unsafe schemes such as `javascript:`, and unsupported
+  embeds are removed. External `_blank` links receive `noopener noreferrer`.
+- Route authorization is explicit: Blog/Product Knowledge accepts ADMIN or STAFF; site links, static
+  pages, FAQ, popup, and Staff Footprint are ADMIN-only.
+- Removed SMS from registration defaults, managed-account defaults, preference reads/writes, and all
+  customer preference UI. Existing SMS preference rows were deleted by migration; historical
+  notification records and the enum value remain for database/audit compatibility.
+- Notification dispatch explicitly excludes SMS even if a legacy row is reintroduced.
+- Push now includes a visible explanation: it means a browser/device notification after user
+  permission. Betolla currently records the preference only; real push delivery still requires a
+  service worker, VAPID/provider integration, and production HTTPS.
+
+### 11.5 Responsive corrections
+
+- Storefront header navigation wraps/scrolls safely with Products, Bundles, Blog, and Contact Us.
+- Verified the storefront, registration, popup, product facts, FAQ, account preferences, and
+  Staff Footprint at a 390px requested mobile viewport (375px effective): no document-level
+  horizontal overflow.
+- Browser testing found a pre-existing Staff layout header overflow while validating the new Staff
+  Blog page. The Staff header now stacks/wraps below `sm`, matching the Admin/Delivery responsive
+  pattern; final measured width and scroll width are both 375px.
+
+### 11.6 Verification and cleanup
+
+- `npm run lint`: clean.
+- `npx tsc --noEmit`: clean.
+- `npm test`: **23/23 passed** (18 prior tests + 5 focused registration/content/security tests).
+- `npm run build`: production build passed; all 102 pages/routes generated or compiled.
+- `npm run test:e2e`: **20/20 passed** across desktop Chromium and mobile Chromium.
+- Updated the registration E2E test to accept the now-required Privacy Policy.
+- Live browser verification covered:
+  - pharmacy registration, auto sign-in, and privacy Back-navigation field preservation;
+  - Admin Blog/FAQ/Popup/Product Knowledge creation and sanitized public rendering;
+  - Staff Blog creation permission;
+  - Admin-only Staff Footprint access plus action/date filtering;
+  - social/WhatsApp settings and exact generated links;
+  - SMS absence and Push explanation;
+  - customer popup display/dismissal and mobile widths.
+- Malicious test HTML was verified absent from rendered public markup.
+- Removed all temporary accounts, posts, FAQs, popups, product facts, dynamic registration users, and
+  test-run orders created during this pass. Restored the E2E product to its pre-test stock of 494.
+  Verified zero remaining Codex feature-test content/users and zero SMS preference rows.
+- Final local health check: `GET http://127.0.0.1:3000/api/health` returned healthy with database
+  reachable. The final local production build and embedded PostgreSQL are intentionally left running
+  for manual acceptance testing.
+
+### 11.7 Configuration still required before production deployment
+
+- Enter the real WhatsApp number and Instagram/Facebook/LinkedIn URLs in
+  **Admin Dashboard → Site Content**.
+- Replace/review the starter Privacy Policy and About Us text with company-approved wording.
+- Real web-push notifications are not implemented; the Push preference is presently stored but no
+  provider sends it.
+- After manual acceptance, upload the code and run `npx prisma migrate deploy` on the Ubuntu server.
+  Do not run `prisma migrate reset` and do not run the large development seed in production.
+
+## 12. Local banner, footprint, navigation, and localhost corrections (29 July 2026)
+
+Implemented and verified locally only. The Ubuntu production server has not been changed.
+
+### 12.1 Localhost SSL-console correction
+
+- Traced the repeated `ERR_SSL_PROTOCOL_ERROR` console entries to the production-build CSP applying
+  `upgrade-insecure-requests` while the local preview was served over plain
+  `http://127.0.0.1:3000`.
+- `upgrade-insecure-requests` and HSTS are now enabled only when both the build is production and
+  `NEXT_PUBLIC_APP_URL` is HTTPS. This keeps the protections on the real HTTPS deployment without
+  asking localhost to speak HTTPS.
+- The rebuilt localhost response contains neither HSTS nor `upgrade-insecure-requests`; a fresh
+  browser tab recorded zero console errors.
+
+### 12.2 Business-readable Staff Footprint
+
+- Replaced internal action codes and raw JSON with plain-language descriptions, readable changes,
+  and direct “Review this record” links where a matching Admin page exists.
+- The filter now says “What the staff member did” and lists only friendly labels that actually occur
+  in the selected period.
+- Routine delivery-account updates/deletions, driver assignment, support assignment, and incomplete
+  support-status noise are excluded.
+- Order status events appear only when the order was cancelled.
+- Customer and delivery support work appears as “Support handled” only when the ticket/report is
+  resolved or closed, allowing the administrator to review completed work.
+- Staff summary cards count only these important actions, not hidden operational noise.
+
+### 12.3 YouTube homepage banners
+
+- Added `YOUTUBE` to `BannerMediaType` through additive migration
+  `20260729090000_add_youtube_banner_media`.
+- Admin can now select **YouTube link**, paste a normal watch/share/Shorts/live/embed URL, and see an
+  immediate preview without uploading a video or using an API key.
+- Server validation accepts only HTTPS links from known YouTube hosts, extracts an exact 11-character
+  video ID, and persists a normalized URL. Arbitrary iframe URLs are rejected.
+- Storefront playback uses `youtube-nocookie.com`, is muted/looping/inline, respects reduced-motion
+  autoplay preferences, and does not intercept banner CTA clicks.
+- CSP permits only the standard YouTube and privacy-enhanced YouTube frame origins.
+
+### 12.4 Mobile storefront hamburger
+
+- At phone widths, the header now keeps only the Betolla logo, cart, hamburger button, and full-width
+  search field visible.
+- Products, Bundles, Blog, Contact Us, theme, language, account/orders, sign-in, and sign-out actions
+  are inside the accessible swipeable hamburger drawer.
+- Desktop navigation remains inline and unchanged.
+- Live 390×844 verification measured `clientWidth = 390` and `scrollWidth = 390`, confirming no
+  document-level horizontal overflow.
+
+### 12.5 Verification and cleanup
+
+- Prisma format/client generation passed; all **14 migrations** are applied locally.
+- `npm run lint`: clean.
+- `npx tsc --noEmit --incremental false`: clean.
+- `npm test`: **25/25 passed**.
+- `npm run build`: passed; all 102 application routes/pages compiled.
+- `npx playwright test`: **20/20 passed** across desktop and mobile Chromium.
+- Live browser checks covered the new hamburger, footprint cards/detail/filter language, YouTube
+  selection/preview/save/storefront rendering, local CSP, and a clean fresh-tab console.
+- Removed the temporary YouTube banner, its audit row, the current E2E run's seven orders and dynamic
+  registration account, and earlier placeholder social/WhatsApp test links. Existing catalog and
+  business records were preserved; E2E product stock remains at its pre-pass value of 494.
+- Final local health endpoint reports the application healthy and the database reachable.
+
+## 13. Popup campaign center, page triggers, media, and customer targeting (29 July 2026)
+
+Implemented and verified locally only. The Ubuntu production server has not been changed.
+
+### 13.1 Dedicated multi-campaign administration
+
+- Moved popup management into its own **Admin Dashboard -> Popups** section rather than treating it
+  as one field inside Site Content.
+- Admin can create, edit, schedule, activate/deactivate, and permanently delete multiple independent
+  popup campaigns. The campaign list shows the design, page trigger, audience, and customer filter.
+- Added ten clearly selectable visual starting templates with editable bilingual starter copy:
+  Sale, Announcement, New Product, Welcome, Limited Time, Free Shipping, Loyalty Reward,
+  Back in Stock, Event, and Custom.
+- Added a live English preview so a non-technical administrator can see the selected design and
+  wording before saving it.
+
+### 13.2 Page triggers and uploaded images
+
+- Added a readable **When should it appear?** dropdown with triggers for all storefront pages,
+  homepage, product catalog, product details, cart, checkout, blog, and bundles.
+- A campaign is evaluated against the current storefront route; for example, a Cart campaign does
+  not appear on the homepage.
+- Added an optional campaign image upload. Admin guidance specifies a **16:9** ratio and
+  **1200 x 675 px** preferred size.
+- Popup images reuse the secured upload pipeline: Admin-only authorization, JPEG/PNG/WebP validation,
+  an 8 MB limit, image decoding through Sharp, resizing, conversion to WebP, storage quota
+  enforcement, and old-file cleanup after replacement or campaign deletion.
+- Storefront rendering preserves the image at 16:9 and provides responsive modal sizing and
+  accessible close controls.
+
+### 13.3 Customer type and business-segment targeting
+
+- Added a **Who should see it?** selector:
+  - All visitors and customers;
+  - Individual customers only;
+  - Pharmacies only.
+- Added a **Customer filter** selector:
+  - everyone in the chosen audience;
+  - best 30% by lifetime spending;
+  - lowest 30% by lifetime spending;
+  - new accounts created during the last 30 days;
+  - inactive customers with no order in the last 90 days, excluding brand-new accounts.
+- Top/lowest ranking is calculated only within the selected account type. A pharmacy campaign ranks
+  pharmacies against pharmacies; an individual campaign ranks individual customers against
+  individual customers.
+- Non-basic customer filters require sign-in. The Admin form now explains that anonymous visitors
+  cannot receive a spending/activity-targeted campaign.
+- Eligibility is calculated on the server from authenticated account type and CustomerStats. The
+  browser receives only campaigns that the current visitor is eligible to see, preventing
+  client-side inspection of campaigns intended for another customer group.
+- Customer population ranking is loaded only when a top/lowest-spender campaign needs it; ordinary
+  campaigns use a single-customer lookup.
+
+### 13.4 Database and verification
+
+- Added and applied two additive, non-destructive migrations:
+  `20260729100000_add_popup_targeting_and_images` and
+  `20260729103000_add_popup_audience_targeting`.
+- Prisma client generation and migration deployment passed; **16 migrations** are applied locally.
+- `npm run lint`: clean.
+- `npx tsc --noEmit --incremental false`: clean.
+- `npm test`: **28/28 passed**, including popup validation, route-trigger matching, account-type
+  separation, and customer-segment calculations.
+- `npm run build`: passed; all **103** application routes/pages compiled.
+- `npm run test:e2e`: **21/21 passed** across desktop and mobile Chromium, including the
+  post-build runtime-upload regression.
+- Live browser verification confirmed:
+  - all ten templates and their descriptions are visible;
+  - page, customer-type, and customer-filter dropdowns save and reload correctly;
+  - a Pharmacy/Best-30% Cart campaign is not disclosed to an ineligible Admin session;
+  - restoring the same campaign to Everyone/All makes it appear on the Cart page;
+  - the mobile customer popup has no document-level horizontal overflow at 390 x 844;
+  - its uploaded image frame measures 1.78:1, matching 16:9.
+- Deleted the temporary verification popup and its uploaded WebP after testing. Existing business
+  campaigns and production data were not changed.
+
+### 13.5 Runtime-upload image delivery correction
+
+- Reproduced the customer-reported broken popup image against the production-style local server.
+  The upload itself succeeded and the optimized WebP existed on disk, but a direct request to its
+  `/uploads/popups/<filename>.webp` URL returned `404`.
+- Root cause: Next.js builds its public static-file manifest during `next build`; files uploaded
+  afterward are not automatically discovered by `next start`.
+- Added the dynamic `/uploads/[subfolder]/[filename]` serving route for public runtime uploads.
+  It accepts only the approved public folders (`products`, `avatars`, `reviews`, `banners`, and
+  `popups`), rejects path traversal/unknown folders and unsupported extensions, returns an exact
+  content type with `nosniff`, and uses immutable caching for generated filenames.
+- Popup WebP files are already resized and optimized during upload, so the customer popup now loads
+  them directly rather than sending them through the Next image optimizer a second time.
+- Live verification against the exact previously broken WebP changed its result from
+  `404 text/html` to `200 image/webp` with the full 80,668-byte response. Unknown files and the
+  private `delivery-reports` folder remained `404`.
+- Added a production-build regression test that signs in as the E2E administrator, uploads a PNG
+  after the server has started, confirms the returned WebP URL is immediately readable, and removes
+  both the temporary file and quota row afterward.
+- Browser verification confirmed the popup image renders visually on desktop and mobile, and the
+  375px effective mobile viewport remains free of document-level horizontal overflow.
+
+## 14. Homepage product selection and storefront drawer alignment (29 July 2026)
+
+Implemented and verified locally only. The Ubuntu production server has not been changed by this
+follow-up.
+
+### 14.1 Staff-controlled featured products
+
+- Added an explicit `isFeatured` product field so homepage placement is no longer inferred from
+  review counts.
+- Admin and Staff product create/edit screens now include a bilingual **Feature this product on the
+  homepage** checkbox with guidance that the homepage displays up to eight selected active products.
+- Admin and Staff product tables now show a bilingual Homepage column with direct Featured /
+  Not-featured switches, so merchandising can be changed without opening each edit form.
+- Added a dedicated Admin/Staff-authorized featured-status API. Every list switch update is
+  validated server-side and written to the staff audit trail.
+- The storefront homepage now queries only products that are both active and explicitly featured.
+- Added the non-destructive `20260729130000_add_featured_products` migration. It preserves the
+  existing homepage on deployment by marking the current top eight active products as featured,
+  while new products default to not featured.
+- Product create/update audit records now include featured status so the Admin staff-footprint view
+  retains this important merchandising change.
+
+### 14.2 Hamburger drawer side and accessibility
+
+- Added an explicit logical side option to the shared drawer component.
+- The storefront mobile drawer now opens from the same edge as its hamburger: right in English and
+  left in Arabic. Admin, Staff, Delivery, and Account drawers retain their existing start-edge
+  behavior.
+- Updated swipe-to-close direction to follow the drawer's actual edge in both LTR and RTL.
+- Removed `aria-hidden` from the programmatic close control and kept it out of keyboard tab order,
+  resolving the browser warning caused by focused content under an `aria-hidden` ancestor.
+
+### 14.3 Verification
+
+- Prisma client generation passed and all **17 migrations** are applied locally.
+- `npm run lint`: clean.
+- `npx tsc --noEmit`: clean.
+- `npm test`: **28/28 passed**.
+- `npm run build`: passed; all **103** application routes/pages compiled.
+- Live 444 x 845 browser verification measured:
+  - English hamburger at the right and drawer at `left 156 / right 444`;
+  - Arabic hamburger at the left and drawer at `left 0 / right 288`;
+  - no focused element inside an `aria-hidden` ancestor and no browser warnings;
+  - the bilingual featured-product checkbox on the Admin product form;
+  - the Homepage column and direct Featured / Not-featured switches on the Admin product table;
+  - one product toggled off and back on through the live API, restoring the original eight-card
+    homepage and leaving no test merchandising change behind;
+  - no document-level horizontal overflow on the mobile Admin product table.

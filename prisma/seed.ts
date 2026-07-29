@@ -333,13 +333,12 @@ async function main() {
     const snapshot = `${c.firstName} ${c.lastName}, ${street}, ${area}, ${c.city}, Jordan`;
     addressByCustomer.set(c.id, { id: address.id, snapshot, city: c.city });
 
-    const useCard = Math.random() < 0.4;
     const paymentMethod = await prisma.paymentMethod.create({
       data: {
         userId: c.id,
-        type: useCard ? "MOCK_CARD" : "CASH_ON_DELIVERY",
-        label: useCard ? "Card on file" : "Cash on Delivery",
-        maskedDisplay: useCard ? `**** **** **** ${randInt(1000, 9999)}` : null,
+        type: "CASH_ON_DELIVERY",
+        label: "Cash on Delivery",
+        maskedDisplay: null,
         isDefault: true,
       },
     });

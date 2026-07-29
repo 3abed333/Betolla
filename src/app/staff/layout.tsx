@@ -10,18 +10,18 @@ export default async function StaffLayout({ children }: { children: React.ReactN
   const session = await requireRole("STAFF");
   const [user, unreadNotifications] = await Promise.all([
     prisma.user.findUniqueOrThrow({ where: { id: session.userId }, select: { firstName: true } }),
-    prisma.notification.count({ where: { userId: session.userId, isRead: false } }),
+    prisma.notification.count({ where: { userId: session.userId, channel: "IN_APP", isRead: false } }),
   ]);
   const t = await getTranslations("staff.layout");
 
   return (
     <div className="flex flex-1 flex-col">
-      <header className="flex items-center justify-between border-b border-border px-6 py-4">
+      <header className="flex flex-col items-start gap-3 border-b border-border px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
         <div>
           <p className="text-xs tracking-widest text-ink-muted uppercase">{t("kicker")}</p>
           <h1 className="font-heading text-lg font-semibold text-ink">{t("heading")}</h1>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex w-full flex-wrap items-center justify-between gap-2 sm:w-auto sm:flex-nowrap sm:justify-start sm:gap-4">
           <p className="text-sm text-ink-muted">{t("welcome", { name: user.firstName })}</p>
           <LanguageSwitcher />
           <ThemeToggle />

@@ -17,6 +17,7 @@ export function StaffNav({ unreadNotifications = 0 }: { unreadNotifications?: nu
     { href: "/staff", label: t("dashboard"), exact: true },
     { href: "/staff/orders", label: t("orders") },
     { href: "/staff/products", label: t("products") },
+    { href: "/staff/blogs", label: t("blogs") },
     { href: "/staff/delivery-accounts", label: t("deliveryAccounts") },
     { href: "/staff/support", label: t("support") },
     { href: "/staff/delivery-support", label: t("deliverySupport") },

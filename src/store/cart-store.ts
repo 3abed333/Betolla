@@ -19,6 +19,7 @@ type CartStore = {
   addItem: (item: Omit<CartLineItem, "quantity">, quantity?: number) => void;
   removeItem: (key: string) => void;
   setQuantity: (key: string, quantity: number) => void;
+  replace: (items: CartLineItem[]) => void;
   clear: () => void;
   totalCount: () => number;
   subtotal: () => number;
@@ -49,6 +50,7 @@ export const useCartStore = create<CartStore>()(
               ? state.items.filter((i) => i.key !== key)
               : state.items.map((i) => (i.key === key ? { ...i, quantity } : i)),
         })),
+      replace: (items) => set({ items }),
       clear: () => set({ items: [] }),
       totalCount: () => get().items.reduce((sum, i) => sum + i.quantity, 0),
       subtotal: () => get().items.reduce((sum, i) => sum + i.price * i.quantity, 0),

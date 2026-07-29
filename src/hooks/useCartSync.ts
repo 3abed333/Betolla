@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { useCartStore, type CartLineItem } from "@/store/cart-store";
 import { useCurrentUser } from "./useCurrentUser";
 
-/** Mounted once near the app root. Merges the server cart in on login, then mirrors every
+/** Mounted once near the app root. Loads the account's server cart on login, then mirrors every
  * local cart change to the server (debounced) so logged-in carts are visible server-side
  * for abandoned-cart tracking, without guests ever touching the database. */
 export function useCartSync() {
@@ -19,11 +19,9 @@ export function useCartSync() {
     fetch("/api/cart")
       .then((r) => r.json())
       .then((data: { items: CartLineItem[] }) => {
-        if (!data.items?.length) return;
-        const store = useCartStore.getState();
-        for (const item of data.items) {
-          store.addItem(item, item.quantity);
-        }
+        // The authenticated server cart is authoritative. Replacing prevents quantities from
+        // doubling on remount and prevents a previous account's persisted cart from leaking in.
+        useCartStore.getState().replace(data.items ?? []);
       })
       .catch(() => undefined);
   }, [user]);
@@ -38,7 +36,7 @@ export function useCartSync() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            items: state.items.map((i) => ({ kind: i.kind, id: i.id, price: i.price, quantity: i.quantity })),
+            items: state.items.map((i) => ({ kind: i.kind, id: i.id, quantity: i.quantity })),
           }),
         }).catch(() => undefined);
       }, 800);

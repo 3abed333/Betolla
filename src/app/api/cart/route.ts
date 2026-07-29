@@ -24,7 +24,7 @@ export async function GET() {
     slug: (i.product?.slug ?? i.bundle?.slug)!,
     nameEn: (i.product?.nameEn ?? i.bundle?.nameEn)!,
     nameAr: (i.product?.nameAr ?? i.bundle?.nameAr)!,
-    price: Number(i.priceAtAdd),
+    price: Number(i.product?.price ?? i.bundle?.bundlePrice ?? i.priceAtAdd),
     imageUrl: (i.product?.mainImageUrl ?? i.bundle?.mainImageUrl)!,
     quantity: i.quantity,
   }));
@@ -35,11 +35,10 @@ const syncSchema = z.object({
   items: z.array(
     z.object({
       kind: z.enum(["product", "bundle"]),
-      id: z.string(),
-      price: z.number(),
-      quantity: z.number().int().positive(),
+      id: z.string().min(1).max(64),
+      quantity: z.number().int().min(1).max(99),
     }),
-  ),
+  ).max(100),
 });
 
 // POST: replace this user's server-side cart with the client's current snapshot. A no-op for
@@ -52,24 +51,61 @@ export async function POST(request: NextRequest) {
   const parsed = syncSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: "Invalid cart payload" }, { status: 400 });
 
-  const cart = await prisma.cart.upsert({
-    where: { userId: session.userId },
-    create: { userId: session.userId, status: "ACTIVE", lastActivityAt: new Date() },
-    update: { status: "ACTIVE", lastActivityAt: new Date() },
-  });
-
-  await prisma.cartItem.deleteMany({ where: { cartId: cart.id } });
-  if (parsed.data.items.length > 0) {
-    await prisma.cartItem.createMany({
-      data: parsed.data.items.map((i) => ({
-        cartId: cart.id,
-        productId: i.kind === "product" ? i.id : null,
-        bundleId: i.kind === "bundle" ? i.id : null,
-        quantity: i.quantity,
-        priceAtAdd: i.price,
-      })),
+  const uniqueItems = new Map<string, (typeof parsed.data.items)[number]>();
+  for (const item of parsed.data.items) {
+    const key = `${item.kind}:${item.id}`;
+    const previous = uniqueItems.get(key);
+    uniqueItems.set(key, {
+      ...item,
+      quantity: Math.min(99, (previous?.quantity ?? 0) + item.quantity),
     });
   }
+  const items = [...uniqueItems.values()];
+  const productIds = items.filter((item) => item.kind === "product").map((item) => item.id);
+  const bundleIds = items.filter((item) => item.kind === "bundle").map((item) => item.id);
+
+  const saved = await prisma.$transaction(async (tx) => {
+    const [products, bundles] = await Promise.all([
+      tx.product.findMany({
+        where: { id: { in: productIds }, isActive: true },
+        select: { id: true, price: true },
+      }),
+      tx.productBundle.findMany({
+        where: { id: { in: bundleIds }, isActive: true },
+        select: { id: true, bundlePrice: true },
+      }),
+    ]);
+    if (products.length !== productIds.length || bundles.length !== bundleIds.length) {
+      throw new Error("INVALID_CART_ITEM");
+    }
+    const productPrice = new Map(products.map((product) => [product.id, product.price]));
+    const bundlePrice = new Map(bundles.map((bundle) => [bundle.id, bundle.bundlePrice]));
+    const cart = await tx.cart.upsert({
+      where: { userId: session.userId },
+      create: { userId: session.userId, status: "ACTIVE", lastActivityAt: new Date() },
+      update: { status: "ACTIVE", lastActivityAt: new Date() },
+    });
+    await tx.cartItem.deleteMany({ where: { cartId: cart.id } });
+    if (items.length > 0) {
+      await tx.cartItem.createMany({
+        data: items.map((item) => ({
+          cartId: cart.id,
+          productId: item.kind === "product" ? item.id : null,
+          bundleId: item.kind === "bundle" ? item.id : null,
+          quantity: item.quantity,
+          priceAtAdd:
+            item.kind === "product"
+              ? productPrice.get(item.id)!
+              : bundlePrice.get(item.id)!,
+        })),
+      });
+    }
+    return true;
+  }).catch((error: unknown) => {
+    if (error instanceof Error && error.message === "INVALID_CART_ITEM") return null;
+    throw error;
+  });
+  if (!saved) return NextResponse.json({ error: "A cart item is unavailable" }, { status: 400 });
 
   return NextResponse.json({ ok: true, synced: true });
 }

@@ -1,16 +1,16 @@
 import "server-only";
 import { prisma } from "@/lib/db";
 import type { NotificationCategory, Role } from "@/generated/prisma/client";
+import { logError } from "@/lib/server/logger";
 
 export const DEFAULT_NOTIFICATION_PREFERENCES: {
   category: NotificationCategory;
-  channel: "EMAIL" | "SMS" | "PUSH" | "IN_APP";
+  channel: "EMAIL" | "PUSH" | "IN_APP";
   enabled: boolean;
 }[] = (["ORDER_UPDATES", "PROMOTIONS", "BACK_IN_STOCK", "LOYALTY_AND_WALLET", "SUPPORT"] as NotificationCategory[]).flatMap(
   (category) => [
     { category, channel: "EMAIL" as const, enabled: true },
     { category, channel: "IN_APP" as const, enabled: true },
-    { category, channel: "SMS" as const, enabled: category === "ORDER_UPDATES" },
     { category, channel: "PUSH" as const, enabled: false },
   ],
 );
@@ -27,23 +27,40 @@ export async function notify(params: {
   title: string;
   body: string;
   relatedOrderId?: string;
+  /**
+   * Identifies the logical event this call represents (e.g. "order:123:status:CONFIRMED").
+   * When set, a retried call with the same eventKey is a no-op per channel instead of creating
+   * a duplicate Notification row - see the Notification.eventKey doc comment in schema.prisma.
+   */
+  eventKey?: string;
 }) {
-  const prefs = await prisma.notificationPreference.findMany({
-    where: { userId: params.userId, category: params.category, enabled: true },
-  });
-  if (prefs.length === 0) return;
+  try {
+    const prefs = await prisma.notificationPreference.findMany({
+      where: { userId: params.userId, category: params.category, enabled: true, channel: { not: "SMS" } },
+    });
+    if (prefs.length === 0) return;
 
-  await prisma.notification.createMany({
-    data: prefs.map((p) => ({
+    await prisma.notification.createMany({
+      data: prefs.map((p) => ({
+        userId: params.userId,
+        category: params.category,
+        channel: p.channel,
+        status: "SENT",
+        title: params.title,
+        body: params.body,
+        relatedOrderId: params.relatedOrderId,
+        eventKey: params.eventKey,
+      })),
+      skipDuplicates: true,
+    });
+  } catch (error) {
+    logError("notification_failed", error, {
       userId: params.userId,
       category: params.category,
-      channel: p.channel,
-      status: "SENT",
-      title: params.title,
-      body: params.body,
-      relatedOrderId: params.relatedOrderId,
-    })),
-  });
+      hasRelatedOrder: Boolean(params.relatedOrderId),
+    });
+    throw error;
+  }
 }
 
 /**
@@ -53,7 +70,13 @@ export async function notify(params: {
  */
 export async function notifyRoles(
   roles: Role[],
-  params: { category: NotificationCategory; title: string; body: string; relatedOrderId?: string },
+  params: {
+    category: NotificationCategory;
+    title: string;
+    body: string;
+    relatedOrderId?: string;
+    eventKey?: string;
+  },
 ) {
   const recipients = await prisma.user.findMany({
     where: { role: { in: roles }, isActive: true },
@@ -74,7 +97,6 @@ export function buildDefaultPreferences(categories: NotificationCategory[]) {
   return categories.flatMap((category) => [
     { category, channel: "EMAIL" as const, enabled: true },
     { category, channel: "IN_APP" as const, enabled: true },
-    { category, channel: "SMS" as const, enabled: false },
     { category, channel: "PUSH" as const, enabled: false },
   ]);
 }

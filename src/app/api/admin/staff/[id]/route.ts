@@ -32,6 +32,12 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     },
     select: { id: true, email: true, username: true, firstName: true, lastName: true, phone: true, isActive: true, createdAt: true },
   });
+  if (isActive === false) {
+    await prisma.session.updateMany({
+      where: { userId: id, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+  }
 
   await logActivity({
     actorId: session.userId,
@@ -51,22 +57,44 @@ export async function DELETE(_request: NextRequest, { params }: { params: Promis
   if (session instanceof NextResponse) return session;
   const { id } = await params;
 
-  const staffMember = await prisma.user.findUnique({ where: { id } });
+  const staffMember = await prisma.user.findUnique({
+    where: { id },
+    include: {
+      _count: {
+        select: {
+          activityLogs: true,
+          supportMessages: true,
+          deliveryAssignments: true,
+          deliveryReports: true,
+          orders: true,
+        },
+      },
+    },
+  });
   if (!staffMember || staffMember.role !== "STAFF") {
     return NextResponse.json({ error: "Staff account not found" }, { status: 404 });
   }
 
-  // Soft delete (deactivate) rather than hard delete, since staff may be referenced from
-  // ActivityLog/OrderStatusHistory/etc. and we want to keep that historical trail intact.
-  await prisma.user.update({ where: { id }, data: { isActive: false } });
+  const hasOperationalHistory = Object.values(staffMember._count).some((count) => count > 0);
+  if (hasOperationalHistory) {
+    return NextResponse.json(
+      { error: "This staff account has recorded activity and cannot be permanently deleted. Deactivate it instead." },
+      { status: 409 },
+    );
+  }
 
-  await logActivity({
-    actorId: session.userId,
-    actorRole: session.role,
-    action: "STAFF_DELETE",
-    entityType: "User",
-    entityId: id,
-    beforeData: { email: staffMember.email },
+  await prisma.$transaction(async (tx) => {
+    await tx.activityLog.create({
+      data: {
+        actorId: session.userId,
+        actorRole: session.role,
+        action: "STAFF_DELETE",
+        entityType: "User",
+        entityId: id,
+        beforeData: { email: staffMember.email },
+      },
+    });
+    await tx.user.delete({ where: { id } });
   });
 
   return NextResponse.json({ ok: true });

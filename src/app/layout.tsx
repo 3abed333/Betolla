@@ -5,7 +5,6 @@ import { getLocale, getMessages } from "next-intl/server";
 import { cookies } from "next/headers";
 import { dirForLocale, type AppLocale } from "@/i18n/config";
 import { THEME_COOKIE } from "@/lib/theme/config";
-import { themeInlineScript } from "@/lib/theme/inline-script";
 import { Toaster } from "@/components/Toaster";
 import { QueryProvider } from "@/components/QueryProvider";
 import "./globals.css";
@@ -47,13 +46,10 @@ export default async function RootLayout({
       lang={locale}
       dir={dirForLocale(locale)}
       className={`${playfair.variable} ${inter.variable} ${cairo.variable} h-full antialiased ${isDark ? "dark" : ""}`}
-      // The inline theme script (next, in <body>) mutates this class before React hydrates,
-      // to resolve "system" preference without a flash - that intentional mismatch is exactly
-      // what this suppresses; every other attribute is still checked normally.
+      // Theme/locale are rendered from cookies; suppress extension-injected root attributes.
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col bg-surface text-ink font-sans">
-        <script dangerouslySetInnerHTML={{ __html: themeInlineScript }} />
         <NextIntlClientProvider messages={messages}>
           <QueryProvider>
             {children}

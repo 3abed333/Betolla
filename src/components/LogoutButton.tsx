@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui";
+import { useCartStore } from "@/store/cart-store";
 
 export function LogoutButton() {
   const router = useRouter();
@@ -13,6 +14,7 @@ export function LogoutButton() {
   function logout() {
     startTransition(async () => {
       await fetch("/api/auth/logout", { method: "POST" });
+      useCartStore.getState().clear();
       router.push("/login");
       router.refresh();
     });

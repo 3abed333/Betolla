@@ -8,7 +8,9 @@ export async function GET() {
   const session = await getCurrentSession();
   if (!session) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
-  const preferences = await prisma.notificationPreference.findMany({ where: { userId: session.userId } });
+  const preferences = await prisma.notificationPreference.findMany({
+    where: { userId: session.userId, channel: { not: "SMS" } },
+  });
   return NextResponse.json({ preferences });
 }
 
