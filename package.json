@@ -75,10 +75,11 @@
     "@parcel/watcher@2.6.0": true,
     "@prisma/engines@7.9.0": true,
     "@swc/core@1.15.46": true,
-    "sharp@0.34.5": true,
+    "sharp@0.34.4": true,
     "prisma@7.9.0": true,
     "unrs-resolver@1.12.2": true,
     "esbuild@0.28.1": true,
-    "@embedded-postgres/windows-x64@18.4.0-beta.17": true
+    "@embedded-postgres/windows-x64@18.4.0-beta.17": true,
+    "@embedded-postgres/linux-x64@18.4.0-beta.17": true
   }
 }
