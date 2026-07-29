@@ -350,6 +350,7 @@ model Product {
   category          Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   mainImageUrl      String
   isActive          Boolean  @default(true)
+  isFeatured        Boolean  @default(false)
   avgRating         Decimal  @default(0) @db.Decimal(2, 1)
   reviewCount       Int      @default(0)
 
@@ -366,6 +367,7 @@ model Product {
   knowledge             ProductKnowledge?
 
   @@index([categoryId])
+  @@index([isFeatured, isActive])
 }
 
 model ProductKnowledge {

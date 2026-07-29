@@ -41,6 +41,7 @@ export async function createProduct(input: ProductInput) {
       categoryId: input.categoryId,
       mainImageUrl: input.mainImageUrl,
       isActive: input.isActive,
+      isFeatured: input.isFeatured,
       images: { create: input.galleryUrls.map((url, i) => ({ url, sortOrder: i })) },
       knowledge: hasKnowledge
         ? {
@@ -85,6 +86,7 @@ export async function updateProduct(id: string, input: ProductInput) {
         categoryId: input.categoryId,
         mainImageUrl: input.mainImageUrl,
         isActive: input.isActive,
+        isFeatured: input.isFeatured,
         images: { create: input.galleryUrls.map((url, i) => ({ url, sortOrder: i })) },
       },
     });

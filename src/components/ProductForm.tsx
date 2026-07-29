@@ -23,6 +23,7 @@ export type ProductFormValues = {
   mainImageUrl: string;
   galleryUrls: string[];
   isActive: boolean;
+  isFeatured: boolean;
   knowledgeHtmlEn: string;
   knowledgeHtmlAr: string;
   knowledgeActive: boolean;
@@ -42,6 +43,7 @@ const EMPTY: ProductFormValues = {
   mainImageUrl: "",
   galleryUrls: [],
   isActive: true,
+  isFeatured: false,
   knowledgeHtmlEn: "",
   knowledgeHtmlAr: "",
   knowledgeActive: false,
@@ -88,6 +90,7 @@ export function ProductForm({
       mainImageUrl: values.mainImageUrl,
       galleryUrls: values.galleryUrls,
       isActive: values.isActive,
+      isFeatured: values.isFeatured,
       knowledgeHtmlEn: values.knowledgeHtmlEn,
       knowledgeHtmlAr: values.knowledgeHtmlAr,
       knowledgeActive: values.knowledgeActive,
@@ -177,6 +180,19 @@ export function ProductForm({
         <Checkbox checked={values.isActive} onCheckedChange={(c) => set("isActive", c === true)} />
         {t("activeCheckbox")}
       </label>
+
+      <section className="rounded-xl border border-border bg-surface-secondary p-4">
+        <label className="flex items-start gap-3 text-sm text-ink">
+          <Checkbox
+            checked={values.isFeatured}
+            onCheckedChange={(checked) => set("isFeatured", checked === true)}
+          />
+          <span>
+            <span className="block font-medium">{t("featuredCheckbox")}</span>
+            <span className="mt-1 block text-xs text-ink-muted">{t("featuredHint")}</span>
+          </span>
+        </label>
+      </section>
 
       <section className="rounded-xl border border-border bg-surface-secondary p-4">
         <div className="mb-4">

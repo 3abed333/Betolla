@@ -27,8 +27,15 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       action: "PRODUCT_UPDATE",
       entityType: "Product",
       entityId: id,
-      beforeData: before ? { price: before.price.toString(), stock: before.stock, isActive: before.isActive } : undefined,
-      afterData: { price: product.price.toString(), stock: product.stock, isActive: product.isActive },
+      beforeData: before
+        ? { price: before.price.toString(), stock: before.stock, isActive: before.isActive, isFeatured: before.isFeatured }
+        : undefined,
+      afterData: {
+        price: product.price.toString(),
+        stock: product.stock,
+        isActive: product.isActive,
+        isFeatured: product.isFeatured,
+      },
     });
     const knowledgeAction =
       !before?.knowledge && product.knowledge

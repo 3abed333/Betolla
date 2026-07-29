@@ -12,8 +12,8 @@ const SWIPE_CLOSE_THRESHOLD_PX = 60;
 
 export const DrawerContent = forwardRef<
   React.ComponentRef<typeof DialogPrimitive.Content>,
-  ComponentProps<typeof DialogPrimitive.Content> & { title: string }
->(({ className, children, title, onTouchStart, onTouchEnd, ...props }, ref) => {
+  ComponentProps<typeof DialogPrimitive.Content> & { title: string; side?: "start" | "end" }
+>(({ className, children, title, side = "start", onTouchStart, onTouchEnd, ...props }, ref) => {
   const closeRef = useRef<HTMLButtonElement>(null);
   const touchStartX = useRef<number | null>(null);
 
@@ -25,10 +25,11 @@ export const DrawerContent = forwardRef<
   function handleTouchEnd(e: React.TouchEvent<HTMLDivElement>) {
     if (touchStartX.current != null) {
       const deltaX = e.changedTouches[0].clientX - touchStartX.current;
-      // The drawer is anchored to the "start" edge (left in LTR, right in RTL) - a swipe toward
-      // that same edge closes it, so the sign to check flips with direction.
       const isRtl = document.documentElement.dir === "rtl";
-      const swipedTowardEdge = isRtl ? deltaX > SWIPE_CLOSE_THRESHOLD_PX : deltaX < -SWIPE_CLOSE_THRESHOLD_PX;
+      const anchoredRight = side === "start" ? isRtl : !isRtl;
+      const swipedTowardEdge = anchoredRight
+        ? deltaX > SWIPE_CLOSE_THRESHOLD_PX
+        : deltaX < -SWIPE_CLOSE_THRESHOLD_PX;
       if (swipedTowardEdge) closeRef.current?.click();
     }
     touchStartX.current = null;
@@ -43,15 +44,19 @@ export const DrawerContent = forwardRef<
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
         className={cn(
-          "fixed inset-y-0 start-0 z-50 h-full w-72 max-w-[80vw] overflow-y-auto border-e border-border bg-surface p-6 shadow-xl transition-transform duration-300 ease-in-out focus:outline-none",
-          "data-[state=closed]:-translate-x-full data-[state=open]:translate-x-0",
-          "rtl:data-[state=closed]:translate-x-full",
+          "fixed inset-y-0 z-50 h-full w-72 max-w-[80vw] overflow-y-auto bg-surface p-6 shadow-xl transition-transform duration-300 ease-in-out focus:outline-none",
+          "data-[state=open]:translate-x-0",
+          side === "start"
+            ? "start-0 border-e border-border data-[state=closed]:-translate-x-full rtl:data-[state=closed]:translate-x-full"
+            : "end-0 border-s border-border data-[state=closed]:translate-x-full rtl:data-[state=closed]:-translate-x-full",
           className,
         )}
         {...props}
       >
         <DialogPrimitive.Title className="sr-only">{title}</DialogPrimitive.Title>
-        <DialogPrimitive.Close ref={closeRef} className="sr-only" aria-hidden />
+        <DialogPrimitive.Close ref={closeRef} className="sr-only" tabIndex={-1}>
+          Close
+        </DialogPrimitive.Close>
         {children}
       </DialogPrimitive.Content>
     </DialogPrimitive.Portal>

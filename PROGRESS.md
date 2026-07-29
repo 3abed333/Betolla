@@ -3423,3 +3423,52 @@ Implemented and verified locally only. The Ubuntu production server has not been
   both the temporary file and quota row afterward.
 - Browser verification confirmed the popup image renders visually on desktop and mobile, and the
   375px effective mobile viewport remains free of document-level horizontal overflow.
+
+## 14. Homepage product selection and storefront drawer alignment (29 July 2026)
+
+Implemented and verified locally only. The Ubuntu production server has not been changed by this
+follow-up.
+
+### 14.1 Staff-controlled featured products
+
+- Added an explicit `isFeatured` product field so homepage placement is no longer inferred from
+  review counts.
+- Admin and Staff product create/edit screens now include a bilingual **Feature this product on the
+  homepage** checkbox with guidance that the homepage displays up to eight selected active products.
+- Admin and Staff product tables now show a bilingual Homepage column with direct Featured /
+  Not-featured switches, so merchandising can be changed without opening each edit form.
+- Added a dedicated Admin/Staff-authorized featured-status API. Every list switch update is
+  validated server-side and written to the staff audit trail.
+- The storefront homepage now queries only products that are both active and explicitly featured.
+- Added the non-destructive `20260729130000_add_featured_products` migration. It preserves the
+  existing homepage on deployment by marking the current top eight active products as featured,
+  while new products default to not featured.
+- Product create/update audit records now include featured status so the Admin staff-footprint view
+  retains this important merchandising change.
+
+### 14.2 Hamburger drawer side and accessibility
+
+- Added an explicit logical side option to the shared drawer component.
+- The storefront mobile drawer now opens from the same edge as its hamburger: right in English and
+  left in Arabic. Admin, Staff, Delivery, and Account drawers retain their existing start-edge
+  behavior.
+- Updated swipe-to-close direction to follow the drawer's actual edge in both LTR and RTL.
+- Removed `aria-hidden` from the programmatic close control and kept it out of keyboard tab order,
+  resolving the browser warning caused by focused content under an `aria-hidden` ancestor.
+
+### 14.3 Verification
+
+- Prisma client generation passed and all **17 migrations** are applied locally.
+- `npm run lint`: clean.
+- `npx tsc --noEmit`: clean.
+- `npm test`: **28/28 passed**.
+- `npm run build`: passed; all **103** application routes/pages compiled.
+- Live 444 x 845 browser verification measured:
+  - English hamburger at the right and drawer at `left 156 / right 444`;
+  - Arabic hamburger at the left and drawer at `left 0 / right 288`;
+  - no focused element inside an `aria-hidden` ancestor and no browser warnings;
+  - the bilingual featured-product checkbox on the Admin product form;
+  - the Homepage column and direct Featured / Not-featured switches on the Admin product table;
+  - one product toggled off and back on through the live API, restoring the original eight-card
+    homepage and leaving no test merchandising change behind;
+  - no document-level horizontal overflow on the mobile Admin product table.

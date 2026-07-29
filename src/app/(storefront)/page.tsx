@@ -24,8 +24,8 @@ export default async function HomePage() {
     }),
     prisma.category.findMany({ where: { isActive: true }, orderBy: { sortOrder: "asc" } }),
     prisma.product.findMany({
-      where: { isActive: true },
-      orderBy: [{ reviewCount: "desc" }, { createdAt: "desc" }],
+      where: { isActive: true, isFeatured: true },
+      orderBy: { createdAt: "desc" },
       take: 8,
     }),
   ]);

@@ -9,6 +9,7 @@ import { localizedField } from "@/lib/localizedField";
 import type { AppLocale } from "@/i18n/config";
 import { isLowStock } from "@/lib/server/services/inventory";
 import { ProductRowActions } from "@/components/products/ProductRowActions";
+import { ProductFeaturedToggle } from "@/components/products/ProductFeaturedToggle";
 
 export const metadata: Metadata = { title: "Products - Betolla Admin" };
 
@@ -49,6 +50,7 @@ export default async function AdminProductsPage({
             <TableHead>{t("headers.category")}</TableHead>
             <TableHead>{t("headers.price")}</TableHead>
             <TableHead>{t("headers.stock")}</TableHead>
+            <TableHead>{t("headers.homepage")}</TableHead>
             <TableHead>{t("headers.status")}</TableHead>
             <TableHead>{t("headers.actions")}</TableHead>
           </TableRow>
@@ -81,6 +83,13 @@ export default async function AdminProductsPage({
                     {product.stock === 0 ? t("outOfStock") : t("low")}
                   </Badge>
                 )}
+              </TableCell>
+              <TableCell>
+                <ProductFeaturedToggle
+                  productId={product.id}
+                  productName={productName}
+                  initialFeatured={product.isFeatured}
+                />
               </TableCell>
               <TableCell>
                 <Badge variant={product.isActive ? "success" : "neutral"}>

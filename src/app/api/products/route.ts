@@ -23,7 +23,12 @@ export async function POST(request: NextRequest) {
       action: "PRODUCT_CREATE",
       entityType: "Product",
       entityId: product.id,
-      afterData: { sku: product.sku, nameEn: product.nameEn, price: product.price.toString() },
+      afterData: {
+        sku: product.sku,
+        nameEn: product.nameEn,
+        price: product.price.toString(),
+        isFeatured: product.isFeatured,
+      },
     });
     if (product.knowledge) {
       await logActivity({

@@ -115,7 +115,7 @@ export function StorefrontHeader({ whatsapp }: { whatsapp: string | null }) {
                   <MenuIcon />
                 </button>
               </DrawerTrigger>
-              <DrawerContent title={t("menuTitle")}>
+              <DrawerContent title={t("menuTitle")} side="end">
                 <Link href="/" onClick={() => setMobileMenuOpen(false)} className="font-heading text-2xl font-semibold text-ink">
                   Betolla
                 </Link>
