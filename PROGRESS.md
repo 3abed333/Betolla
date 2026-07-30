@@ -3647,3 +3647,152 @@ follow-up.
 - Each tap switches immediately between Light and Gold Dark; the label and sun/star icon always
   show the active mode.
 - Admin, Staff and Delivery retain their three-option Light/Gold Dark/Dark selector.
+
+---
+
+## 16. Local repository resync from production server (30 July 2026)
+
+### 16.1 Problem
+
+- The developer's local checkout was on `master` (`8d4c530`, matching `origin/master` exactly), but
+  the deployed production VPS (`root@37.27.81.135:/var/www/betolla`) was running meaningfully newer
+  code. Production was never a git checkout — it was updated by direct file copy/edit on the server,
+  and none of that work was ever committed or pushed back to GitHub.
+- Symptom: local `npm run dev` showed broken product/category images (`/catalog/product-XX.webp`
+  404s) and an older storefront UI (stale "View Details" pill, old logo), while the live site
+  rendered correctly.
+
+### 16.2 Root cause
+
+- Local database rows (categories, products) referenced `/catalog/...` and `/brand/...` image
+  paths that only ever existed in production's `public/` folder — never committed, never present
+  locally.
+- Local source files were behind: `ProductCard.tsx`, `HeroCarousel.tsx`, `StorefrontHeader.tsx`,
+  `StorefrontFooter.tsx`, checkout/theme/notification code, and 40+ other files had newer
+  production versions never merged back.
+- A full production migration, `20260729153000_add_gold_theme_and_gift_orders`, existed only on the
+  server's `prisma/migrations/` folder (though the local database itself had already received this
+  migration's schema changes from an earlier session — only the migration file and generated
+  Prisma client were out of sync, not the actual live schema).
+
+### 16.3 Fix
+
+- Archived the full production codebase over SSH (`tar` excluding nothing, ~496 MB, 73k files) and
+  extracted it to a scratch folder for comparison — production is not a git repo, so this was a
+  file-level, not a git-level, sync.
+- Diffed against the local working tree and copied every differing/new file into place via
+  `robocopy`, explicitly excluding `.env`, `.git`, and `node_modules` so local secrets and the local
+  dev database connection were never touched.
+- Ran `npm install`, `npx prisma generate`, and confirmed the copied
+  `20260729153000_add_gold_theme_and_gift_orders` migration was already recorded as applied in the
+  local database (`_prisma_migrations`, finished 2026-07-29T15:41:59Z) — no destructive reset was
+  needed or performed.
+- Hit a Windows-only `prisma migrate dev` shadow-database failure: the local Postgres instance's
+  `template1`/`template0` were initialized as `WIN1252`, so Prisma's throwaway shadow database
+  inherited that encoding and rejected Arabic (`UTF8`) content from an earlier migration. Worked
+  around it by manually creating a UTF8 shadow database and temporarily pointing
+  `shadowDatabaseUrl` at it in `prisma.config.ts`; reverted that config change once the check
+  passed since the real database was never at risk (only the disposable shadow DB creation step
+  was affected).
+- Verified the fix live: started the dev server, confirmed `GET /_next/image?url=%2Fcatalog%2F...`
+  returned `200 OK`, and confirmed homepage/product content matched the live site.
+- Committed the sync as one checkpoint (`a8e4d29`, 128 files changed) and pushed to `origin/master`.
+  `public/catalog` (74 images) and `public/brand` (2 logo files) are now committed to the repo,
+  along with the previously-missing migration folder and all newer source files.
+
+### 16.4 Standing risk this exposed
+
+- Production being updated by direct server edits instead of `git push` + deploy is the actual root
+  cause and will recur unless deployment moves to a git-based flow (push to GitHub → pull/deploy on
+  the server, or a CI-driven deploy). This resync fixed the immediate divergence but did not change
+  the underlying deployment process.
+
+---
+
+## 17. Full manual QA pass across every role (30 July 2026)
+
+### 17.1 Scope
+
+- Full end-to-end manual QA of the resynced local build: guest storefront, registration/login/
+  sessions, cart/checkout including gift orders and idempotency, the full customer account area,
+  Admin (all 20 sections), Staff, and Delivery dashboards, plus cross-role permission boundaries.
+- Real test accounts, orders, products, a bundle, a blog post, an FAQ, and a popup campaign were
+  created to exercise create/edit/delete flows end-to-end, then removed afterward (§17.4).
+- Local Postgres/dev server only; production was never touched.
+
+### 17.2 Confirmed working correctly
+
+- Guest storefront: home, catalog, search (`?q=`), category filters, product detail/gallery/learn
+  page, RTL Arabic layout, mobile drawer anchoring to the correct edge per locale, footer links.
+- Registration (individual + pharmacy), duplicate-email rejection (generic 409), login/logout,
+  session list with correct self-exclusion on the revoke control.
+- Cart, saved/new address checkout, `WELCOME10` promo code (percentage math, per-user limit
+  correctly blocks reuse, usage record correctly written and correctly released on cancellation),
+  store-credit redemption (capped at subtotal), gift checkout (all 5 occasions, recipient/message
+  persisted and displayed), zero-total COD order edge case, and true double-submit idempotency
+  (verified live: 3 concurrent submits → 1 order, 1 stock decrement).
+- Order cancellation (confirmation dialog, inventory correctly restored), reorder/return/review
+  entry points, full order lifecycle Admin↔Delivery (Confirmed → driver assignment gate → Picked Up
+  → En Route → Delivered), COD-completion cascade (payment marked paid, loyalty points credited,
+  `CustomerStats` updated, cash appears in driver's Collections) — all verified against the database,
+  not just the UI.
+- Admin: product/bundle/blog/FAQ/popup create+publish verified live on the storefront, image upload
+  pipeline (real Sharp/WebP processing, random filenames), homepage-featured toggle, staff account
+  creation (one-time temp password), customer store-credit ledger, support ticket reply, delivery
+  report filing, return approve→receive→refund-to-store-credit (full ledger + status history),
+  review moderation (publish → rating aggregate updates), RFM recalculation.
+- Staff: correctly forced through `/change-password` on temp-password first login; server-side (not
+  just nav-hidden) 302/403 on all 12 admin-only pages and 3 sampled admin-only APIs; can manage
+  Delivery accounts; delete correctly blocked (409) for a driver with operational history and
+  succeeds for one without.
+- Delivery: assignment ownership enforced (`assertOwnership` — non-owner redirected, Admin/Staff
+  exempted), full status workflow, blocked from `/admin` and `/staff`.
+
+### 17.3 Bugs found (not fixed — reported to the user with file:line references)
+
+1. **Notification text is never localized** (highest-impact finding) — 12+ call sites in
+   `src/lib/server/services/{orders,checkout}.ts` and `notifications.ts` hardcode English
+   `title`/`body` strings at creation time instead of translation keys. Every in-app notification
+   (order placed/confirmed/shipped/delivered/cancelled, loyalty earned, low stock, etc.) is English
+   for every customer regardless of locale.
+2. **Order item names are English-only on 4 of 6 display surfaces** — checkout confirmation
+   (`checkout/confirmation/[orderId]/page.tsx:53`), Staff order detail, Delivery assignment detail,
+   and Admin returns all read the raw `OrderItem.nameSnapshot` (hardcoded to `product.nameEn` at
+   order time in `checkout.ts:102`) instead of the locale-aware `product.nameEn`/`nameAr` fallback
+   that the Customer account and Admin order-detail pages correctly use.
+3. **Price precision loss**: `Product.price`/`compareAtPrice`/`bundlePrice` etc. are
+   `@db.Decimal(10, 2)` (schema.prisma:346-347 and 4 other fields) — only 2 decimal places — while
+   every price in the UI displays 3-decimal JD/fils. A price entered as 9.999 silently rounds to
+   10.000 JD, both in the admin form and on the storefront. Reproduced live end-to-end.
+4. **`mustChangePassword` gate fully logs the user out instead of redirecting to
+   `/change-password`** (`src/lib/auth/session.ts:70`) — any page/API that doesn't pass
+   `allowPasswordChangeRequired: true` treats a pending-password-change session as fully
+   unauthenticated, so navigating anywhere else during that flow drops the user to the sign-in
+   screen with no explanation, even though their session row is still technically valid.
+5. **Minor**: `AddToWishlistButton.tsx:28` hardcodes the post-login redirect to `/products` instead
+   of the current product page, so a guest who tries to wishlist a specific item loses that context
+   after signing in.
+6. **Minor/cosmetic**: several `aria-label`s stay English in Arabic mode (`Cart`, `Previous/Next
+   slide`, the hidden drawer close button) and several page `<title>` tags aren't localized/don't
+   reflect the specific page (e.g. the product `/learn` page, `/account/orders`, `/admin/returns`).
+
+### 17.4 Test-data cleanup
+
+- Deleted, in FK-safe order (Orders → Popup/Blog/FAQ → Bundle → Product → Delivery report → Users):
+  4 test orders, 1 popup campaign, 1 blog post, 1 FAQ, 1 bundle, 1 product, 1 delivery report, and 3
+  test accounts (customer, pharmacy, staff) — plus their two uploaded image files on disk. Verified
+  clean afterward (0 remaining `qatest*` rows, 67 real products intact, real seed/driver data
+  untouched) and confirmed the storefront/admin still render correctly with no orphaned references.
+- **Found but deliberately not touched** (predates this session, flagged for the user to decide):
+  several leftover E2E/Codex test accounts already in the local database — Staff: `E2E Staff`,
+  `QaAdmin AuditStaff`, `Codex Audit` ×2 (already inactive); Delivery: `E2E Delivery`,
+  `qatest.driver.staffaudit@betolla.com`, `qa.test.driver@betolla-test.local`; Customers: 7
+  `e2e-*@betolla.test` accounts. None of these were created by this QA pass.
+
+### 17.5 Verification method
+
+- Every claim above was checked against the running app (console errors, network requests, actual
+  page content) and cross-verified directly against the local Postgres database — not inferred from
+  UI appearance alone. Screenshots were not available this session (the Browser pane was not
+  displayed on the user's side), so verification relied on `get_page_text`, `read_console_messages`,
+  `read_network_requests`, and direct SQL checks instead.
