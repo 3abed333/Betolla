@@ -3472,3 +3472,178 @@ follow-up.
   - one product toggled off and back on through the live API, restoring the original eight-card
     homepage and leaving no test merchandising change behind;
   - no document-level horizontal overflow on the mobile Admin product table.
+
+### 14.4 Complete feature and system documentation
+
+- Replaced the outdated `FEATURES.md` with a current implementation reference covering the public
+  storefront, individual/pharmacy accounts, all four authorization roles, permission matrix,
+  checkout/inventory/order workflows, Admin/Staff/Delivery capabilities, analytics, notifications,
+  all database models, security controls, uploads, mobile/i18n/accessibility, production
+  architecture, testing, operational responsibilities, and explicitly unimplemented features.
+- Removed obsolete documentation claims about Visa/mock-card checkout, SMS delivery, address maps,
+  and delivery maps.
+- Verified Markdown whitespace, UTF-8 content, and coverage of all 46 Prisma database models.
+
+## 15. Supplied catalog, official branding, gold mode, gifts, and drawer motion (29 July 2026)
+
+### 15.1 Supplied catalog replacement
+
+- Extracted and reviewed the supplied product-image archive and Word description document.
+- Added 74 optimized WebP assets under `public/catalog`.
+- Added the controlled `npm run catalog:replace` importer. It replaces catalog/order-dependent local
+  data transactionally while preserving accounts, settings, content, and authentication data.
+- Replaced the demo catalog with 67 supplied products in six categories:
+  - Argan Hair Care (7);
+  - Beto Contact Lenses (22);
+  - Electrical Styling Tools (3);
+  - Morphosis Professional (18);
+  - Plasma Hair Care (6);
+  - Professional Hair Proteins (11).
+- Imported every documented description and mapped each product to its intended supplied image.
+- Kept 15 products without a confirmed supplier price inactive with zero stock rather than
+  inventing commercial data. Fifty-two products are active and ten are homepage-featured.
+- Final integrity check: 6 categories, 67 products, 52 active, 10 featured, 0 old/test orders, and
+  zero product image URLs outside `/catalog/`.
+
+### 15.2 Official brand and gold mode
+
+- Added the supplied Betolla Cosmetics logo under `public/brand` and used it in the storefront,
+  footer, customer-account header, and Admin/Staff/Delivery headers.
+- Added a square browser/app icon derived from the official Betolla tree-and-B emblem.
+- Added a Gold color mode based on the supplied cream `#f4e5d0` and gold `#9e8959` palette.
+- Gold is available alongside Light and Dark in the shared color-mode selector and persists for
+  guests and signed-in accounts.
+
+### 15.3 Gift orders
+
+- Added the additive `20260729153000_add_gold_theme_and_gift_orders` migration.
+- Checkout can mark an order as a gift and record a supported occasion, optional recipient name,
+  and optional 500-character message.
+- Added responsive celebratory checkout styling with sparkle/heart decoration.
+- Gift status and details appear on confirmation, customer order detail, Admin order list/detail,
+  and Staff order list/detail.
+- Server validation bounds all gift fields, requires a supported occasion when enabled, and stores
+  gift information within the existing transactional/idempotent checkout flow.
+
+### 15.4 Mobile drawer animation and accessibility
+
+- Added overlay fade and directional drawer open/close animations.
+- Animation follows the selected physical drawer edge and respects reduced-motion preferences.
+- Fixed the gift-message textarea so its visible label is programmatically associated with the
+  control.
+
+### 15.5 Verification
+
+- Prisma migration applied and client generation passed; all 18 migrations are current locally.
+- `npm run lint`: clean.
+- `npx tsc --noEmit --incremental false`: clean.
+- `npm test`: 29/29 passed.
+- `npm run build`: passed; all 104 application routes/pages compiled.
+- Complete Playwright regression: 23/23 passed.
+- Gift checkout passed on desktop and mobile, including confirmation rendering and direct
+  PostgreSQL verification of occasion, recipient, and message.
+- Final catalog replacement was rerun after browser tests so temporary E2E orders/catalog fixtures
+  are not present in the handoff database.
+
+### 15.6 Product slider, logo, facts, and dark-gold follow-up
+
+- Replaced the four remaining demo slider records with supplied-product banners for Argan Hydro,
+  Morphosis Repair, the complete Plasma routine, and Beto Meral Gray lenses.
+- Each banner CTA links to its exact active product page. The importer verifies those destinations
+  exist before handoff.
+- Updated image banners to use a softly blurred full-bleed copy behind an uncropped `object-contain`
+  product image. Desktop uses an 8:3 frame and mobile uses 4:3, preventing portrait/square supplier
+  product photos from being cut.
+- Replaced the whitespace-heavy source logo in UI usage with a tightly framed transparent logo and
+  increased the storefront navigation/footer sizes.
+- Reworked Gold into **Gold Dark** using dark brown `#160f02`, cream `#f4e5d0`, gold `#9e8959`,
+  and white, while keeping the logo visible against the dark surface.
+- Fixed the product gallery duplicate-key error by deduplicating the display array, using stable
+  URL/index keys, and no longer inserting the main image again as its own gallery record.
+- Expanded bilingual product facts for all 67 supplied products using only available descriptions
+  and category-specific safe-use information; no unsupported product claims were invented.
+- Direct database verification: 4 banners, 67 active ProductKnowledge records, zero active products
+  without facts, zero duplicate gallery URLs, and zero missing banner destinations.
+- Focused production-browser verification passed for the clean logo, banner CTA navigation,
+  product gallery console, Know More headings, Gold Dark computed palette, and mobile 4:3 slider.
+
+### 15.7 Shared local-development issue-overlay fix
+
+- Traced the repeated Next.js issue badge across Admin, Staff, Delivery, and Customer accounts to
+  one shared development-only failure: Next.js rejected the hot-reload WebSocket when the site was
+  opened through `127.0.0.1` because the dev server initialized itself as `localhost`.
+- Added only the loopback host `127.0.0.1` to `allowedDevOrigins` in `next.config.ts`, following the
+  installed Next.js 16 documentation. This does not broaden production origins.
+- Cleared only the generated `.next` cache and restarted the local development server.
+- Re-tested all four account roles in Arabic at a 390 × 844 mobile viewport, including opening and
+  closing each role's navigation drawer: zero console warnings, console errors, or page errors.
+- Confirmed `/api/health` returns healthy and the local database remains reachable.
+
+### 15.8 Gift checkout experience redesign
+
+- Replaced the small generic gift checkbox panel with a large responsive gift experience.
+- The inactive card now displays an oversized gift object plus the requested celebration concepts
+  (`💕 🎉 🎈 🎁 🌹`) before the customer enables gifting.
+- Enabling gifting expands the panel with a smooth grid animation and five large visual occasion
+  cards instead of a plain select menu: Birthday, Love, Celebration, Thank you, and Other.
+- Each occasion changes the full card palette. Love uses a translucent `#ff4f4f`-based surface with
+  enlarged floating hearts and roses; the other occasions use their own orange, purple, gold, or
+  teal treatment.
+- Added animated icon pop, floating background decorations, selected-card lift/glow, details
+  reveal, and reduced-motion fallbacks.
+- The recipient and message fields appear only after an occasion is selected. Checkout prevents a
+  gift order without a selected occasion and shows a bilingual inline error.
+- Updated the checkout Playwright flow for the visual occasion cards. All eight desktop/mobile
+  checkout tests passed, including stored Love-gift details and the mobile overflow check.
+- Production build, TypeScript, and ESLint passed. Direct desktop/mobile visual QA found zero
+  console issues and zero horizontal overflow.
+
+### 15.9 Theme-aware logo contrast
+
+- Kept the official brown logo unchanged in Light mode.
+- Added a smooth theme transition that renders every shared `BrandLogo` instance pure white in
+  both Dark and Gold Dark modes, covering storefront navigation/footer plus Customer, Admin, Staff,
+  and Delivery headers.
+- Browser-computed verification: Light `filter: none`; Dark and Gold Dark
+  `filter: brightness(0) invert(1)`.
+
+### 15.10 Notification deletion and customer theme choices
+
+- Added ownership-scoped APIs to permanently delete one in-app notification or all in-app
+  notifications belonging to the signed-in account.
+- Added bilingual, confirmed **Delete** and **Delete all** controls to the shared notifications
+  screen, covering Customer/Pharmacy, Admin, Staff, and Delivery accounts.
+- Removed the plain Dark choice from customer/pharmacy storefront and account interfaces while
+  retaining Light and Gold Dark. Existing customer Dark selections are safely migrated to Gold
+  Dark when the customer interface loads.
+- Kept all three theme choices (Light, Gold Dark, and Dark) in Admin, Staff, and Delivery layouts.
+- Replaced the legacy favicon with the compact Betolla B/tree mark in standard favicon sizes.
+- ESLint, TypeScript, and the full production build passed. The broader unit run passed 22/29;
+  seven database-backed notification/review tests could not create their fixtures against the
+  current local database state and were not failures in these routes or UI changes.
+
+### 15.11 Mobile product-card price cleanup
+
+- Removed the redundant **View Details** pill from storefront product cards; the entire card
+  remains a link to the product page.
+- Allowed sale and regular prices to wrap cleanly without competing with a secondary action,
+  preventing the cramped mobile price row shown during production review.
+
+### 15.12 Popup contrast across all themes
+
+- Unified live popup cards with the same ten fixed pastel template palettes shown in the admin
+  template picker, so card colors no longer inherit incompatible Gold Dark or Dark text tokens.
+- Made titles, announcement lines, sanitized rich text, links, blockquotes and table content use
+  each template's explicit contrast-safe foreground color.
+- Made primary actions consistently dark with white text and secondary Close actions inherit the
+  card foreground with a visible border.
+- Audited all ten templates in Light, Gold Dark and Dark at 1440 px desktop and 390 px mobile
+  widths. Saved six complete visual comparison sheets; the temporary audit route was removed
+  afterward and is not part of the application.
+
+### 15.13 Two-state customer theme toggle
+
+- Replaced the customer/pharmacy Light/Gold Dark dropdown with one compact button.
+- Each tap switches immediately between Light and Gold Dark; the label and sun/star icon always
+  show the active mode.
+- Admin, Staff and Delivery retain their three-option Light/Gold Dark/Dark selector.

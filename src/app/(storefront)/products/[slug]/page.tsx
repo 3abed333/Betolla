@@ -40,7 +40,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
   });
   if (!product || !product.isActive) notFound();
 
-  const images = [product.mainImageUrl, ...product.images.map((i) => i.url)];
+  const images = [...new Set([product.mainImageUrl, ...product.images.map((i) => i.url)])];
   const onSale = product.compareAtPrice && Number(product.compareAtPrice) > Number(product.price);
   const productName = localizedField(locale, product.nameEn, product.nameAr);
   const categoryName = localizedField(locale, product.category.nameEn, product.category.nameAr);

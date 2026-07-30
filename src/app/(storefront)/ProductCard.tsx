@@ -24,7 +24,6 @@ export type ProductCardData = {
 export async function ProductCard({ product }: { product: ProductCardData }) {
   const onSale = product.compareAtPrice && product.compareAtPrice > product.price;
   const t = await getTranslations("storefront.productCard");
-  const tCommon = await getTranslations("common");
   const locale = (await getLocale()) as AppLocale;
   const name = localizedField(locale, product.nameEn, product.nameAr);
   const description = localizedField(locale, product.descriptionEn, product.descriptionAr);
@@ -59,8 +58,8 @@ export async function ProductCard({ product }: { product: ProductCardData }) {
         {product.reviewCount > 0 && (
           <StarRatingDisplay rating={product.avgRating} count={product.reviewCount} />
         )}
-        <div className="mt-auto flex items-center justify-between pt-2">
-          <div className="flex items-baseline gap-2">
+        <div className="mt-auto pt-2">
+          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
             <span className="font-semibold text-ink">
               <Money value={product.price} locale={locale} />
             </span>
@@ -70,9 +69,6 @@ export async function ProductCard({ product }: { product: ProductCardData }) {
               </span>
             )}
           </div>
-          <span className="rounded-full border border-border px-3 py-1 text-xs font-medium text-ink-muted transition-colors group-hover:border-cta group-hover:text-cta">
-            {tCommon("viewDetails")}
-          </span>
         </div>
       </div>
     </Link>

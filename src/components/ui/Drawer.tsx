@@ -38,17 +38,17 @@ export const DrawerContent = forwardRef<
 
   return (
     <DialogPrimitive.Portal>
-      <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/50 transition-opacity duration-300 data-[state=closed]:opacity-0 data-[state=open]:opacity-100" />
+      <DialogPrimitive.Overlay className="drawer-overlay fixed inset-0 z-50 bg-black/50" />
       <DialogPrimitive.Content
         ref={ref}
+        data-side={side}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
         className={cn(
-          "fixed inset-y-0 z-50 h-full w-72 max-w-[80vw] overflow-y-auto bg-surface p-6 shadow-xl transition-transform duration-300 ease-in-out focus:outline-none",
-          "data-[state=open]:translate-x-0",
+          "drawer-panel fixed inset-y-0 z-50 h-full w-72 max-w-[80vw] overflow-y-auto bg-surface p-6 shadow-xl focus:outline-none",
           side === "start"
-            ? "start-0 border-e border-border data-[state=closed]:-translate-x-full rtl:data-[state=closed]:translate-x-full"
-            : "end-0 border-s border-border data-[state=closed]:translate-x-full rtl:data-[state=closed]:-translate-x-full",
+            ? "start-0 border-e border-border"
+            : "end-0 border-s border-border",
           className,
         )}
         {...props}

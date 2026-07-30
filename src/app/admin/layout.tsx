@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { LogoutButton } from "@/components/LogoutButton";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { BrandLogo } from "@/components/BrandLogo";
 import { AdminNav } from "./AdminNav";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -18,7 +19,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     <div className="flex flex-1 flex-col">
       <header className="flex flex-col items-start gap-3 border-b border-border px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
         <div>
-          <p className="text-xs tracking-widest text-ink-muted uppercase">{t("kicker")}</p>
+          <BrandLogo priority className="mb-1 h-7 w-24" />
           <h1 className="font-heading text-lg font-semibold text-ink">{t("heading")}</h1>
         </div>
         <div className="flex w-full flex-wrap items-center justify-between gap-2 sm:w-auto sm:flex-nowrap sm:justify-start sm:gap-4">

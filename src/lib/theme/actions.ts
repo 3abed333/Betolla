@@ -17,7 +17,7 @@ export async function setThemePreference(theme: ThemeChoice) {
   if (session) {
     await prisma.user.update({
       where: { id: session.userId },
-      data: { themePreference: theme.toUpperCase() as "LIGHT" | "DARK" },
+      data: { themePreference: theme.toUpperCase() as "LIGHT" | "DARK" | "GOLD" },
     });
   }
 }

@@ -7,10 +7,11 @@ export const themeInlineScript = `
   try {
     var match = document.cookie.match(/(?:^|; )theme=([^;]*)/);
     var theme = match ? decodeURIComponent(match[1]) : null;
-    if (theme !== 'light' && theme !== 'dark') {
+    if (theme !== 'light' && theme !== 'dark' && theme !== 'gold') {
       theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     }
     document.documentElement.classList.toggle('dark', theme === 'dark');
+    document.documentElement.classList.toggle('gold', theme === 'gold');
   } catch (e) {}
 })();
 `;

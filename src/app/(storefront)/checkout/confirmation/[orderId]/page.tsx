@@ -6,6 +6,7 @@ import { getCurrentSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
 import { Button, Card, CardContent } from "@/components/ui";
 import { Money } from "@/components/Money";
+import { GiftOrderCard } from "@/components/orders/GiftOrderCard";
 import type { AppLocale } from "@/i18n/config";
 
 export const metadata: Metadata = { title: "Order Confirmed - Betolla Cosmetics" };
@@ -35,6 +36,15 @@ export default async function OrderConfirmationPage({ params }: { params: Promis
       <p className="mt-2 text-ink-muted">
         {t("thanksPrefix")} <strong>{order.orderNumber}</strong> {t("thanksSuffix")}
       </p>
+      {order.isGift && (
+        <div className="mt-6 text-start">
+          <GiftOrderCard
+            occasion={order.giftOccasion}
+            recipientName={order.giftRecipientName}
+            message={order.giftMessage}
+          />
+        </div>
+      )}
       <Card className="mt-6 text-start">
         <CardContent className="flex flex-col gap-2">
           {order.items.map((item) => (

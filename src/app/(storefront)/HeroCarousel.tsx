@@ -56,7 +56,7 @@ export function HeroCarousel({ slides, label }: { slides: Slide[]; label: string
     <section
       aria-roledescription="carousel"
       aria-label={label}
-      className="group relative aspect-[4/3] w-full overflow-hidden rounded-2xl bg-surface-secondary sm:rounded-3xl md:aspect-[3/1]"
+      className="group relative aspect-[4/3] w-full overflow-hidden rounded-2xl bg-[#160f02] sm:rounded-3xl md:aspect-[8/3]"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onFocusCapture={() => setPaused(true)}
@@ -107,11 +107,45 @@ export function HeroCarousel({ slides, label }: { slides: Slide[]; label: string
             </video>
           ) : (
             <>
-              <Image src={slide.mobileMediaUrl ?? slide.desktopMediaUrl} alt="" fill priority={index === 0} sizes="(max-width: 767px) 100vw, 1200px" className="object-cover md:hidden" style={{ objectPosition: `${slide.focalPointX}% ${slide.focalPointY}%` }} />
-              <Image src={slide.desktopMediaUrl} alt="" fill priority={index === 0} sizes="(max-width: 1280px) 100vw, 1280px" className="hidden object-cover md:block" style={{ objectPosition: `${slide.focalPointX}% ${slide.focalPointY}%` }} />
+              <Image
+                src={slide.mobileMediaUrl ?? slide.desktopMediaUrl}
+                alt=""
+                fill
+                priority={index === 0}
+                sizes="(max-width: 767px) 100vw, 1200px"
+                className="scale-110 object-cover opacity-45 blur-xl md:hidden"
+                style={{ objectPosition: `${slide.focalPointX}% ${slide.focalPointY}%` }}
+              />
+              <Image
+                src={slide.mobileMediaUrl ?? slide.desktopMediaUrl}
+                alt=""
+                fill
+                priority={index === 0}
+                sizes="100vw"
+                className="object-contain p-3 md:hidden"
+                style={{ objectPosition: `${slide.focalPointX}% ${slide.focalPointY}%` }}
+              />
+              <Image
+                src={slide.desktopMediaUrl}
+                alt=""
+                fill
+                priority={index === 0}
+                sizes="(max-width: 1280px) 100vw, 1280px"
+                className="hidden scale-110 object-cover opacity-45 blur-2xl md:block"
+                style={{ objectPosition: `${slide.focalPointX}% ${slide.focalPointY}%` }}
+              />
+              <Image
+                src={slide.desktopMediaUrl}
+                alt=""
+                fill
+                priority={index === 0}
+                sizes="(max-width: 1280px) 100vw, 1280px"
+                className="hidden object-contain p-5 md:block"
+                style={{ objectPosition: `${slide.focalPointX}% ${slide.focalPointY}%` }}
+              />
             </>
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-black/10" />
           <div className="absolute inset-x-0 bottom-0 p-5 text-white sm:p-8">
             <h1 className="max-w-2xl font-heading text-2xl font-semibold leading-tight sm:text-4xl">{slide.title}</h1>
             {slide.subtitle && <p className="mt-2 max-w-xl text-sm text-white/90 sm:text-base">{slide.subtitle}</p>}

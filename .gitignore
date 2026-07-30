@@ -56,3 +56,6 @@ next-env.d.ts
 
 # local Postgres data directory (scripts/db-start.mjs)
 /.pgdata
+
+# npm cache leftover from server sync
+.npm/

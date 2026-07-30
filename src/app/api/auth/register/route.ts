@@ -84,7 +84,14 @@ export async function POST(request: NextRequest) {
         customerType,
         pharmacyName: customerType === "PHARMACY" ? pharmacyName : null,
         pharmacyLocation: customerType === "PHARMACY" ? pharmacyLocation : null,
-        themePreference: guestTheme === "dark" ? "DARK" : guestTheme === "light" ? "LIGHT" : "SYSTEM",
+        themePreference:
+          guestTheme === "dark"
+            ? "DARK"
+            : guestTheme === "gold"
+              ? "GOLD"
+              : guestTheme === "light"
+                ? "LIGHT"
+                : "SYSTEM",
         locale: isLocale(guestLocale) ? guestLocale.toUpperCase() === "AR" ? "AR" : "EN" : "EN",
         notificationPreferences: {
           create: DEFAULT_NOTIFICATION_PREFERENCES,

@@ -22,6 +22,10 @@ const contentSecurityPolicy = [
 ].join("; ");
 
 const nextConfig: NextConfig = {
+  // The development server initializes itself as "localhost", while local QA and the
+  // in-app browser use 127.0.0.1. Allow that loopback host so Next's HMR WebSocket is
+  // not rejected and the dev issue overlay does not appear on every account layout.
+  allowedDevOrigins: ["127.0.0.1"],
   images: {
     remotePatterns: [{ protocol: "https", hostname: "picsum.photos" }],
   },

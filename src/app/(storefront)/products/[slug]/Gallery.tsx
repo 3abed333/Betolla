@@ -16,7 +16,7 @@ export function Gallery({ images, alt }: { images: string[]; alt: string }) {
         <div className="flex gap-3">
           {images.map((img, i) => (
             <button
-              key={img}
+              key={`${img}-${i}`}
               onClick={() => setActive(i)}
               className={cn(
                 "relative h-20 w-20 overflow-hidden rounded-xl border-2",

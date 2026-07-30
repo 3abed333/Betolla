@@ -12,6 +12,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { Drawer, DrawerClose, DrawerContent, DrawerTrigger, Input } from "@/components/ui";
 import { cn } from "@/lib/cn";
+import { BrandLogo } from "@/components/BrandLogo";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -102,7 +103,7 @@ export function StorefrontHeader({ whatsapp }: { whatsapp: string | null }) {
     >
       <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6 sm:py-4">
         <div className="flex items-center justify-between gap-3 sm:hidden">
-          <Link href="/" className="font-heading text-xl font-semibold text-ink">Betolla</Link>
+          <Link href="/" aria-label="Betolla Cosmetics home"><BrandLogo priority className="h-10 w-32" /></Link>
           <div className="flex items-center gap-2">
             <CartIcon count={count} />
             <Drawer open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
@@ -116,8 +117,8 @@ export function StorefrontHeader({ whatsapp }: { whatsapp: string | null }) {
                 </button>
               </DrawerTrigger>
               <DrawerContent title={t("menuTitle")} side="end">
-                <Link href="/" onClick={() => setMobileMenuOpen(false)} className="font-heading text-2xl font-semibold text-ink">
-                  Betolla
+                <Link href="/" onClick={() => setMobileMenuOpen(false)} aria-label="Betolla Cosmetics home">
+                  <BrandLogo className="h-16 w-44" />
                 </Link>
                 <nav className="mt-8 flex flex-col gap-1 text-base text-ink">
                   {[
@@ -139,7 +140,7 @@ export function StorefrontHeader({ whatsapp }: { whatsapp: string | null }) {
                 </nav>
                 <div className="my-5 h-px bg-border" />
                 <div className="flex flex-wrap items-center gap-3">
-                  <ThemeToggle />
+                  <ThemeToggle allowPlainDark={false} />
                   <LanguageSwitcher />
                 </div>
                 <div className="mt-5 flex flex-col gap-1">
@@ -169,7 +170,7 @@ export function StorefrontHeader({ whatsapp }: { whatsapp: string | null }) {
         </form>
 
         <div className="hidden items-center gap-4 sm:flex">
-          <Link href="/" className="font-heading text-xl font-semibold text-ink">Betolla</Link>
+          <Link href="/" aria-label="Betolla Cosmetics home"><BrandLogo priority className="h-12 w-40" /></Link>
           <nav className="flex items-center gap-5 whitespace-nowrap text-sm text-ink-muted">{navigation}</nav>
           <form onSubmit={submitSearch} className="min-w-[10rem] flex-1">
             <Input
@@ -180,7 +181,7 @@ export function StorefrontHeader({ whatsapp }: { whatsapp: string | null }) {
             />
           </form>
           <div className="flex items-center gap-3">
-            <ThemeToggle />
+            <ThemeToggle allowPlainDark={false} />
             <LanguageSwitcher />
             <CartIcon count={count} />
             {user ? (

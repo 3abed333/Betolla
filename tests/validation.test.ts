@@ -26,6 +26,29 @@ test("checkout accepts Cash on Delivery only", () => {
   assert.equal(checkoutSchema.safeParse({ ...checkout, paymentMethodType: "MOCK_CARD" }).success, false);
 });
 
+test("gift checkout requires a supported occasion and bounds personal fields", () => {
+  assert.equal(
+    checkoutSchema.safeParse({
+      ...checkout,
+      isGift: true,
+      giftOccasion: "BIRTHDAY",
+      giftRecipientName: "Lina",
+      giftMessage: "Happy birthday!",
+    }).success,
+    true,
+  );
+  assert.equal(checkoutSchema.safeParse({ ...checkout, isGift: true }).success, false);
+  assert.equal(
+    checkoutSchema.safeParse({
+      ...checkout,
+      isGift: true,
+      giftOccasion: "BIRTHDAY",
+      giftMessage: "x".repeat(501),
+    }).success,
+    false,
+  );
+});
+
 test("address creation is complete while address editing may be partial", () => {
   const address = {
     label: "Home",

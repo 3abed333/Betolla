@@ -53,6 +53,7 @@ export default async function StaffOrdersPage({
             createdAt: o.createdAt,
             customerName: `${o.user.firstName} ${o.user.lastName}`,
             itemCount: o.items.length,
+            isGift: o.isGift,
             needsDriver:
               (o.status === "CONFIRMED" || o.status === "ON_DELIVERY") &&
               !o.deliveryAssignments.some((da) => da.status !== "FAILED"),

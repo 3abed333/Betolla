@@ -159,6 +159,9 @@ export async function clearE2eRateLimits(emails: string[]) {
   await pool.query(`DELETE FROM "RateLimitBucket" WHERE "key" LIKE ANY($1::text[])`, [
     emails.map((email) => `%${email}%`),
   ]);
+  // Playwright projects share one loopback address. Clear only login network buckets in the
+  // guarded local/test database so repeated desktop/mobile runs cannot rate-limit one another.
+  await pool.query(`DELETE FROM "RateLimitBucket" WHERE "key" LIKE 'login-ip:%'`);
 }
 
 export async function clearE2eUploadQuotaForEmail(email: string) {
@@ -218,6 +221,22 @@ export async function getOrderPaymentMethodLabel(orderId: string) {
   );
   if (!result.rows[0]) throw new Error(`Order ${orderId} was not found.`);
   return result.rows[0].paymentMethodLabel;
+}
+
+export async function getOrderGiftDetails(orderId: string) {
+  const result = await pool.query<{
+    isGift: boolean;
+    giftOccasion: string | null;
+    giftRecipientName: string | null;
+    giftMessage: string | null;
+  }>(
+    `SELECT "isGift", "giftOccasion", "giftRecipientName", "giftMessage"
+     FROM "Order"
+     WHERE "id" = $1`,
+    [orderId],
+  );
+  if (!result.rows[0]) throw new Error(`Order ${orderId} was not found.`);
+  return result.rows[0];
 }
 
 export async function getOrderStatus(orderId: string) {

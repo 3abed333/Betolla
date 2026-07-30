@@ -10,6 +10,7 @@ import { Money } from "@/components/Money";
 import { localizedCity } from "@/lib/cityAr";
 import { localizedField } from "@/lib/localizedField";
 import type { AppLocale } from "@/i18n/config";
+import { cn } from "@/lib/cn";
 
 type Address = {
   id: string;
@@ -20,6 +21,14 @@ type Address = {
   city: string;
   isDefaultShipping: boolean;
 };
+
+const GIFT_OCCASIONS = [
+  { value: "BIRTHDAY", emoji: "🎈", labelKey: "birthday" },
+  { value: "LOVE", emoji: "💕", labelKey: "love" },
+  { value: "CELEBRATION", emoji: "🎉", labelKey: "celebration" },
+  { value: "THANK_YOU", emoji: "🌹", labelKey: "thankYou" },
+  { value: "OTHER", emoji: "🎁", labelKey: "other" },
+] as const;
 
 export function CheckoutForm({
   addresses: initialAddresses,
@@ -65,6 +74,11 @@ export function CheckoutForm({
 
   const [useStoreCredit, setUseStoreCredit] = useState(false);
   const [loyaltyPointsToRedeem, setLoyaltyPointsToRedeem] = useState(0);
+  const [isGift, setIsGift] = useState(false);
+  const [giftOccasion, setGiftOccasion] = useState("");
+  const [giftOccasionError, setGiftOccasionError] = useState(false);
+  const [giftRecipientName, setGiftRecipientName] = useState("");
+  const [giftMessage, setGiftMessage] = useState("");
 
   const [placingOrder, setPlacingOrder] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
@@ -115,6 +129,12 @@ export function CheckoutForm({
   }
 
   async function placeOrder() {
+    if (isGift && !giftOccasion) {
+      setGiftOccasionError(true);
+      document.getElementById("gift-experience")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+
     setPlacingOrder(true);
     let addressId = selectedAddressId;
     if (showNewAddress || !addressId) {
@@ -136,6 +156,10 @@ export function CheckoutForm({
         promoCode: promoResult && "discountAmount" in promoResult ? promoCode : undefined,
         useStoreCredit,
         loyaltyPointsToRedeem,
+        isGift,
+        giftOccasion: isGift ? giftOccasion : undefined,
+        giftRecipientName: isGift ? giftRecipientName : undefined,
+        giftMessage: isGift ? giftMessage : undefined,
         idempotencyKey: idempotencyKey.current,
       }),
     });
@@ -264,6 +288,105 @@ export function CheckoutForm({
                 </div>
               </div>
             )}
+          </div>
+        </section>
+
+        <section
+          id="gift-experience"
+          data-occasion={isGift ? giftOccasion || "PICK" : "OFF"}
+          className={cn(
+            "gift-experience relative overflow-hidden rounded-[2rem] border p-6 sm:p-8",
+            isGift && "gift-experience-active",
+          )}
+        >
+          <div className="gift-background-icons pointer-events-none absolute inset-0" aria-hidden>
+            <span>💕</span>
+            <span>🎉</span>
+            <span>🎈</span>
+            <span>🎁</span>
+            <span>🌹</span>
+          </div>
+
+          <label className="relative z-10 flex cursor-pointer items-center gap-4 sm:gap-6">
+            <span className="gift-main-icon flex h-20 w-20 shrink-0 items-center justify-center rounded-[1.75rem] text-5xl shadow-lg sm:h-24 sm:w-24 sm:text-6xl" aria-hidden>
+              {giftOccasion ? (GIFT_OCCASIONS.find((occasion) => occasion.value === giftOccasion)?.emoji ?? "🎁") : "🎁"}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="flex items-center gap-3">
+                <Checkbox
+                  checked={isGift}
+                  onCheckedChange={(checked) => {
+                    const enabled = checked === true;
+                    setIsGift(enabled);
+                    if (!enabled) setGiftOccasionError(false);
+                  }}
+                  className="h-7 w-7 shrink-0 rounded-lg [&_svg]:h-5 [&_svg]:w-5"
+                />
+                <span className="font-heading text-xl font-semibold text-ink sm:text-2xl">{t("sendAsGift")}</span>
+              </span>
+              <span className="mt-2 block text-sm leading-6 text-ink-muted sm:text-base">{t("sendAsGiftDescription")}</span>
+              <span className="mt-3 flex flex-wrap gap-1.5 text-2xl sm:text-3xl" aria-hidden>
+                <span>💕</span><span>🎉</span><span>🎈</span><span>🎁</span><span>🌹</span>
+              </span>
+            </span>
+          </label>
+
+          <div className={cn("gift-expand-grid relative z-10", isGift && "gift-expand-grid-open")}>
+            <div className="gift-expand-inner">
+              <div className="mt-7 border-t border-current/15 pt-6">
+                <p className="font-heading text-lg font-semibold text-ink">{t("chooseGiftOccasion")}</p>
+                <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-5">
+                  {GIFT_OCCASIONS.map((occasion) => {
+                    const selected = giftOccasion === occasion.value;
+                    return (
+                      <button
+                        key={occasion.value}
+                        type="button"
+                        aria-pressed={selected}
+                        onClick={() => {
+                          setGiftOccasion(occasion.value);
+                          setGiftOccasionError(false);
+                        }}
+                        className={cn(
+                          "gift-occasion-card flex min-h-28 flex-col items-center justify-center gap-2 rounded-2xl border px-2 py-4 text-center transition-all",
+                          selected && "gift-occasion-card-selected",
+                        )}
+                      >
+                        <span className="text-4xl sm:text-5xl" aria-hidden>{occasion.emoji}</span>
+                        <span className="text-sm font-semibold text-ink">{t(`giftOccasions.${occasion.labelKey}`)}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                {giftOccasionError && (
+                  <p role="alert" className="mt-3 text-sm font-semibold text-red-600">{t("chooseGiftOccasionError")}</p>
+                )}
+
+                {giftOccasion && (
+                  <div className="gift-details-enter mt-6 grid grid-cols-1 gap-5 rounded-3xl border border-white/25 bg-surface/80 p-5 shadow-lg backdrop-blur-md sm:grid-cols-2 sm:p-6">
+                    <Input
+                      label={t("giftRecipientName")}
+                      value={giftRecipientName}
+                      maxLength={100}
+                      onChange={(event) => setGiftRecipientName(event.target.value)}
+                      className="bg-surface/90"
+                    />
+                    <div className="sm:col-span-2">
+                      <Textarea
+                        label={t("giftMessage")}
+                        value={giftMessage}
+                        maxLength={500}
+                        rows={5}
+                        placeholder={t("giftMessagePlaceholder")}
+                        onChange={(event) => setGiftMessage(event.target.value)}
+                        className="bg-surface/90"
+                      />
+                      <p className="mt-1 text-end text-xs text-ink-faint">{giftMessage.length}/500</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </section>
 

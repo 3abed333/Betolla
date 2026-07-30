@@ -24,7 +24,7 @@ export default async function PreferencesPage() {
           <div>
             <p className="text-sm font-medium text-ink">{t("theme")}</p>
             <div className="mt-2">
-              <ThemeToggle />
+              <ThemeToggle allowPlainDark={false} />
             </div>
           </div>
           <div>

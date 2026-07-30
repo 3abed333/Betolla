@@ -29,6 +29,10 @@ const cairo = Cairo({
 export const metadata: Metadata = {
   title: "Betolla Cosmetics",
   description: "Betolla Cosmetics - elegant skincare, makeup and fragrance.",
+  icons: {
+    icon: "/icon.png",
+    apple: "/icon.png",
+  },
 };
 
 export default async function RootLayout({
@@ -39,13 +43,14 @@ export default async function RootLayout({
   const locale = (await getLocale()) as AppLocale;
   const messages = await getMessages();
   const cookieStore = await cookies();
-  const isDark = cookieStore.get(THEME_COOKIE)?.value === "dark";
+  const theme = cookieStore.get(THEME_COOKIE)?.value;
+  const themeClass = theme === "dark" ? "dark" : theme === "gold" ? "gold" : "";
 
   return (
     <html
       lang={locale}
       dir={dirForLocale(locale)}
-      className={`${playfair.variable} ${inter.variable} ${cairo.variable} h-full antialiased ${isDark ? "dark" : ""}`}
+      className={`${playfair.variable} ${inter.variable} ${cairo.variable} h-full antialiased ${themeClass}`}
       // Theme/locale are rendered from cookies; suppress extension-injected root attributes.
       suppressHydrationWarning
     >

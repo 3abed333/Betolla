@@ -1,5 +1,17 @@
 {
   "common": {
+    "gift": {
+      "badge": "Gift order",
+      "recipient": "For",
+      "noPersonalMessage": "No personal message was added.",
+      "occasions": {
+        "birthday": "Birthday gift",
+        "love": "A gift with love",
+        "celebration": "Celebration gift",
+        "thankYou": "Thank-you gift",
+        "other": "Special gift"
+      }
+    },
     "brand": "Betolla Cosmetics",
     "submit": "Submit",
     "cancel": "Cancel",
@@ -118,6 +130,12 @@
       "allCategories": "All",
       "markAllRead": "Mark all as read",
       "markRead": "Mark as read",
+      "delete": "Delete",
+      "deleteTitle": "Delete notification?",
+      "deleteDescription": "This notification will be permanently removed.",
+      "deleteAll": "Delete all",
+      "deleteAllTitle": "Delete all notifications?",
+      "deleteAllDescription": "All of your in-app notifications will be permanently removed. This cannot be undone.",
       "unread": "Unread",
       "viewOrder": "View order",
       "noNotificationsTitle": "No notifications yet",
@@ -127,9 +145,12 @@
   "theme": {
     "light": "Light",
     "dark": "Dark",
+    "gold": "Gold Dark",
+    "choose": "Choose color mode",
     "toggle": "Toggle theme",
     "switchToLight": "Switch to light theme",
-    "switchToDark": "Switch to dark theme"
+    "switchToDark": "Switch to dark theme",
+    "switchToGold": "Switch to Gold Dark theme"
   },
   "language": {
     "en": "English",
@@ -273,6 +294,21 @@
       "paymentMethod": "Payment Method",
       "paymentMethodNote": "Pay the courier in cash when your order arrives.",
       "cashOnDelivery": "Cash on Delivery",
+      "sendAsGift": "Send this order as a gift",
+      "sendAsGiftDescription": "Add a special occasion, recipient name and personal message for the team preparing the order.",
+      "giftOccasion": "Occasion",
+      "chooseGiftOccasion": "Choose the feeling for this gift",
+      "chooseGiftOccasionError": "Please choose a gift occasion before placing the order.",
+      "giftRecipientName": "Gift recipient name (optional)",
+      "giftMessage": "Gift message (optional)",
+      "giftMessagePlaceholder": "Write a warm message to include with the gift...",
+      "giftOccasions": {
+        "birthday": "Birthday",
+        "love": "Love",
+        "celebration": "Celebration",
+        "thankYou": "Thank you",
+        "other": "Other"
+      },
       "orderSummary": "Order Summary",
       "promoCodePlaceholder": "Promo code",
       "apply": "Apply",
@@ -768,7 +804,8 @@
       "couldntAssignDriver": "Couldn't assign driver",
       "driverAssigned": "Driver assigned",
       "noActiveDriverNote": "Assign a delivery driver first.",
-      "noDriverBadge": "No driver"
+      "noDriverBadge": "No driver",
+      "giftBadge": "Gift"
     },
     "users": {
       "metaTitle": "Customers - {brand} Admin",

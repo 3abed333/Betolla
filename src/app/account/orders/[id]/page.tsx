@@ -8,6 +8,7 @@ import { Card, CardContent, Badge } from "@/components/ui";
 import { StarRatingDisplay } from "@/components/ui/StarRating";
 import { OrderStatusBadge } from "@/components/orders/OrderStatusBadge";
 import { OrderTracker } from "@/components/orders/OrderTracker";
+import { GiftOrderCard } from "@/components/orders/GiftOrderCard";
 import { DeliveryStatusBadge } from "@/components/DeliveryStatusBadge";
 import { Money } from "@/components/Money";
 import { FormattedDate } from "@/components/FormattedDate";
@@ -62,6 +63,14 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
           {order.status === "PENDING" && <CancelOrderButton orderId={order.id} />}
         </div>
       </div>
+
+      {order.isGift && (
+        <GiftOrderCard
+          occasion={order.giftOccasion}
+          recipientName={order.giftRecipientName}
+          message={order.giftMessage}
+        />
+      )}
 
       <Card>
         <CardContent>

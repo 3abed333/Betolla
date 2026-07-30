@@ -1,0 +1,8 @@
+ALTER TYPE "ThemePreference" ADD VALUE IF NOT EXISTS 'GOLD';
+
+ALTER TABLE "Order"
+ADD COLUMN "isGift" BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN "giftOccasion" TEXT,
+ADD COLUMN "giftRecipientName" TEXT,
+ADD COLUMN "giftMessage" TEXT;
+

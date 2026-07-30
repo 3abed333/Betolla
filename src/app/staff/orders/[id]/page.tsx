@@ -8,6 +8,7 @@ import { OrderStatusBadge } from "@/components/orders/OrderStatusBadge";
 import { OrderTracker } from "@/components/orders/OrderTracker";
 import { OrderStatusActions } from "@/components/orders/OrderStatusActions";
 import { NoDriverAlert } from "@/components/orders/NoDriverAlert";
+import { GiftOrderCard } from "@/components/orders/GiftOrderCard";
 import { Money } from "@/components/Money";
 import { FormattedDate } from "@/components/FormattedDate";
 import type { AppLocale } from "@/i18n/config";
@@ -57,6 +58,13 @@ export default async function StaffOrderDetailPage({ params }: { params: Promise
       </div>
 
       {needsDriverAlert && <NoDriverAlert />}
+      {order.isGift && (
+        <GiftOrderCard
+          occasion={order.giftOccasion}
+          recipientName={order.giftRecipientName}
+          message={order.giftMessage}
+        />
+      )}
 
       <Card>
         <CardContent className="flex flex-col gap-4">

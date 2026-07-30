@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { expect, test } from "@playwright/test";
 import { loginAs, postJsonFromPage } from "./support/auth";
 import { E2E_PRODUCT, E2E_USERS } from "./support/constants";
-import { getE2eFixtureIds, getOrderPaymentMethodLabel } from "./support/db";
+import { getE2eFixtureIds, getOrderGiftDetails, getOrderPaymentMethodLabel } from "./support/db";
 
 async function clearCustomerCart(page: Parameters<typeof loginAs>[0]) {
   const clearedCart = await postJsonFromPage(page, "/api/cart", { items: [] });
@@ -58,6 +58,46 @@ test("customer completes a Cash on Delivery checkout", async ({ page }) => {
   const orderId = new URL(page.url()).pathname.split("/").at(-1);
   expect(orderId).toBeTruthy();
   expect(await getOrderPaymentMethodLabel(orderId!)).toBe("Cash on Delivery");
+});
+
+test("customer can place a gift order and see its personal details", async ({ page }) => {
+  await loginAs(page, E2E_USERS.customerA.email);
+  await clearCustomerCart(page);
+
+  await openProductWithHydratedCart(page);
+  const cartSync = page.waitForResponse(
+    (response) =>
+      response.url().endsWith("/api/cart") &&
+      response.request().method() === "POST" &&
+      response.ok(),
+  );
+  await page.getByRole("button", { name: "Add to Cart" }).click();
+  await cartSync;
+
+  await page.goto("/cart");
+  await page.getByRole("button", { name: "Proceed to Checkout" }).click();
+  await expect(page).toHaveURL("/checkout");
+
+  await page.getByText("Send this order as a gift", { exact: true }).click();
+  await page.getByRole("button", { name: "Love" }).click();
+  await page.getByLabel("Gift recipient name (optional)").fill("Lina");
+  await page.getByLabel("Gift message (optional)").fill("Made especially for you.");
+  await page.getByRole("button", { name: "Place Order" }).click();
+
+  await expect(page).toHaveURL(/\/checkout\/confirmation\//);
+  await expect(page.getByText("Gift order", { exact: true })).toBeVisible();
+  await expect(page.getByText("A gift with love", { exact: true })).toBeVisible();
+  await expect(page.getByText("Lina", { exact: false })).toBeVisible();
+  await expect(page.getByText("Made especially for you.", { exact: false })).toBeVisible();
+
+  const orderId = new URL(page.url()).pathname.split("/").at(-1);
+  expect(orderId).toBeTruthy();
+  expect(await getOrderGiftDetails(orderId!)).toEqual({
+    isGift: true,
+    giftOccasion: "LOVE",
+    giftRecipientName: "Lina",
+    giftMessage: "Made especially for you.",
+  });
 });
 
 test("server rejects a manually forged card-payment checkout", async ({ page }) => {

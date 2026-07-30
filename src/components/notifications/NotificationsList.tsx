@@ -4,7 +4,17 @@ import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { Card, CardContent, EmptyState, Badge, Button, Tabs, TabsList, TabsTrigger } from "@/components/ui";
+import {
+  Card,
+  CardContent,
+  EmptyState,
+  Badge,
+  Button,
+  ConfirmDialog,
+  Tabs,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui";
 import { NavBadge } from "@/components/NavBadge";
 import { FormattedDate } from "@/components/FormattedDate";
 import { toast } from "@/lib/toast";
@@ -88,6 +98,24 @@ export function NotificationsList({
     });
   }
 
+  async function deleteNotification(id: string) {
+    const res = await fetch(`/api/notifications/${id}`, { method: "DELETE" });
+    if (!res.ok) {
+      toast.error(tErrors("genericTryAgain"));
+      return;
+    }
+    router.refresh();
+  }
+
+  async function deleteAllNotifications() {
+    const res = await fetch("/api/notifications", { method: "DELETE" });
+    if (!res.ok) {
+      toast.error(tErrors("genericTryAgain"));
+      return;
+    }
+    router.refresh();
+  }
+
   if (notifications.length === 0) {
     return <EmptyState title={t("noNotificationsTitle")} description={t("noNotificationsDescription")} />;
   }
@@ -109,13 +137,24 @@ export function NotificationsList({
         </TabsList>
       </Tabs>
 
-      {hasUnread && (
-        <div className="flex justify-end">
+      <div className="flex flex-wrap justify-end gap-2">
+        {hasUnread && (
           <Button size="sm" variant="outline" onClick={markAllRead} disabled={isPending}>
             {t("markAllRead")}
           </Button>
-        </div>
-      )}
+        )}
+        <ConfirmDialog
+          trigger={
+            <Button size="sm" variant="destructive" disabled={isPending}>
+              {t("deleteAll")}
+            </Button>
+          }
+          title={t("deleteAllTitle")}
+          description={t("deleteAllDescription")}
+          confirmLabel={t("deleteAll")}
+          onConfirm={deleteAllNotifications}
+        />
+      </div>
 
       {visible.length === 0 ? (
         <EmptyState title={t("noNotificationsTitle")} description={t("noNotificationsDescription")} />
@@ -139,11 +178,24 @@ export function NotificationsList({
                   </Link>
                 )}
               </div>
-              {!n.isRead && (
-                <Button size="sm" variant="outline" onClick={() => markRead(n.id)} disabled={isPending}>
-                  {t("markRead")}
-                </Button>
-              )}
+              <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
+                {!n.isRead && (
+                  <Button size="sm" variant="outline" onClick={() => markRead(n.id)} disabled={isPending}>
+                    {t("markRead")}
+                  </Button>
+                )}
+                <ConfirmDialog
+                  trigger={
+                    <Button size="sm" variant="destructive" disabled={isPending}>
+                      {t("delete")}
+                    </Button>
+                  }
+                  title={t("deleteTitle")}
+                  description={t("deleteDescription")}
+                  confirmLabel={t("delete")}
+                  onConfirm={() => deleteNotification(n.id)}
+                />
+              </div>
             </CardContent>
           </Card>
         ))

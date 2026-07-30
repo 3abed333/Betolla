@@ -8,7 +8,7 @@ import { useLocale } from "next-intl";
 import { Button } from "@/components/ui";
 import { RichContent } from "@/components/RichContent";
 import { cn } from "@/lib/cn";
-import { popupMatchesPath } from "@/lib/popupCampaigns";
+import { getPopupTemplate, popupMatchesPath } from "@/lib/popupCampaigns";
 
 type PopupData = {
   id: string;
@@ -24,19 +24,6 @@ type PopupData = {
   ctaLabelEn: string | null;
   ctaLabelAr: string | null;
   ctaUrl: string | null;
-};
-
-const STYLES: Record<string, string> = {
-  SALE: "border-red-300 bg-red-50 dark:border-red-900 dark:bg-red-950",
-  ANNOUNCEMENT: "border-blue-300 bg-blue-50 dark:border-blue-900 dark:bg-blue-950",
-  NEW_PRODUCT: "border-violet-300 bg-violet-50 dark:border-violet-900 dark:bg-violet-950",
-  WELCOME: "border-emerald-300 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950",
-  LIMITED_TIME: "border-amber-300 bg-amber-50 dark:border-amber-900 dark:bg-amber-950",
-  FREE_SHIPPING: "border-cyan-300 bg-cyan-50 dark:border-cyan-900 dark:bg-cyan-950",
-  LOYALTY: "border-fuchsia-300 bg-fuchsia-50 dark:border-fuchsia-900 dark:bg-fuchsia-950",
-  BACK_IN_STOCK: "border-lime-300 bg-lime-50 dark:border-lime-900 dark:bg-lime-950",
-  EVENT: "border-orange-300 bg-orange-50 dark:border-orange-900 dark:bg-orange-950",
-  CUSTOM: "border-border bg-surface",
 };
 
 export function StorefrontPopup({ popups }: { popups: PopupData[] }) {
@@ -59,6 +46,7 @@ export function StorefrontPopup({ popups }: { popups: PopupData[] }) {
   const announcement = arabic ? popup.announcementAr : popup.announcementEn;
   const body = arabic ? popup.bodyHtmlAr : popup.bodyHtmlEn;
   const ctaLabel = arabic ? popup.ctaLabelAr : popup.ctaLabelEn;
+  const template = getPopupTemplate(popup.template);
 
   function dismiss() {
     sessionStorage.setItem(`betolla-popup:${popup!.id}`, "dismissed");
@@ -72,7 +60,12 @@ export function StorefrontPopup({ popups }: { popups: PopupData[] }) {
       aria-modal="true"
       aria-labelledby={`popup-${popup.id}`}
     >
-      <div className={cn("relative max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-2xl border shadow-2xl", STYLES[popup.template] ?? STYLES.CUSTOM)}>
+      <div
+        className={cn(
+          "relative max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-2xl border shadow-2xl",
+          template.previewClass,
+        )}
+      >
         <button
           type="button"
           onClick={dismiss}
@@ -95,16 +88,24 @@ export function StorefrontPopup({ popups }: { popups: PopupData[] }) {
           </div>
         )}
         <div className="p-6">
-          {announcement && <p className="mb-2 pe-10 text-xs font-semibold tracking-widest text-ink-muted uppercase">{announcement}</p>}
-          <h2 id={`popup-${popup.id}`} className="pe-10 font-heading text-3xl font-semibold text-ink">{title}</h2>
-          <RichContent html={body} className="mt-4 text-sm" />
+          {announcement && <p className="mb-2 pe-10 text-xs font-semibold tracking-widest text-current/70 uppercase">{announcement}</p>}
+          <h2 id={`popup-${popup.id}`} className="pe-10 font-heading text-3xl font-semibold text-current">{title}</h2>
+          <RichContent
+            html={body}
+            className="mt-4 !text-current [&_a]:!text-current [&_blockquote]:!border-current [&_td]:!border-current/25 [&_th]:!border-current/25 [&_th]:!bg-black/5"
+          />
           <div className="mt-6 flex flex-wrap gap-3">
             {ctaLabel && popup.ctaUrl && (
-              <Button asChild>
+              <Button asChild className="!bg-stone-900 !text-white hover:!bg-stone-700">
                 <Link href={popup.ctaUrl} onClick={dismiss}>{ctaLabel}</Link>
               </Button>
             )}
-            <Button type="button" variant="outline" onClick={dismiss}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={dismiss}
+              className="!border-current/50 !text-current hover:!bg-black/5"
+            >
               {arabic ? "إغلاق" : "Close"}
             </Button>
           </div>

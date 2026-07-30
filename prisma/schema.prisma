@@ -29,6 +29,7 @@ enum Locale {
 enum ThemePreference {
   LIGHT
   DARK
+  GOLD
   SYSTEM
 }
 
@@ -510,6 +511,10 @@ model Order {
   paymentStatus      PaymentStatus @default(UNPAID)
   cancellationReason String?
   refundedAmount     Decimal       @default(0) @db.Decimal(10, 2)
+  isGift             Boolean       @default(false)
+  giftOccasion       String?
+  giftRecipientName  String?
+  giftMessage        String?
 
   subtotal      Decimal @db.Decimal(10, 2)
   discountTotal Decimal @default(0) @db.Decimal(10, 2)

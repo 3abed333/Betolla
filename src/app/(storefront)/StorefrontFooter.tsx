@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import type { SiteSettings } from "@/generated/prisma/client";
+import { BrandLogo } from "@/components/BrandLogo";
 
 function SocialIcon({ name }: { name: "whatsapp" | "instagram" | "facebook" | "linkedin" }) {
   const paths = {
@@ -20,7 +21,7 @@ export async function StorefrontFooter({ settings }: { settings: SiteSettings | 
     <footer className="border-t border-border bg-surface-secondary">
       <div className="mx-auto grid w-full max-w-7xl gap-6 px-4 py-8 text-sm text-ink-faint sm:grid-cols-[1fr_2fr] sm:px-6 sm:py-10 lg:grid-cols-[1fr_2fr_auto]">
         <div>
-          <p className="font-heading text-lg text-ink">{tCommon("brand")}</p>
+          <BrandLogo className="h-20 w-60" />
           <div className="mt-4 flex gap-2">
             {settings?.whatsapp && <a aria-label="WhatsApp" href={`https://wa.me/${settings.whatsapp.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer" className="rounded-full border border-border p-2 hover:text-ink"><SocialIcon name="whatsapp" /></a>}
             {settings?.instagramUrl && <a aria-label="Instagram" href={settings.instagramUrl} target="_blank" rel="noopener noreferrer" className="rounded-full border border-border p-2 hover:text-ink"><SocialIcon name="instagram" /></a>}

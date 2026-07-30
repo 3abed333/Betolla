@@ -1,5 +1,17 @@
 {
   "common": {
+    "gift": {
+      "badge": "طلب هدية",
+      "recipient": "إلى",
+      "noPersonalMessage": "لم تتم إضافة رسالة شخصية.",
+      "occasions": {
+        "birthday": "هدية عيد ميلاد",
+        "love": "هدية بمحبة",
+        "celebration": "هدية احتفال",
+        "thankYou": "هدية شكر",
+        "other": "هدية مميزة"
+      }
+    },
     "brand": "بيتولا كوزماتيكس",
     "submit": "إرسال",
     "cancel": "إلغاء",
@@ -118,6 +130,12 @@
       "allCategories": "الكل",
       "markAllRead": "تعليم الكل كمقروء",
       "markRead": "تعليم كمقروء",
+      "delete": "حذف",
+      "deleteTitle": "حذف الإشعار؟",
+      "deleteDescription": "سيتم حذف هذا الإشعار نهائياً.",
+      "deleteAll": "حذف الكل",
+      "deleteAllTitle": "حذف جميع الإشعارات؟",
+      "deleteAllDescription": "سيتم حذف جميع إشعاراتك داخل الموقع نهائياً، ولا يمكن التراجع عن ذلك.",
       "unread": "غير مقروء",
       "viewOrder": "عرض الطلب",
       "noNotificationsTitle": "لا توجد إشعارات بعد",
@@ -127,9 +145,12 @@
   "theme": {
     "light": "فاتح",
     "dark": "داكن",
+    "gold": "ذهبي داكن",
+    "choose": "اختيار نمط الألوان",
     "toggle": "تبديل المظهر",
     "switchToLight": "التبديل إلى المظهر الفاتح",
-    "switchToDark": "التبديل إلى المظهر الداكن"
+    "switchToDark": "التبديل إلى المظهر الداكن",
+    "switchToGold": "التبديل إلى المظهر الذهبي الداكن"
   },
   "language": {
     "en": "English",
@@ -273,6 +294,21 @@
       "paymentMethod": "طريقة الدفع",
       "paymentMethodNote": "ادفع للمندوب نقدًا عند استلام طلبك.",
       "cashOnDelivery": "الدفع عند الاستلام",
+      "sendAsGift": "إرسال هذا الطلب كهدية",
+      "sendAsGiftDescription": "أضف المناسبة واسم المستلم ورسالة شخصية ليجهز الفريق الطلب بشكل مميز.",
+      "giftOccasion": "المناسبة",
+      "chooseGiftOccasion": "اختر طابع هذه الهدية",
+      "chooseGiftOccasionError": "يرجى اختيار مناسبة الهدية قبل تأكيد الطلب.",
+      "giftRecipientName": "اسم مستلم الهدية (اختياري)",
+      "giftMessage": "رسالة الهدية (اختياري)",
+      "giftMessagePlaceholder": "اكتب رسالة جميلة لإرفاقها مع الهدية...",
+      "giftOccasions": {
+        "birthday": "عيد ميلاد",
+        "love": "حب",
+        "celebration": "احتفال",
+        "thankYou": "شكر",
+        "other": "أخرى"
+      },
       "orderSummary": "ملخص الطلب",
       "promoCodePlaceholder": "كود الخصم",
       "apply": "تطبيق",
@@ -768,7 +804,8 @@
       "couldntAssignDriver": "تعذّر تعيين السائق",
       "driverAssigned": "تم تعيين السائق",
       "noActiveDriverNote": "عيّن سائق توصيل أولاً.",
-      "noDriverBadge": "بلا سائق"
+      "noDriverBadge": "بلا سائق",
+      "giftBadge": "هدية"
     },
     "users": {
       "metaTitle": "العملاء - إدارة {brand}",

@@ -1,202 +1,1022 @@
-# Betolla Cosmetics — Feature Guide
+# Betolla Cosmetics — Complete Feature and System Reference
 
-A plain-language catalog of everything the app does, organized by who uses it. For technical
-implementation detail, build history, and known issues, see `PROGRESS.md`.
+Last updated: 29 July 2026
 
-Betolla Cosmetics is a bilingual (English/Arabic, full RTL support) e-commerce platform for a
-cosmetics brand. One shared login screen serves four roles, each redirected to its own dashboard:
-**Customer** (storefront + account hub), **Staff** (day-to-day operations), **Delivery** (drivers),
-and **Admin** (full control). Every role can switch language and light/dark theme independently of
-what's being described below.
+This document describes the implemented Betolla application: storefront capabilities, customer and
+pharmacy accounts, Admin/Staff/Delivery permissions, commerce workflows, database structure,
+security controls, analytics, media handling, testing, and production architecture.
+
+It describes the current codebase. `PROGRESS.md` contains implementation history and verification
+records, while `README.md` contains setup and operating commands.
 
 ---
 
-## 1. Storefront (no login required)
+## 1. Platform summary
 
-### Browsing & search
-Customers can browse the full product catalog, filter by category (Lipstick, Foundation, Skincare
-Serums, Perfume, Eyeshadow & Blush, Cleansers & Toners), and search by name. Listings show price,
-sale price when discounted, star rating, and review count at a glance.
+Betolla is a bilingual, mobile-first cosmetics e-commerce and operations platform built with:
 
-### Product detail pages
-Each product has a full detail page: an image gallery, bilingual name/description, price (with a
-strikethrough "was" price when on sale), quantity selector, "Add to Cart" and "Buy Now" buttons, an
-"Add to wishlist" toggle, and the full list of customer reviews (star rating + written comment,
-optionally with a photo).
+- Next.js 16 App Router, React 19, and TypeScript;
+- Tailwind CSS 4 and reusable Radix-based interface components;
+- PostgreSQL with Prisma ORM and versioned migrations;
+- server-rendered storefront and role-protected dashboards;
+- English and Arabic localization with full RTL layout support;
+- light, dark, and Betolla dark-gold themes;
+- Cash on Delivery commerce;
+- local/VPS media storage with image optimization;
+- automated unit, integration, browser, authorization, checkout, upload, and monitoring tests.
 
-### Bundles
-Curated multi-product sets sold at a bundled price, with their own listing and detail pages showing
-which individual products are included and the combined savings versus buying separately.
+The application has four authorization roles:
+
+1. `CUSTOMER` — individual customers and pharmacy customers;
+2. `STAFF` — store operations and customer/delivery support;
+3. `DELIVERY` — delivery workers;
+4. `ADMIN` — full business administration.
+
+`PHARMACY` is a customer type, not an elevated role. Pharmacy accounts use the normal customer login
+and receive customer permissions.
+
+---
+
+## 2. Public storefront
+
+### Homepage
+
+- Responsive banner carousel.
+- Image, uploaded video, and YouTube banner media.
+- Separate desktop/mobile media where configured.
+- Configurable focal point, poster image, CTA, destination link, order, schedule, and auto-advance
+  time.
+- Banner impression/click analytics with visitor/date deduplication.
+- Current default slider uses four supplied product images with crop-safe blurred backdrops and
+  CTA links to the exact active product pages.
+- Active product categories with images.
+- Up to eight active products explicitly selected by Admin or Staff as homepage-featured products.
+- Responsive two-column mobile product grid and larger desktop layouts.
+- Customer-targeted popup campaigns.
+
+### Store navigation
+
+- Products, Bundles, Blog, Contact Us, account, orders, cart, language, and theme controls.
+- Mobile hamburger keeps search and cart accessible in the header.
+- English drawer opens beside the right-side hamburger.
+- Arabic drawer opens beside the left-side hamburger.
+- WhatsApp contact link uses the Admin-configured number.
+- Instagram, Facebook, LinkedIn, FAQ, About Us, Privacy Policy, Blog, Products, Bundles, and Support
+  links are available from the footer where configured.
+
+### Product catalog
+
+- Current supplied catalog: 67 products across six verified categories - Argan Hair Care, Beto
+  Contact Lenses, Morphosis Professional, Plasma Hair Care, Professional Hair Proteins, and
+  Electrical Styling Tools.
+- Seventy-four optimized supplier images are stored locally; product and category links use the
+  intended supplied assets.
+- Products without a confirmed supplier price remain safely inactive instead of being published
+  with an invented price.
+- Browse active products.
+- Search by product name/content.
+- Filter by category.
+- Bilingual product names and descriptions.
+- Product image, regular price, compare-at/sale price, rating, review count, and stock state.
+- Low-stock and out-of-stock presentation.
+
+### Product detail
+
+- Responsive main image and gallery.
+- Bilingual name, category, description, price, sale state, and stock guidance.
+- Quantity selection.
+- Add to cart.
+- Buy Now/direct checkout path through the cart/checkout flow.
+- Wishlist toggle for signed-in customers.
+- Published review list and aggregate rating.
+- Optional “Know more about this product” page.
+- Every supplied product has Admin/Staff-controlled bilingual rich HTML covering its available
+  description, category-specific important facts, and safe use/care guidance.
+- Rich HTML is sanitized before storage/rendering.
+
+### Product bundles
+
+- Bundle listing and detail pages.
+- Bilingual bundle name and description.
+- Bundle contents and quantities.
+- Bundle price and component-value comparison.
+- Add bundle to cart.
+- Stock validation includes every component product.
+
+### Blog and informational content
+
+- Public blog listing and individual articles.
+- Bilingual rich HTML blog content.
+- Public FAQ page.
+- Public Privacy Policy.
+- Public About Us and contact section.
+- Rich content is sanitized to remove scripts, event handlers, unsafe links, forms, and unsafe
+  embeds.
+
+---
+
+## 3. Authentication and account types
+
+### Individual registration
+
+- First name.
+- Last name.
+- Email.
+- Username.
+- Password.
+- Mandatory Privacy Policy consent.
+
+### Pharmacy registration
+
+- Pharmacy name.
+- Email.
+- Pharmacy location.
+- Password.
+- Mandatory Privacy Policy consent.
+- Uses the standard login flow after registration.
+- Stored as `CUSTOMER` with `customerType = PHARMACY`.
+
+### Registration experience
+
+- English and Arabic validation messages.
+- Privacy Policy link opens the policy without intentionally clearing completed registration fields
+  when the customer returns.
+- Duplicate email/username responses do not reveal unnecessary account details.
+- Guest theme and language preferences carry into the new account.
+- Registration is rate-limited.
+
+### Login and password handling
+
+- One email/password login screen for all roles.
+- Successful login redirects to the correct dashboard for the current role.
+- Passwords are hashed with bcrypt and are never stored in plain text.
+- Login attempts are rate-limited.
+- Managed Staff and Delivery accounts receive a generated temporary password.
+- First login can require an immediate password change.
+- Admin/Staff can reset the password of accounts they are authorized to manage.
+- Deactivated accounts cannot authenticate.
+- No Google/social login is currently implemented.
+
+### Session management
+
+- Signed JWT session token stored in an HTTP-only cookie.
+- Secure cookie in production and SameSite protection.
+- Every authenticated request rechecks the corresponding database session.
+- Revoked, expired, deactivated, role-changed, or password-change-required sessions stop working.
+- Customers can view active sessions.
+- Customers can revoke individual sessions or other sessions.
+- Deactivating a managed account revokes its active sessions.
+
+---
+
+## 4. Cart, checkout, and order processing
 
 ### Cart
-A running cart (persisted locally so it survives a page reload) showing each line item, quantity
-controls, and a subtotal. Shipping and any promo-code discount are calculated at checkout, not here.
+
+- Persistent client cart.
+- Products and bundles.
+- Quantity increase/decrease.
+- Remove item.
+- Live subtotal.
+- Stock bounds.
+- Cart count in the header.
+- Abandoned-cart tracking for signed-in customers.
 
 ### Checkout
-- **Shipping address**: pick a saved address or add a new one inline (with city/area/street fields).
-- **Payment method**: Cash on Delivery or a mock card payment (no real payment gateway is wired up —
-  this is a demo/simulated checkout).
-- **Promo codes**: enter a code to apply a discount; the order summary shows an explicit
-  **"Discount: -X.XX JD"** line between Subtotal and Shipping so the customer can see exactly how
-  much they saved, not just a lower total.
-- **Store credit & loyalty points**: customers can apply their store-credit balance and redeem
-  loyalty points toward the order total, with a live preview of the redemption value.
-- **Order confirmation page**: after placing an order, a confirmation screen shows the full
-  Subtotal → Discount → Shipping → Total breakdown and links to track the order or keep shopping.
+
+- Authentication required; guest checkout is not implemented.
+- Saved-address selection.
+- Create a complete delivery address during checkout.
+- Jordanian phone normalization and validation.
+- Governorate/city, area, street, building, floor, apartment, landmark, recipient, phone, and delivery
+  notes where applicable.
+- Text-address entry only; the previous map/pin feature was intentionally removed.
+- City-based shipping fee.
+- Promo-code validation and discount preview.
+- Loyalty-point redemption.
+- Store-credit redemption.
+- Optional gift-order presentation with occasion, recipient name, and a personal message.
+- Gift checkout uses a responsive celebratory card with decorative accents and supports Birthday,
+  Love, Celebration, Thank You, and Other occasions.
+- Final subtotal, discount, shipping, store credit, loyalty value, and order total.
+- Cash on Delivery only.
+- Visa/card payment is not present.
+- Idempotency key prevents duplicate orders from double clicks or retries.
+
+### Inventory and concurrency
+
+- Direct products reserve their requested quantity.
+- Bundles reserve the correct quantity of each component.
+- Checkout uses serializable database transactions.
+- Conditional stock updates protect the last item from concurrent overselling.
+- Immutable inventory-reservation records preserve exactly what must be restored later.
+- Order cancellation restores the original reserved product quantities.
+- Return/refund and stock operations use guarded transactions.
+
+### Order lifecycle
+
+- `PENDING`
+- `CONFIRMED`
+- `ON_DELIVERY`
+- `DELIVERED`
+- `CANCELLED`
+
+Features include:
+
+- customer-visible status history;
+- customer cancellation while the order is still eligible;
+- confirmation dialog before customer cancellation;
+- Admin/Staff status updates;
+- delivery-driver assignment;
+- no-driver operational alerts;
+- synchronized terminal states between Admin/Staff and Delivery screens;
+- delivery status history;
+- customer order confirmation page;
+- gift badge and gift details on confirmation and customer order detail;
+- full order history and order detail;
+- one-click reorder when products remain available;
+- historical snapshots for item name, image, price, address, phone, notes, and payment label;
+- CSV order export for Admin.
+
+### Cash on Delivery completion
+
+When delivery completes:
+
+- the order becomes delivered;
+- COD payment becomes paid;
+- driver assignment becomes delivered;
+- loyalty points are earned;
+- customer lifetime statistics are updated;
+- the completed COD amount appears in delivery collections.
 
 ---
 
-## 2. Authentication
+## 5. Customer and pharmacy account area
 
-- **Register / Login**: customers self-register; a single login screen serves all four roles and
-  redirects each to the correct dashboard after sign-in.
-- **Change password**, **session management** (see an account's active login sessions and revoke
-  any of them individually), and **login rate-limiting** (repeated failed attempts get temporarily
-  blocked) to slow down brute-force guessing.
-- No 2FA and no guest checkout — both deliberately out of scope for this build.
+Individual and pharmacy customers share the following customer tools.
 
----
+### Overview
 
-## 3. Customer Account Hub (`/account`)
+- Account summary.
+- Recent order information.
+- Wallet and loyalty balances.
+- Quick navigation to customer functions.
 
-- **Overview**: a quick snapshot of the account (recent activity, wallet balance, etc.).
-- **Orders**: full order history with a visual status tracker (Placed → Confirmed → On Delivery →
-  Delivered), a one-click **Reorder** button for past orders, per-item **return requests**, and the
-  ability to **write a product review** or **rate the delivery/driver** once an order is delivered.
-- **Wallet & Loyalty**: store-credit balance, loyalty-point balance, and progress toward the next
-  loyalty tier (Bronze/Silver/Gold/Platinum), plus a transaction history explaining every credit or
-  debit.
-- **Addresses**: saved delivery addresses with a real interactive map (click to drop a pin) for
-  precise location picking, not just a text address.
-- **Wishlists**: save products for later; get notified if a wishlisted item drops in price or comes
-  back in stock (based on notification preferences below).
-- **Notification preferences**: a grid of toggles controlling which notification categories
-  (order updates, promotions, back-in-stock, loyalty/wallet, support) are sent via which channel
-  (email, SMS, push, in-app) — all simulated, nothing is actually emailed or texted.
-- **Notifications inbox**: a running list of every notification sent to the account, with an
-  **unread-count badge** on the nav link (capped at "9+"), category filter tabs (with their own
-  per-category unread counts), and "mark as read" / "mark all as read" actions.
-- **Support tickets**: open a support ticket by category, optionally tied to a specific order, and
-  message back and forth with Staff/Admin until it's resolved.
-- **Sessions**: view and revoke active login sessions from other devices/browsers.
+### Orders
 
----
+- Order history.
+- Order detail and status timeline.
+- Cancellation when allowed.
+- Reorder.
+- Return request creation.
+- Review creation for eligible delivered items.
+- Delivery/driver rating.
 
-## 4. Admin Dashboard (`/admin`)
+### Addresses
 
-Full control over the store. Exactly one Admin account exists, seeded at setup — Admin accounts are
-never created through the UI.
+- Add, edit, delete, and view saved addresses.
+- Default shipping address.
+- Recipient and delivery instructions.
+- Jordan-oriented city and phone validation.
+- No map or geolocation dependency.
 
-- **Dashboard home**: KPI tiles — pending orders, low/out-of-stock product count, open support
-  tickets, open delivery problem reports, **orders needing a driver assigned**, total revenue, and
-  customer count — each linking straight to the relevant filtered list.
-- **Orders**: full order list (filter by status, search by order number/customer) and a detail page
-  per order showing the item list, price breakdown (with the discount line when a promo was used),
-  status-advance/cancel actions, and driver assignment. Any order that's confirmed (or further along)
-  with **no delivery driver assigned** shows a prominent red alert banner on the detail page and a
-  matching "No driver" badge on the list row, so this can't be missed. CSV export of the order list.
-- **Products**: full catalog CRUD (create/edit/deactivate), image upload with automatic resizing,
-  stock tracking with a low-stock threshold.
-- **Bundles**: create/edit multi-product bundles, pick which products are included, set the bundled
-  price with a live "sum of components" comparison.
-- **Staff management**: create/deactivate Staff accounts (temp password shown once), view each
-  staff member's activity log.
-- **Customers**: searchable/sortable customer list, a detail page per customer (spend, orders,
-  loyalty tier, store credit, order history, addresses), and a manual store-credit adjustment tool
-  (with a ledger entry for every adjustment).
-- **Promo codes**: create discount codes (percentage or fixed amount), target them at a customer
-  segment, set usage limits and expiry, and view real usage stats (how many times used, total
-  discount given, by whom).
-- **Abandoned carts**: see carts that were started but never checked out, with a one-click "Send
-  Reminder" notification.
-- **Support inbox**: view/filter every customer support ticket, reply, assign to a staff member, and
-  add internal notes that are invisible to the customer.
-- **Delivery support queue**: driver-filed problem reports (e.g. "customer not answering," "wrong
-  address"), with urgency flags and staff notes.
-- **Analytics** (`/admin/analytics`): a dense, dark-themed dashboard independent of the site's own
-  light/dark toggle, covering:
-  - A KPI strip (total revenue, at-risk+lost customers, open delivery reports, recoverable cart
-    revenue) with period-over-period trend deltas.
-  - **RFM customer segmentation** (Champions/Loyal/Potential Loyalist/New/Needs Attention/At
-    Risk/Lost), recalculated on demand.
-  - **Top customers by lifetime value** and **frequently bought together** product pairs.
-  - **Sales heatmap** (order volume by day-of-week × time-of-day) and **cohort retention**
-    (% of each signup-month cohort still ordering, month over month).
-  - **Net Revenue Over Time**: a line chart of revenue after discounts and refunds, by day, over
-    a selectable date range — deliberately labeled "net revenue," not "profit," since the app has
-    no per-product cost data to compute a true profit figure.
-  - **Staff performance** (orders processed per staff member, with a drill-down timeline) and
-    **delivery performance** (on-time rate, failed-delivery rate/reasons, average delivery time,
-    average customer rating per driver).
-  - **Cart abandonment funnel** and **geographic order distribution** by shipping city.
-  - A shared date-range filter applies across the range-aware widgets, with real recalculation
-    (not just re-filtering a cached view).
-- **Notifications inbox**: same unread-badge/category-filter inbox as the customer hub, scoped to
-  the admin's own operational notifications (support tickets, "order confirmed without a driver,"
-  etc.).
-- **Settings**: loyalty program configuration (points earned per JD spent, redemption value per
-  point), loyalty tier thresholds, and shipping-zone fees per city.
+### Wallet and loyalty
+
+- Loyalty-points balance.
+- Store-credit balance.
+- Loyalty tier and progress.
+- Loyalty transaction history.
+- Store-credit transaction history.
+- Configurable points-per-JD and redemption value.
+
+### Wishlists
+
+- Multiple named wishlists.
+- Add/remove products.
+- Price-at-add snapshot.
+- Price-drop preference.
+- Restock preference.
+
+### Preferences
+
+- English/Arabic language.
+- Light/gold-dark/dark/system theme preference.
+- Notification category/channel preferences.
+- Email, Push, and In-App options.
+- SMS is intentionally absent from the customer interface and rejected by the API.
+
+### Notifications
+
+- In-app notification inbox.
+- Unread counter and `9+` display.
+- Category filtering.
+- Mark one as read.
+- Mark all as read.
+- Logical-event deduplication prevents duplicate visible notifications.
+
+### Support
+
+- Create general or order-related support tickets.
+- View ticket status.
+- Exchange messages with Staff/Admin.
+- Customer-visible replies separated from internal operational notes.
+
+### Sessions
+
+- View active devices/sessions.
+- Revoke sessions securely.
 
 ---
 
-## 5. Staff Dashboard (`/staff`)
+## 6. Admin dashboard
 
-A deliberately smaller, operational subset of Admin — no bundles, promo codes, customer list,
-support-inbox-only-view distinction, or settings access, since those stay Admin-only.
+Admin pages and APIs require the `ADMIN` role.
 
-- **Dashboard home**: pending orders, low/out-of-stock count, **orders awaiting a driver**, and open
-  delivery reports.
-- **Orders**: the same shared order list/detail/status/driver-assignment tools Admin uses, including
-  the same red no-driver alert and list badge.
-- **Products**: the same product CRUD tools Admin uses.
-- **Delivery accounts**: create and manage Delivery driver accounts (temp password shown once,
-  deactivate/reactivate), with each driver's delivery history and total earnings.
-- **Support inbox** and **Delivery support queue**: the same tools Admin uses, since Staff also
-  handles customer support and driver problem reports.
-- **Notifications inbox**: same badge/category-filter inbox, scoped to Staff's own operational
-  notifications.
+### Dashboard overview
+
+- Pending orders.
+- Low/out-of-stock products.
+- Open customer-support tickets.
+- Open delivery-support reports.
+- Orders needing a delivery worker.
+- Revenue.
+- Customer count.
+- Links from operational KPIs to the relevant management page.
+
+### Orders
+
+- Search and filter.
+- Order detail and complete financial breakdown.
+- Status changes and cancellation.
+- Delivery-worker assignment.
+- Missing-driver warnings.
+- Customer/address/order snapshots.
+- Gift badge in the order list and full gift occasion/recipient/message on order detail.
+- CSV export.
+
+### Products
+
+- Create, edit, deactivate, and manage products.
+- Product and gallery image upload.
+- SKU, names, descriptions, category, prices, stock, and low-stock threshold.
+- Active storefront visibility.
+- Direct Homepage Featured switch from the product table.
+- Homepage-featured option in create/edit forms.
+- Product “Know more” bilingual sanitized HTML.
+- Staff-footprint audit recording of meaningful product changes.
+
+### Bundles
+
+- Create/edit/deactivate bundles.
+- Select component products and quantities.
+- Set bilingual content, image, price, and status.
+- Compare bundle price with component total.
+
+### Homepage banners
+
+- Multiple carousel entries.
+- Uploaded image or video.
+- YouTube link support.
+- Desktop/mobile media and poster.
+- Bilingual title/subtitle/CTA.
+- Destination URL.
+- Focal point.
+- Sort order.
+- start/end schedule.
+- auto-advance timing.
+- activate/deactivate/delete.
+- image/video guidance in the interface.
+
+### Blog management
+
+- Create, edit, publish/unpublish, and delete articles.
+- Bilingual title, summary, slug/content.
+- Sanitized rich HTML.
+- Admin and Staff author attribution.
+
+### Site content
+
+- WhatsApp number.
+- Instagram URL.
+- Facebook URL.
+- LinkedIn URL.
+- Privacy Policy content.
+- About Us content.
+- FAQ create/edit/order/activate/delete.
+- Sanitized bilingual rich HTML.
+
+### Popup campaign center
+
+- Multiple independent campaigns.
+- Create, edit, activate/deactivate, schedule, and permanently delete.
+- Ten templates:
+  - Sale;
+  - Announcement;
+  - New Product;
+  - Welcome;
+  - Limited Time;
+  - Free Shipping;
+  - Loyalty Reward;
+  - Back in Stock;
+  - Event;
+  - Custom.
+- Bilingual campaign name, title, announcement line, body HTML, CTA, and destination.
+- Optional optimized image with 16:9 / 1200×675 guidance.
+- Live preview.
+- Appearance triggers:
+  - any storefront page;
+  - homepage;
+  - products;
+  - product detail;
+  - cart;
+  - checkout;
+  - blog;
+  - bundles.
+- Audience types:
+  - everyone;
+  - individual customers;
+  - pharmacies.
+- Customer filters:
+  - all;
+  - top 30% by lifetime spending;
+  - bottom 30% by lifetime spending;
+  - new customers;
+  - inactive customers.
+- Server-side eligibility prevents disclosure of campaigns to the wrong audience.
+
+### Staff management
+
+- Create Staff accounts.
+- Generated temporary password shown once.
+- View/edit profile fields.
+- Activate/deactivate/reactivate.
+- Reset password.
+- Permanent deletion only when the account has no operational history.
+- Accounts with history must be deactivated to preserve audit integrity.
+- Session revocation on deactivation.
+
+### Staff footprint
+
+- Admin-only staff cards.
+- Last-month default range.
+- Date and meaningful-action filters.
+- Plain-language action descriptions.
+- Per-staff activity timeline.
+- Product, blog, order deletion, support resolution, account, content, and other important operational
+  actions.
+- Before/after audit data where applicable.
+- Routine technical noise is hidden from the default review experience.
+
+### Customers
+
+- Searchable customer list.
+- Individual/pharmacy identity.
+- Customer profile and order history.
+- Spend, order count, loyalty, store credit, addresses, and status.
+- Store-credit adjustments with immutable transaction ledger.
+- Customer CSV export.
+
+### Promo codes
+
+- Percentage or fixed discount.
+- Date range.
+- minimum spend.
+- total and per-customer usage limits.
+- active status.
+- customer segment targeting.
+- usage and discount analytics.
+
+### Abandoned carts
+
+- View recoverable carts.
+- Customer/cart value information.
+- Send in-app reminder.
+- Conversion funnel analytics.
+
+### Customer support
+
+- Filter/view tickets.
+- Assign to Admin/Staff.
+- Update status.
+- Reply to customer.
+- Add internal notes.
+- Review handled/resolved work through staff footprint.
+
+### Delivery support
+
+- View driver-submitted incident reports.
+- Urgency and problem type.
+- Private supporting photo.
+- Assign to Admin/Staff.
+- Status updates and staff notes.
+
+### Returns
+
+- View requested products, quantities, reasons, and calculated value.
+- Approve or reject.
+- Mark received.
+- Issue refund.
+- Store-credit refund support.
+- Status history and serializable financial updates.
+
+### Review moderation
+
+- Pending/published status.
+- Filter by one-to-five stars.
+- Filter by moderation status.
+- Approve/publish.
+- Hide/unpublish.
+- Reject/delete.
+- Rating aggregates are recalculated from published reviews only.
+
+### Settings
+
+- Loyalty points earned per JD.
+- Loyalty redemption value.
+- Bilingual loyalty tiers and thresholds.
+- Shipping cities/zones.
+- Shipping fee and delivery estimate.
+- Activate/deactivate shipping zones.
+
+### Admin notifications
+
+- Admin-specific operational notification inbox.
+- Categories, unread count, mark-read controls, and logical-event deduplication.
 
 ---
 
-## 6. Delivery Dashboard (`/delivery`)
+## 7. Staff dashboard
 
-For drivers only.
+Staff pages and APIs require the `STAFF` role.
 
-- **Active deliveries**: the driver's own current assignments, each with a route map, customer
-  contact info, and a "Mark [next status]" button (Picked Up → En Route → Delivered), or a "Mark
-  Failed" option with a required reason.
-- **History**: past deliveries (completed or failed), filterable by date range and order number.
-- **Today's Collections**: a running total of cash the driver needs to hand over at end of day —
-  the sum of today's completed Cash-on-Delivery orders — kept separate from the driver's own
-  shipping-fee earnings, since drivers are salaried and this page answers "how much cash am I
-  carrying," not "how much did I earn."
-- **Report a Problem / My Reports**: file a delivery problem report (with an optional photo) and
-  track its status until Staff/Admin resolves it.
-- **Notifications inbox**: same badge/category-filter inbox, scoped to the driver's own delivery
-  assignment notifications.
+Staff can:
+
+- view operational dashboard KPIs;
+- manage orders and assignment workflow;
+- create/edit/deactivate products;
+- choose homepage-featured products;
+- manage product knowledge content;
+- create/edit/delete blog posts;
+- create and manage Delivery accounts;
+- reset Delivery passwords;
+- permanently delete Delivery accounts only when they have no operational history;
+- deactivate/reactivate Delivery accounts with history;
+- handle customer-support tickets;
+- handle delivery-support reports;
+- view their operational notifications.
+
+Staff cannot:
+
+- access the Admin dashboard;
+- manage Admin/Staff accounts;
+- inspect Staff Footprint;
+- manage customers or store credit;
+- manage promo codes;
+- manage bundles, banners, site settings, popup campaigns, loyalty settings, shipping settings,
+  returns, review moderation, or Admin analytics unless a separately protected API explicitly grants
+  the action.
 
 ---
 
-## 7. Cross-cutting platform features
+## 8. Delivery dashboard
 
-- **Bilingual (English/Arabic)**: a language switcher available on every screen; Arabic renders
-  full right-to-left layout mirroring, not just translated text — navigation, forms, tables, and
-  charts all correctly flip direction.
-- **Light/dark theme**: a manual toggle (not tied to OS preference) available on every screen,
-  persisted per account; the two themes ("Botanical Chic" light, "Premium Luxe" dark) use a
-  consistent brand color system throughout. The Analytics page is the one deliberate exception —
-  it has its own fixed dark, high-contrast identity independent of this toggle, by design.
-- **Notifications system**: a central simulated notification service (no real email/SMS/push
-  provider — everything is logged as an in-app record) that fires on order status changes, order
-  placement, loyalty points earned, wishlist price-drop/restock, support ticket replies, store
-  credit adjustments, and operational alerts (like a confirmed order with no driver). Every account
-  gets an unread-count badge on its Notifications nav link and category-filtered access to its own
-  notification history.
-- **Role-based access control**: every page and API route enforces which of the four roles can see
-  or use it, with object-level ownership checks (e.g. a customer can't view another customer's
-  order by guessing its ID — they get a "not found," not a permission error, so the existence of
-  other people's data is never confirmed or denied).
-- **Loyalty & rewards**: points earned per JD spent (configurable), redeemable at checkout; a
-  Cash-on-Delivery order now earns its points and counts toward lifetime spend at the moment it's
-  marked **Delivered** (previously COD orders never accrued anything, since payment confirmation
-  for COD only really happens at the door).
+Delivery pages and APIs require the `DELIVERY` role.
+
+### Active deliveries
+
+- Only assignments belonging to the signed-in delivery worker.
+- Order number and assigned status.
+- Full textual delivery address.
+- Recipient name and visible recipient phone.
+- Delivery notes.
+- Copy address and copy phone controls.
+- Product/item list.
+- COD/payment information.
+- Picked Up, En Route, Delivered, or Failed workflow.
+- Terminal orders automatically display their final state rather than stale action buttons.
+
+### History
+
+- Completed and failed assignments.
+- Order/date information.
+
+### Collections
+
+- Cash collected from completed COD deliveries.
+- Collection totals separated from driver earnings.
+
+### Delivery reports
+
+- Report delivery problems.
+- Problem categories and urgency.
+- Notes and optional private photo.
+- View report status and Staff/Admin response.
+
+### Notifications
+
+- Assignment and operational notifications scoped to the signed-in delivery worker.
+
+Delivery workers cannot access another worker’s assignments or reports.
+
+---
+
+## 9. Permission matrix
+
+| Capability | Visitor | Customer / Pharmacy | Staff | Delivery | Admin |
+|---|---:|---:|---:|---:|---:|
+| Browse storefront/products/bundles/blog | Yes | Yes | Yes | Yes | Yes |
+| Use cart | Yes | Yes | Yes | Yes | Yes |
+| Complete checkout | No | Yes | No | No | No |
+| Customer account/orders/wallet/wishlist | No | Own only | No | No | No |
+| Create support ticket | No | Own only | No | No | No |
+| Handle customer support | No | No | Yes | No | Yes |
+| Manage orders | No | Own view/actions | Yes | Assigned status only | Yes |
+| Manage products | No | No | Yes | No | Yes |
+| Select homepage products | No | No | Yes | No | Yes |
+| Manage blog | No | No | Yes | No | Yes |
+| Manage bundles/banners/popups/site content | No | No | No | No | Yes |
+| Manage Staff accounts | No | No | No | No | Yes |
+| Manage Delivery accounts | No | No | Yes | No | No |
+| Staff Footprint | No | No | No | No | Yes |
+| Customer/store-credit administration | No | No | No | No | Yes |
+| Promo codes/settings/analytics | No | No | No | No | Yes |
+| Delivery assignments | No | No | Assign/manage | Own only | Assign/manage |
+| Delivery reports | No | No | Handle | Own only | Handle |
+| Returns/review moderation | No | Submit own | No | No | Yes |
+
+Page guards, API guards, and object-ownership checks enforce these permissions on the server. Hiding a
+button is never the only authorization control.
+
+---
+
+## 10. Notifications
+
+Notification categories include:
+
+- order updates;
+- promotions;
+- back in stock;
+- loyalty and wallet;
+- support;
+- delivery assignments;
+- operations.
+
+Channels represented in the system:
+
+- `IN_APP` — fully displayed and managed in the application;
+- `EMAIL` — preference and simulated delivery record only;
+- `PUSH` — preference and simulated delivery record only;
+- `SMS` — legacy enum/data compatibility only; unavailable in the current UI/API.
+
+No external email, SMS, or web-push provider is currently connected. Push means a browser/device
+notification when a real push provider and permission flow are added; today it is a preference and
+simulated record, not an actual phone notification.
+
+Notification events have stable event keys so retries or multi-channel delivery do not create
+duplicate in-app rows.
+
+---
+
+## 11. Analytics and business intelligence
+
+Admin analytics supports a selected date range and comparison with the immediately preceding period.
+
+Available analysis includes:
+
+- total and net recognized revenue;
+- revenue over time;
+- registered/signed-in customer and ordering conversion indicators;
+- order/customer/business overview;
+- product performance;
+- banner impressions, clicks, and click-through rate;
+- top customers by lifetime value;
+- RFM customer segmentation:
+  - Champions;
+  - Loyal;
+  - Potential Loyalist;
+  - New Customer;
+  - At Risk;
+  - Needs Attention;
+  - Lost;
+- on-demand RFM recalculation;
+- frequently bought-together product pairs;
+- day/time sales heatmap;
+- staff performance and drill-down;
+- delivery completion, failure, timing, reasons, and ratings;
+- cohort retention;
+- cart-abandonment funnel and recoverable value;
+- geographic order distribution by city;
+- open delivery-report and at-risk/lost-customer KPIs.
+
+The dashboard reports net revenue, not accounting profit, because product cost/COGS is not stored.
+
+---
+
+## 12. Database architecture
+
+### Environments
+
+- Local development uses project-managed embedded PostgreSQL on port 5433.
+- Production uses PostgreSQL installed on the Ubuntu server and bound to localhost.
+- The production database is not stored in GitHub and is not downloaded into the browser.
+- Prisma migrations evolve the schema; production uses `prisma migrate deploy`.
+- `prisma migrate reset` and the large development seed must never be run against production.
+- Current schema history contains 18 additive migrations.
+
+### Identity and access models
+
+- `User`
+- `Session`
+- `RateLimitBucket`
+- `UploadQuota`
+
+### Customer/profile models
+
+- `Address`
+- `PaymentMethod`
+- `CustomerStats`
+
+### Catalog and content models
+
+- `Category`
+- `Product`
+- `ProductImage`
+- `ProductKnowledge`
+- `ProductBundle`
+- `ProductBundleItem`
+- `Banner`
+- `BannerEvent`
+- `BlogPost`
+- `Faq`
+- `StaticPage`
+- `SiteSettings`
+- `PopupCampaign`
+
+### Commerce models
+
+- `Cart`
+- `CartItem`
+- `Order`
+- `OrderItem`
+- `OrderInventoryReservation`
+- `OrderStatusHistory`
+- `PromoCode`
+- `PromoCodeUsage`
+- `ShippingZone`
+
+### Loyalty and engagement models
+
+- `Wishlist`
+- `WishlistItem`
+- `Review`
+- `LoyaltyConfig`
+- `LoyaltyTier`
+- `LoyaltyTransaction`
+- `StoreCreditTransaction`
+
+### Support, returns, delivery, and audit models
+
+- `SupportTicket`
+- `SupportTicketMessage`
+- `ReturnRequest`
+- `ReturnRequestItem`
+- `ReturnStatusHistory`
+- `DeliveryAssignment`
+- `DeliverySupportTicket`
+- `ActivityLog`
+
+### Notification models
+
+- `NotificationPreference`
+- `Notification`
+
+### Data-integrity design
+
+- Unique emails, usernames, SKUs, slugs, order numbers, checkout keys, and appropriate event keys.
+- Foreign keys with deliberate `Cascade`, `Restrict`, and `SetNull` behavior.
+- Historical orders use snapshots rather than mutable live product/address values.
+- Financial values use database decimal types.
+- Indexes cover important ownership, status, date, category, and featured-product queries.
+- Serializable transactions protect checkout, assignment, returns, reviews, cancellation, and
+  financial updates.
+
+---
+
+## 13. Security controls
+
+### Authentication and authorization
+
+- bcrypt password hashing.
+- Signed JWT session tokens.
+- HTTP-only, secure-in-production, SameSite cookies.
+- Database-backed sessions with expiry/revocation.
+- Role verification in page layouts and API handlers.
+- Object-level ownership checks for orders, addresses, tickets, wishlists, sessions, assignments,
+  reports, and uploads.
+- Deactivation invalidates active sessions.
+- Temporary-password change enforcement for managed accounts.
+
+### Abuse prevention
+
+- Database-backed rate limits shared across application processes.
+- Login, registration, password change, upload, and sensitive workflows are bounded.
+- `Retry-After` responses for rate-limited requests.
+- Proxy-aware client IP handling in production.
+- Checkout idempotency prevents duplicate order creation.
+
+### Input and content safety
+
+- Zod validation for API payloads.
+- Prisma parameterization instead of hand-built SQL for application queries.
+- Rich HTML sanitization.
+- Generic account-conflict responses.
+- Bounded strings, quantities, money, dates, file counts, and file sizes.
+- Jordanian phone normalization.
+- Promo, loyalty, refund, inventory, and state-transition validation.
+
+### Browser and HTTP protections
+
+- Content Security Policy.
+- `frame-ancestors 'none'` and `X-Frame-Options: DENY`.
+- `X-Content-Type-Options: nosniff`.
+- strict referrer policy.
+- restrictive camera/microphone/payment permissions.
+- HSTS in HTTPS production.
+- production HTTPS upgrade.
+- request IDs on monitored endpoints.
+- no-store health responses.
+
+### Auditability
+
+- Important Admin/Staff actions recorded in `ActivityLog`.
+- Staff Footprint translates important actions into an Admin-readable timeline.
+- Order, return, and delivery status histories are retained.
+- Store-credit and loyalty movements use transaction ledgers.
+
+---
+
+## 14. Uploads and media
+
+### Images
+
+- JPEG/PNG/WebP input validation.
+- Real image decoding with Sharp.
+- pixel-count limits.
+- resize to a maximum dimension.
+- conversion to optimized WebP.
+- randomized filenames.
+- per-account daily upload quotas.
+- public folders restricted to approved media categories.
+- path traversal and unsupported extension rejection.
+
+Public media categories:
+
+- products;
+- avatars;
+- reviews;
+- banners;
+- popups.
+
+### Banner videos
+
+- MP4 and WebM.
+- file-signature validation.
+- count/size controls.
+- randomized filenames.
+- orphan cleanup support.
+
+### Private delivery evidence
+
+- Delivery-report photos are stored outside `public/`.
+- Served only through an authenticated, authorized API route.
+- Not available as guessable public static files.
+
+### Production storage
+
+- Current production media lives on the Ubuntu server filesystem.
+- `public/uploads` and `uploads-private` must be preserved across releases and included in backups.
+- A future multi-server/ephemeral deployment should replace the storage adapter with S3-compatible
+  object storage or a managed media service.
+
+---
+
+## 15. Internationalization, mobile, and accessibility
+
+- English and Arabic translations.
+- Full document direction switching.
+- Logical CSS edges for RTL/LTR.
+- Localized names, descriptions, prices, dates, statuses, dashboards, and validation.
+- Language and theme persisted for guests and accounts.
+- Responsive storefront, cart, checkout, account, Admin, Staff, and Delivery layouts.
+- Mobile-first customer journeys.
+- Touch-friendly navigation and swipeable drawers with animated overlay and directional
+  open/close motion.
+- Drawer edge follows the hamburger position.
+- Accessible dialog titles, labels, controls, focus restoration, and keyboard paths.
+- Mobile tables are contained without document-level horizontal overflow.
+
+---
+
+## 16. Operations and deployment
+
+Current production architecture:
+
+- Ubuntu server;
+- Nginx reverse proxy;
+- Next.js production service managed by systemd;
+- Next.js listens on `127.0.0.1:3000`;
+- PostgreSQL listens on localhost only;
+- Cloudflare in front of the public domain;
+- HTTPS;
+- UFW permits SSH, HTTP, and HTTPS while denying other inbound traffic;
+- secrets stored in server `.env`, not GitHub;
+- `/api/health` verifies application and database reachability;
+- structured server logs;
+- database migration during deployment;
+- application and database rollback backups retained during releases.
+
+Deployment preserves:
+
+- production `.env`;
+- PostgreSQL data;
+- public uploads;
+- private uploads;
+- previous application release;
+- pre-migration database dump.
+
+Operational responsibilities still required for ongoing production:
+
+- scheduled automatic database backups;
+- off-server backup copies;
+- periodic restore testing;
+- uptime/error/resource monitoring;
+- disk-space alerts;
+- dependency review and controlled upgrades;
+- recurring security and penetration testing.
+
+---
+
+## 17. Automated quality assurance
+
+The repository includes:
+
+- TypeScript compile checks;
+- ESLint;
+- production Next.js build validation;
+- unit/integration tests for:
+  - checkout rules;
+  - Cash on Delivery restriction;
+  - inventory demand;
+  - revenue recognition;
+  - registration/customer types;
+  - privacy consent;
+  - notification deduplication;
+  - notification preferences;
+  - HTML sanitization;
+  - popup triggers and audiences;
+  - YouTube banners;
+  - staff-footprint filtering;
+  - review moderation and rating aggregation;
+  - address and phone validation;
+  - support tickets;
+  - returns;
+- Playwright browser tests for:
+  - registration/login/logout;
+  - role authorization;
+  - checkout;
+  - order cancellation;
+  - uploads;
+  - health/monitoring;
+  - desktop/mobile behavior.
+
+The latest recorded local verification is:
+
+- 18 migrations current;
+- lint clean;
+- TypeScript clean;
+- 29/29 unit/integration tests passed;
+- production build passed;
+- 23/23 browser tests passed, including persisted gift checkout on desktop and mobile;
+- focused live mobile verification passed for the latest featured-product and drawer changes.
+
+---
+
+## 18. Explicitly not implemented
+
+To avoid confusing planned ideas with working features:
+
+- No Visa, Mastercard, or online card gateway.
+- No guest checkout.
+- No Google/social sign-in.
+- No SMS sending.
+- No real email provider.
+- No real browser/mobile push provider.
+- No customer-address map or delivery map.
+- No GPS delivery tracking.
+- No native Android/iOS application.
+- No multi-currency checkout; prices are Jordanian dinars.
+- No product cost/COGS accounting, so analytics cannot calculate true gross profit.
+- No cloud object storage in the current single-server deployment.
+
+These can be added later without changing the current role and database foundations, but they should
+not be presented as completed capabilities today.
