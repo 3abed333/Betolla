@@ -116,14 +116,14 @@ export function PromoCodeForm({
         <Input
           label={values.discountType === "PERCENTAGE" ? t("discountPercent") : t("discountJD")}
           type="number"
-          step="0.01"
+          step="0.001"
           value={values.discountValue}
           onChange={(e) => set("discountValue", e.target.value)}
         />
         <Input
           label={t("minOrderTotal")}
           type="number"
-          step="0.01"
+          step="0.001"
           value={values.minOrderTotal}
           onChange={(e) => set("minOrderTotal", e.target.value)}
         />

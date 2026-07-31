@@ -15,21 +15,8 @@ function generateOrderNumber() {
   return `BT-${Date.now().toString(36).toUpperCase()}-${randomUUID().slice(0, 6).toUpperCase()}`;
 }
 
-function buildAddressSnapshot(address: {
-  recipientName: string;
-  street: string;
-  buildingInfo: string | null;
-  floor: string | null;
-  apartmentNo: string | null;
-  area: string;
-  city: string;
-  landmark: string | null;
-}) {
-  const streetLine = [address.street, address.buildingInfo, address.floor, address.apartmentNo]
-    .filter(Boolean)
-    .join(", ");
-  const landmarkSuffix = address.landmark ? ` (near ${address.landmark})` : "";
-  return `${address.recipientName}, ${streetLine}, ${address.area}, ${address.city}, Jordan${landmarkSuffix}`;
+function buildAddressSnapshot(address: { recipientName: string; city: string }) {
+  return `${address.recipientName}, ${address.city}, Jordan`;
 }
 
 type OrderItemData = {
@@ -50,7 +37,7 @@ async function runSerializableCheckout(userId: string, input: CheckoutInput) {
         order: existing,
         wasExisting: true,
         loyaltyPointsEarned: 0,
-        lowStockCrossings: [] as { nameEn: string }[],
+        lowStockCrossings: [] as { nameEn: string; nameAr: string }[],
       };
     }
 
@@ -128,7 +115,7 @@ async function runSerializableCheckout(userId: string, input: CheckoutInput) {
         addDemand(bundleItem.productId, bundleItem.quantity * item.quantity);
       }
     }
-    subtotal = Number(subtotal.toFixed(2));
+    subtotal = Number(subtotal.toFixed(3));
     const demand = aggregateInventoryDemand(rawDemand);
 
     let discountAmount = 0;
@@ -144,12 +131,12 @@ async function runSerializableCheckout(userId: string, input: CheckoutInput) {
       }
     }
 
-    let remaining = Number((subtotal - discountAmount).toFixed(2));
+    let remaining = Number((subtotal - discountAmount).toFixed(3));
     const storeCreditUsed =
       input.useStoreCredit && Number(user.storeCreditBalance) > 0
         ? Math.min(Number(user.storeCreditBalance), remaining)
         : 0;
-    remaining = Number((remaining - storeCreditUsed).toFixed(2));
+    remaining = Number((remaining - storeCreditUsed).toFixed(3));
 
     const redemptionRate = loyaltyConfig ? Number(loyaltyConfig.redemptionValuePerPoint) : 0.01;
     let loyaltyPointsUsed = 0;
@@ -160,9 +147,9 @@ async function runSerializableCheckout(userId: string, input: CheckoutInput) {
         Math.floor(remaining / redemptionRate),
       );
     }
-    const loyaltyRedemptionValue = Number((loyaltyPointsUsed * redemptionRate).toFixed(2));
-    remaining = Number((remaining - loyaltyRedemptionValue).toFixed(2));
-    const total = Number((remaining + shippingFee).toFixed(2));
+    const loyaltyRedemptionValue = Number((loyaltyPointsUsed * redemptionRate).toFixed(3));
+    remaining = Number((remaining - loyaltyRedemptionValue).toFixed(3));
+    const total = Number((remaining + shippingFee).toFixed(3));
 
     const paymentMethod = await tx.paymentMethod.findFirst({
       where: { userId, type: "CASH_ON_DELIVERY" },
@@ -174,11 +161,11 @@ async function runSerializableCheckout(userId: string, input: CheckoutInput) {
 
     // Every inventory mutation is a conditional decrement. The full aggregate demand includes
     // direct lines plus every bundle component, so stock can never become negative under races.
-    const lowStockCrossings: { nameEn: string }[] = [];
+    const lowStockCrossings: { nameEn: string; nameAr: string }[] = [];
     for (const [productId, quantity] of demand) {
       const before = await tx.product.findUnique({
         where: { id: productId },
-        select: { stock: true, lowStockThreshold: true, nameEn: true, isActive: true },
+        select: { stock: true, lowStockThreshold: true, nameEn: true, nameAr: true, isActive: true },
       });
       if (!before?.isActive) throw new CheckoutError("A product in your cart is no longer available");
       const changed = await tx.product.updateMany({
@@ -187,7 +174,7 @@ async function runSerializableCheckout(userId: string, input: CheckoutInput) {
       });
       if (changed.count !== 1) throw new CheckoutError(`Not enough stock for ${before.nameEn}`);
       const after = { ...before, stock: before.stock - quantity };
-      if (!isLowStock(before) && isLowStock(after)) lowStockCrossings.push({ nameEn: before.nameEn });
+      if (!isLowStock(before) && isLowStock(after)) lowStockCrossings.push({ nameEn: before.nameEn, nameAr: before.nameAr });
     }
 
     const created = await tx.order.create({
@@ -304,6 +291,9 @@ export async function placeOrder(userId: string, input: CheckoutInput) {
     category: "ORDER_UPDATES",
     title: "Order placed",
     body: `We've received your order ${result.order.orderNumber}.`,
+    titleKey: "orderPlacedTitle",
+    bodyKey: "orderPlacedBody",
+    templateParams: { orderNumber: result.order.orderNumber },
     relatedOrderId: result.order.id,
     eventKey: `order:${result.order.id}:placed`,
   });
@@ -313,6 +303,9 @@ export async function placeOrder(userId: string, input: CheckoutInput) {
       category: "LOYALTY_AND_WALLET",
       title: "Loyalty points earned",
       body: `You earned ${result.loyaltyPointsEarned} points on order ${result.order.orderNumber}.`,
+      titleKey: "loyaltyPointsEarnedTitle",
+      bodyKey: "loyaltyPointsEarnedBody",
+      templateParams: { points: result.loyaltyPointsEarned, orderNumber: result.order.orderNumber },
       relatedOrderId: result.order.id,
     });
   }
@@ -321,6 +314,9 @@ export async function placeOrder(userId: string, input: CheckoutInput) {
       category: "OPERATIONS",
       title: "Low stock alert",
       body: `${crossing.nameEn} has dropped to or below its low-stock threshold.`,
+      titleKey: "lowStockAlertTitle",
+      bodyKey: "lowStockAlertBody",
+      templateParams: { productNameEn: crossing.nameEn, productNameAr: crossing.nameAr },
     });
   }
   return result.order;

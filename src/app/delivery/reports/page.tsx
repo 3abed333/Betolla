@@ -9,7 +9,11 @@ import { ReportProblemDialog } from "@/components/ReportProblemDialog";
 import { FormattedDate } from "@/components/FormattedDate";
 import type { AppLocale } from "@/i18n/config";
 
-export const metadata: Metadata = { title: "My Reports - Betolla Delivery" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("delivery.reports");
+  const tCommon = await getTranslations("common");
+  return { title: t("metaTitle", { brand: tCommon("brand") }) };
+}
 
 export default async function MyReportsPage() {
   const session = await requireRole("DELIVERY");

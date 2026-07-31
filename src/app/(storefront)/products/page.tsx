@@ -6,7 +6,11 @@ import { EmptyState } from "@/components/ui";
 import { CategoryFilter } from "./CategoryFilter";
 import type { Prisma } from "@/generated/prisma/client";
 
-export const metadata: Metadata = { title: "All Products - Betolla Cosmetics" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("storefront.products");
+  const tCommon = await getTranslations("common");
+  return { title: t("metaTitle", { brand: tCommon("brand") }) };
+}
 
 export default async function ProductsPage({
   searchParams,

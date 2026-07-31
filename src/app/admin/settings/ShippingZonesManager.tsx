@@ -88,7 +88,7 @@ function ZoneRow({ zone }: { zone: ShippingZoneRow }) {
         <Input value={values.cityAr} dir="rtl" onChange={(e) => setValues((v) => ({ ...v, cityAr: e.target.value }))} className="h-9 w-28" />
       </TableCell>
       <TableCell>
-        <Input type="number" step="0.01" value={values.fee} onChange={(e) => setValues((v) => ({ ...v, fee: e.target.value }))} className="h-9 w-20" />
+        <Input type="number" step="0.001" value={values.fee} onChange={(e) => setValues((v) => ({ ...v, fee: e.target.value }))} className="h-9 w-20" />
       </TableCell>
       <TableCell>
         <div className="flex items-center gap-1">
@@ -185,7 +185,7 @@ function AddZoneRow() {
         <Input placeholder="عمان" dir="rtl" value={values.cityAr} onChange={(e) => setValues((v) => ({ ...v, cityAr: e.target.value }))} className="h-9 w-28" />
       </TableCell>
       <TableCell>
-        <Input type="number" step="0.01" value={values.fee} onChange={(e) => setValues((v) => ({ ...v, fee: e.target.value }))} className="h-9 w-20" />
+        <Input type="number" step="0.001" value={values.fee} onChange={(e) => setValues((v) => ({ ...v, fee: e.target.value }))} className="h-9 w-20" />
       </TableCell>
       <TableCell>
         <div className="flex items-center gap-1">

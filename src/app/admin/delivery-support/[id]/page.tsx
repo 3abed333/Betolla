@@ -9,7 +9,11 @@ import { DeliverySupportControls } from "@/components/delivery-support/DeliveryS
 import { FormattedDate } from "@/components/FormattedDate";
 import type { AppLocale } from "@/i18n/config";
 
-export const metadata: Metadata = { title: "Report Detail - Betolla Admin" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("admin.deliverySupport.detail");
+  const tCommon = await getTranslations("common");
+  return { title: t("metaTitle", { brand: tCommon("brand") }) };
+}
 
 export default async function AdminDeliverySupportDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

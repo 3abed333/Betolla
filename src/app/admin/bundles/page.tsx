@@ -9,7 +9,11 @@ import { localizedField } from "@/lib/localizedField";
 import type { AppLocale } from "@/i18n/config";
 import { BundleRowActions } from "./BundleRowActions";
 
-export const metadata: Metadata = { title: "Bundles - Betolla Admin" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("admin.bundles");
+  const tCommon = await getTranslations("common");
+  return { title: t("metaTitle", { brand: tCommon("brand") }) };
+}
 
 export default async function AdminBundlesPage() {
   const t = await getTranslations("admin.bundles");

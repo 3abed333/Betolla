@@ -1,10 +1,15 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { getCurrentSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
 import { CheckoutForm } from "./CheckoutForm";
 
-export const metadata: Metadata = { title: "Checkout - Betolla Cosmetics" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("storefront.checkout");
+  const tCommon = await getTranslations("common");
+  return { title: t("metaTitle", { brand: tCommon("brand") }) };
+}
 
 export default async function CheckoutPage() {
   const session = await getCurrentSession();
@@ -33,8 +38,6 @@ export default async function CheckoutPage() {
         id: a.id,
         label: a.label,
         recipientName: a.recipientName,
-        street: a.street,
-        area: a.area,
         city: a.city,
         isDefaultShipping: a.isDefaultShipping,
       }))}

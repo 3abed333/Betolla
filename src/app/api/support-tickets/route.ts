@@ -50,6 +50,9 @@ export async function POST(request: NextRequest) {
     category: "SUPPORT",
     title: "New support ticket",
     body: `${ticket.subject} needs a response.`,
+    titleKey: "newSupportTicketTitle",
+    bodyKey: "newSupportTicketBody",
+    templateParams: { subject: ticket.subject },
   });
 
   return NextResponse.json({ ticket });

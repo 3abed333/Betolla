@@ -39,6 +39,13 @@ type NotificationRow = {
   category: string;
   title: string;
   body: string;
+  titleKey: string | null;
+  bodyKey: string | null;
+  // Prisma types a Json column as JsonValue (string | number | boolean | null | JsonObject |
+  // JsonArray) - every call site that writes it always passes a flat Record<string, string |
+  // number>, so it's narrowed to that shape at the one place it's read (resolveParams below)
+  // rather than fighting Prisma's wider type through every page that fetches a Notification row.
+  params: unknown;
   isRead: boolean;
   createdAt: Date;
   relatedOrderId: string | null;
@@ -56,7 +63,29 @@ export function NotificationsList({
   const router = useRouter();
   const t = useTranslations("common.notifications");
   const tCategory = useTranslations("common.notificationCategory");
+  const tEvents = useTranslations("common.notificationEvents");
   const tErrors = useTranslations("errors");
+
+  // A few event templates (low stock, price drop, back in stock) carry both productNameEn and
+  // productNameAr in params so the product name itself renders in the viewer's own locale too,
+  // not just the surrounding sentence - resolve that pair down to one `productName` param here.
+  function resolveParams(raw: unknown): Record<string, string | number> | undefined {
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) return undefined;
+    const params = raw as Record<string, string | number>;
+    if (!("productNameEn" in params)) return params;
+    const { productNameEn, productNameAr, ...rest } = params;
+    return { ...rest, productName: (locale === "ar" && productNameAr ? productNameAr : productNameEn) as string };
+  }
+
+  function renderTitle(n: NotificationRow) {
+    if (n.titleKey && tEvents.has(n.titleKey)) return tEvents(n.titleKey, resolveParams(n.params));
+    return n.title;
+  }
+
+  function renderBody(n: NotificationRow) {
+    if (n.bodyKey && tEvents.has(n.bodyKey)) return tEvents(n.bodyKey, resolveParams(n.params));
+    return n.body;
+  }
   const [isPending, startTransition] = useTransition();
   const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
 
@@ -167,8 +196,8 @@ export function NotificationsList({
                   {!n.isRead && <Badge variant="accent">{t("unread")}</Badge>}
                   <Badge variant="neutral">{tCategory.has(n.category) ? tCategory(n.category) : n.category}</Badge>
                 </div>
-                <p className="mt-1 font-medium text-ink">{n.title}</p>
-                <p className="text-sm text-ink-muted">{n.body}</p>
+                <p className="mt-1 font-medium text-ink">{renderTitle(n)}</p>
+                <p className="text-sm text-ink-muted">{renderBody(n)}</p>
                 <p className="mt-1 text-xs text-ink-muted">
                   <FormattedDate date={n.createdAt} locale={locale} opts={{ dateStyle: "medium", timeStyle: "short" }} />
                 </p>

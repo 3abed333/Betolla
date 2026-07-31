@@ -1,9 +1,14 @@
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { requireRole } from "@/lib/auth/guards";
 import { prisma } from "@/lib/db";
 import { WishlistsClient } from "./WishlistsClient";
 
-export const metadata: Metadata = { title: "Wishlists - Betolla Cosmetics" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("account.wishlists");
+  const tCommon = await getTranslations("common");
+  return { title: t("metaTitle", { brand: tCommon("brand") }) };
+}
 
 export default async function WishlistsPage() {
   const session = await requireRole("CUSTOMER");

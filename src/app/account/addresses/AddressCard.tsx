@@ -18,13 +18,7 @@ export function AddressCard({
     label: string;
     recipientName: string;
     phone: string;
-    street: string;
-    area: string;
     city: string;
-    buildingInfo?: string | null;
-    floor?: string | null;
-    apartmentNo?: string | null;
-    landmark?: string | null;
     deliveryNotes?: string | null;
     isDefaultShipping: boolean;
   };
@@ -65,17 +59,7 @@ export function AddressCard({
             {address.isDefaultShipping && <Badge variant="success">{t("default")}</Badge>}
           </div>
           <p className="mt-1 text-sm text-ink-muted">{address.recipientName}</p>
-          <p className="text-sm text-ink-muted">
-            {[address.street, address.buildingInfo, address.floor, address.apartmentNo]
-              .filter(Boolean)
-              .join(", ")}
-            , {address.area}, {localizedCity(address.city, locale)}
-          </p>
-          {address.landmark && (
-            <p className="text-sm text-ink-muted">
-              {t("nearLandmark", { landmark: address.landmark })}
-            </p>
-          )}
+          <p className="text-sm text-ink-muted">{localizedCity(address.city, locale)}</p>
           {address.deliveryNotes && <p className="text-sm text-ink-muted">{address.deliveryNotes}</p>}
           <p className="text-sm text-ink-muted">
             <span dir="ltr" className="inline-block">

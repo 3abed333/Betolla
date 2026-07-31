@@ -24,8 +24,16 @@ export const DEFAULT_NOTIFICATION_PREFERENCES: {
 export async function notify(params: {
   userId: string;
   category: NotificationCategory;
+  /** English fallback text - always stored as-is, rendered verbatim for legacy rows or if
+   * titleKey/bodyKey is ever missing from the message catalog. */
   title: string;
   body: string;
+  /** common.notificationEvents keys the notifications UI translates at render time, using the
+   * VIEWER's own current locale (never the actor's locale at creation time). Optional so callers
+   * can be migrated incrementally; omit to fall back to the English title/body everywhere. */
+  titleKey?: string;
+  bodyKey?: string;
+  templateParams?: Record<string, string | number>;
   relatedOrderId?: string;
   /**
    * Identifies the logical event this call represents (e.g. "order:123:status:CONFIRMED").
@@ -48,6 +56,9 @@ export async function notify(params: {
         status: "SENT",
         title: params.title,
         body: params.body,
+        titleKey: params.titleKey,
+        bodyKey: params.bodyKey,
+        params: params.templateParams,
         relatedOrderId: params.relatedOrderId,
         eventKey: params.eventKey,
       })),
@@ -74,6 +85,9 @@ export async function notifyRoles(
     category: NotificationCategory;
     title: string;
     body: string;
+    titleKey?: string;
+    bodyKey?: string;
+    templateParams?: Record<string, string | number>;
     relatedOrderId?: string;
     eventKey?: string;
   },
@@ -108,7 +122,8 @@ export function buildDefaultPreferences(categories: NotificationCategory[]) {
  */
 export async function notifyWishlistsOnProductChange(params: {
   productId: string;
-  productName: string;
+  productNameEn: string;
+  productNameAr: string;
   before: { price: number; stock: number };
   after: { price: number; stock: number };
 }) {
@@ -133,7 +148,14 @@ export async function notifyWishlistsOnProductChange(params: {
         userId: item.wishlist.userId,
         category: "BACK_IN_STOCK",
         title: "Price drop on your wishlist",
-        body: `${params.productName} dropped to ${params.after.price.toFixed(3)} JD.`,
+        body: `${params.productNameEn} dropped to ${params.after.price.toFixed(3)} JD.`,
+        titleKey: "priceDropTitle",
+        bodyKey: "priceDropBody",
+        templateParams: {
+          productNameEn: params.productNameEn,
+          productNameAr: params.productNameAr,
+          price: params.after.price.toFixed(3),
+        },
       });
     }
     if (restocked && item.notifyOnRestock) {
@@ -141,7 +163,10 @@ export async function notifyWishlistsOnProductChange(params: {
         userId: item.wishlist.userId,
         category: "BACK_IN_STOCK",
         title: "Back in stock",
-        body: `${params.productName} is back in stock.`,
+        body: `${params.productNameEn} is back in stock.`,
+        titleKey: "backInStockTitle",
+        bodyKey: "backInStockBody",
+        templateParams: { productNameEn: params.productNameEn, productNameAr: params.productNameAr },
       });
     }
   }

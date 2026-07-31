@@ -219,7 +219,7 @@ model User {
   themePreference ThemePreference @default(SYSTEM)
 
   loyaltyPointsBalance Int     @default(0)
-  storeCreditBalance   Decimal @default(0) @db.Decimal(10, 2)
+  storeCreditBalance   Decimal @default(0) @db.Decimal(11, 3)
 
   isActive           Boolean @default(true)
   mustChangePassword Boolean @default(false)
@@ -281,12 +281,6 @@ model Address {
   recipientName     String
   phone             String
   city              String
-  area              String
-  street            String
-  buildingInfo      String?
-  floor             String?
-  apartmentNo       String?
-  landmark          String?
   deliveryNotes     String?
   // Unused legacy fields from a removed map-pin picker - left nullable, no longer written to.
   lat               Float?
@@ -343,8 +337,8 @@ model Product {
   nameAr            String
   descriptionEn     String
   descriptionAr     String
-  price             Decimal  @db.Decimal(10, 2)
-  compareAtPrice    Decimal? @db.Decimal(10, 2)
+  price             Decimal  @db.Decimal(11, 3)
+  compareAtPrice    Decimal? @db.Decimal(11, 3)
   stock             Int      @default(0)
   lowStockThreshold Int?
   categoryId        String
@@ -401,7 +395,7 @@ model ProductBundle {
   nameAr        String
   descriptionEn String
   descriptionAr String
-  bundlePrice   Decimal @db.Decimal(10, 2)
+  bundlePrice   Decimal @db.Decimal(11, 3)
   mainImageUrl  String
   isActive      Boolean @default(true)
 
@@ -493,7 +487,7 @@ model CartItem {
   bundleId   String?
   bundle     ProductBundle? @relation(fields: [bundleId], references: [id], onDelete: Cascade)
   quantity   Int            @default(1)
-  priceAtAdd Decimal        @db.Decimal(10, 2)
+  priceAtAdd Decimal        @db.Decimal(11, 3)
   addedAt    DateTime       @default(now())
 
   @@index([cartId])
@@ -510,23 +504,23 @@ model Order {
   status             OrderStatus   @default(PENDING)
   paymentStatus      PaymentStatus @default(UNPAID)
   cancellationReason String?
-  refundedAmount     Decimal       @default(0) @db.Decimal(10, 2)
+  refundedAmount     Decimal       @default(0) @db.Decimal(11, 3)
   isGift             Boolean       @default(false)
   giftOccasion       String?
   giftRecipientName  String?
   giftMessage        String?
 
-  subtotal      Decimal @db.Decimal(10, 2)
-  discountTotal Decimal @default(0) @db.Decimal(10, 2)
-  shippingFee   Decimal @default(0) @db.Decimal(10, 2)
-  total         Decimal @db.Decimal(10, 2)
+  subtotal      Decimal @db.Decimal(11, 3)
+  discountTotal Decimal @default(0) @db.Decimal(11, 3)
+  shippingFee   Decimal @default(0) @db.Decimal(11, 3)
+  total         Decimal @db.Decimal(11, 3)
 
-  storeCreditUsed        Decimal @default(0) @db.Decimal(10, 2)
+  storeCreditUsed        Decimal @default(0) @db.Decimal(11, 3)
   loyaltyPointsUsed      Int     @default(0)
   // JD value of loyaltyPointsUsed, snapshotted at order-placement time (same reasoning as
   // discountTotal/PromoCodeUsage.discountAmount - the redemption rate is admin-configurable and can
   // change later, so this must not be recomputed from the live LoyaltyConfig rate after the fact).
-  loyaltyRedemptionValue Decimal @default(0) @db.Decimal(10, 2)
+  loyaltyRedemptionValue Decimal @default(0) @db.Decimal(11, 3)
   loyaltyPointsEarned    Int     @default(0)
 
   promoCodeId String?
@@ -574,7 +568,7 @@ model OrderItem {
   bundle        ProductBundle? @relation(fields: [bundleId], references: [id], onDelete: SetNull)
   nameSnapshot  String
   imageSnapshot String
-  priceSnapshot Decimal        @db.Decimal(10, 2)
+  priceSnapshot Decimal        @db.Decimal(11, 3)
   quantity      Int
 
   reviews     Review[]
@@ -619,7 +613,7 @@ model ReturnRequest {
   userId              String
   user                User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   status              ReturnStatus @default(REQUESTED)
-  refundAmount        Decimal?     @db.Decimal(10, 2)
+  refundAmount        Decimal?     @db.Decimal(11, 3)
   refundToStoreCredit Boolean      @default(true)
   staffNote           String?
   createdAt           DateTime     @default(now())
@@ -717,7 +711,7 @@ model WishlistItem {
   wishlist          Wishlist @relation(fields: [wishlistId], references: [id], onDelete: Cascade)
   productId         String
   product           Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  priceAtAdd        Decimal  @db.Decimal(10, 2)
+  priceAtAdd        Decimal  @db.Decimal(11, 3)
   notifyOnPriceDrop Boolean  @default(true)
   notifyOnRestock   Boolean  @default(true)
   addedAt           DateTime @default(now())
@@ -758,7 +752,7 @@ model StoreCreditTransaction {
   id          String   @id @default(cuid())
   userId      String
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  amount      Decimal  @db.Decimal(10, 2)
+  amount      Decimal  @db.Decimal(11, 3)
   reason      String
   orderId     String?
   createdById String?
@@ -824,6 +818,13 @@ model Notification {
   status         NotificationStatus   @default(SENT)
   title          String
   body           String
+  // Locale-aware rendering: when present, the notifications UI translates titleKey/bodyKey via
+  // common.notificationEvents using the VIEWER's own current locale, with params interpolated in.
+  // title/body remain the English fallback - always populated, rendered as-is for legacy rows or
+  // if a key is ever missing from the message catalog.
+  titleKey       String?
+  bodyKey        String?
+  params         Json?
   relatedOrderId String?
   isRead         Boolean              @default(false)
   createdAt      DateTime             @default(now())
@@ -928,8 +929,8 @@ model PromoCode {
   id                String             @id @default(cuid())
   code              String             @unique
   discountType      PromoDiscountType
-  discountValue     Decimal            @db.Decimal(10, 2)
-  minOrderTotal     Decimal            @default(0) @db.Decimal(10, 2)
+  discountValue     Decimal            @db.Decimal(11, 3)
+  minOrderTotal     Decimal            @default(0) @db.Decimal(11, 3)
   targetSegment     PromoTargetSegment @default(ALL)
   startsAt          DateTime?
   expiresAt         DateTime?
@@ -950,7 +951,7 @@ model PromoCodeUsage {
   user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   orderId        String    @unique
   order          Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  discountAmount Decimal   @db.Decimal(10, 2)
+  discountAmount Decimal   @db.Decimal(11, 3)
   usedAt         DateTime  @default(now())
 
   @@index([promoCodeId])
@@ -961,7 +962,7 @@ model ShippingZone {
   id               String  @id @default(cuid())
   cityEn           String  @unique
   cityAr           String
-  fee              Decimal @db.Decimal(10, 2)
+  fee              Decimal @db.Decimal(11, 3)
   estimatedDaysMin Int?
   estimatedDaysMax Int?
   isActive         Boolean @default(true)
@@ -978,7 +979,7 @@ model DeliveryAssignment {
   attemptNumber  Int            @default(1)
   status         DeliveryStatus @default(ASSIGNED)
   failedReason   String?
-  earningsAmount Decimal        @default(0) @db.Decimal(10, 2)
+  earningsAmount Decimal        @default(0) @db.Decimal(11, 3)
   assignedAt     DateTime       @default(now())
   pickedUpAt     DateTime?
   deliveredAt    DateTime?
@@ -1051,7 +1052,7 @@ model CustomerStats {
   id             String      @id @default(cuid())
   userId         String      @unique
   user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  totalSpent     Decimal     @default(0) @db.Decimal(12, 2)
+  totalSpent     Decimal     @default(0) @db.Decimal(13, 3)
   orderCount     Int         @default(0)
   lastOrderAt    DateTime?
   recencyScore   Int?

@@ -10,7 +10,11 @@ import type { AppLocale } from "@/i18n/config";
 import { supportCategoryKey } from "@/lib/supportCategories";
 import { ReplyForm } from "./ReplyForm";
 
-export const metadata: Metadata = { title: "Support Ticket - Betolla Cosmetics" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("account.support.detail");
+  const tCommon = await getTranslations("common");
+  return { title: t("metaTitle", { brand: tCommon("brand") }) };
+}
 
 export default async function TicketDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

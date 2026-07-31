@@ -94,6 +94,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     category: "DELIVERY_ASSIGNMENTS",
     title: "New delivery assigned",
     body: `You've been assigned to deliver order ${order.orderNumber}.`,
+    titleKey: "newDeliveryAssignedTitle",
+    bodyKey: "newDeliveryAssignedBody",
+    templateParams: { orderNumber: order.orderNumber },
     relatedOrderId: orderId,
   });
 

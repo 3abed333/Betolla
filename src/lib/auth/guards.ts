@@ -11,13 +11,17 @@ export const ROLE_HOME: Record<Role, string> = {
 };
 
 /**
- * Call once at the top of a role-scoped layout. Not logged in -> /login. Logged in as the
- * wrong role -> their own dashboard (not a bare 403), since URL-guessing into someone else's
- * area is the expected way this gets hit, not a real authorization edge case to dwell on.
+ * Call once at the top of a role-scoped layout. Not logged in -> /login. Pending a mandatory
+ * password change (managed Staff/Delivery accounts on first login or after an Admin/Staff
+ * reset) -> /change-password, checked before the role check since that page must be reachable
+ * regardless of role. Logged in as the wrong role -> their own dashboard (not a bare 403),
+ * since URL-guessing into someone else's area is the expected way this gets hit, not a real
+ * authorization edge case to dwell on.
  */
 export async function requireRole(...allowed: Role[]): Promise<CurrentSession> {
-  const session = await getCurrentSession();
+  const session = await getCurrentSession({ allowPasswordChangeRequired: true });
   if (!session) redirect("/login");
+  if (session.mustChangePassword) redirect("/change-password");
   if (!allowed.includes(session.role)) redirect(ROLE_HOME[session.role]);
   return session;
 }

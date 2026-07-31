@@ -12,6 +12,7 @@ export function DeliveryNav({ unreadNotifications = 0 }: { unreadNotifications?:
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const t = useTranslations("delivery.nav");
+  const tCommon = useTranslations("common");
 
   const LINKS = [
     { href: "/delivery", label: t("activeDeliveries"), exact: true },
@@ -47,7 +48,7 @@ export function DeliveryNav({ unreadNotifications = 0 }: { unreadNotifications?:
               </svg>
             </button>
           </DrawerTrigger>
-          <DrawerContent title={t("drawerTitle")}>
+          <DrawerContent title={t("drawerTitle")} closeLabel={tCommon("close")}>
             <nav className="flex flex-col gap-1">
               {LINKS.map((link) => (
                 <Link key={link.href} href={link.href} onClick={() => setOpen(false)} className={linkClassName(isActive(link))}>

@@ -316,8 +316,6 @@ async function main() {
   const paymentMethodByCustomer = new Map<string, { id: string; label: string }>();
 
   for (const c of customers) {
-    const street = `Street ${randInt(1, 90)}, Building ${randInt(1, 40)}`;
-    const area = pick(["Abdoun", "Sweifieh", "Jabal Amman", "Khalda", "Tla' Al-Ali", "Downtown"] as const);
     const address = await prisma.address.create({
       data: {
         userId: c.id,
@@ -325,12 +323,10 @@ async function main() {
         recipientName: `${c.firstName} ${c.lastName}`,
         phone: `+9627${randInt(70000000, 99999999)}`,
         city: c.city,
-        area,
-        street,
         isDefaultShipping: true,
       },
     });
-    const snapshot = `${c.firstName} ${c.lastName}, ${street}, ${area}, ${c.city}, Jordan`;
+    const snapshot = `${c.firstName} ${c.lastName}, ${c.city}, Jordan`;
     addressByCustomer.set(c.id, { id: address.id, snapshot, city: c.city });
 
     const paymentMethod = await prisma.paymentMethod.create({
@@ -446,7 +442,7 @@ async function main() {
           quantity,
         };
       });
-      subtotal = Number(subtotal.toFixed(2));
+      subtotal = Number(subtotal.toFixed(3));
 
       const usePromo = Math.random() < 0.15;
       const promo = usePromo
@@ -456,14 +452,14 @@ async function main() {
       if (promo && subtotal >= Number(promo.minOrderTotal)) {
         discountTotal =
           promo.discountType === "PERCENTAGE"
-            ? Number(((subtotal * Number(promo.discountValue)) / 100).toFixed(2))
+            ? Number(((subtotal * Number(promo.discountValue)) / 100).toFixed(3))
             : Number(promo.discountValue);
       }
 
       const useStoreCredit = status === "DELIVERED" && Math.random() < 0.08;
       const storeCreditUsed = useStoreCredit ? Math.min(5, subtotal) : 0;
 
-      const total = Number((subtotal - discountTotal - storeCreditUsed + shippingFee).toFixed(2));
+      const total = Number((subtotal - discountTotal - storeCreditUsed + shippingFee).toFixed(3));
       const loyaltyPointsEarned = paymentStatus === "PAID" ? Math.floor(total) : 0;
 
       const order = await prisma.order.create({
@@ -675,7 +671,7 @@ async function main() {
     for (const sku of items) {
       const product = products.find((p) => p.sku === sku)!;
       const current = productBySku.get(sku)!;
-      const priceAtAdd = Math.random() < 0.25 ? Number((current.price * 1.15).toFixed(2)) : current.price;
+      const priceAtAdd = Math.random() < 0.25 ? Number((current.price * 1.15).toFixed(3)) : current.price;
       await prisma.wishlistItem.create({
         data: {
           wishlistId: wishlist.id,
@@ -797,7 +793,7 @@ async function main() {
   const statsRows = [];
   for (const customer of customers) {
     const paidOrders = allOrders.filter((o) => o.userId === customer.id && o.paymentStatus === "PAID");
-    const totalSpent = Number(paidOrders.reduce((sum, o) => sum + o.total, 0).toFixed(2));
+    const totalSpent = Number(paidOrders.reduce((sum, o) => sum + o.total, 0).toFixed(3));
     const orderCount = paidOrders.length;
     const lastOrderAt = paidOrders.length
       ? paidOrders.reduce((latest, o) => (o.createdAt > latest ? o.createdAt : latest), paidOrders[0].createdAt)

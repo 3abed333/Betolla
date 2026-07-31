@@ -11,7 +11,11 @@ import { supportCategoryKey } from "@/lib/supportCategories";
 import { NewTicketDialog } from "./NewTicketDialog";
 import { TicketStatusBadge } from "@/components/support/TicketStatusBadge";
 
-export const metadata: Metadata = { title: "Support - Betolla Cosmetics" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("account.support");
+  const tCommon = await getTranslations("common");
+  return { title: t("metaTitle", { brand: tCommon("brand") }) };
+}
 
 export default async function SupportPage() {
   const session = await requireRole("CUSTOMER");

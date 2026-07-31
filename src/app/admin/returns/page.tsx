@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { Badge, Card, CardContent, EmptyState } from "@/components/ui";
 import { Money } from "@/components/Money";
 import { ReturnActions } from "./ReturnActions";
+import { resolveOrderItemName } from "@/lib/orderItemName";
 import type { AppLocale } from "@/i18n/config";
 
 export default async function AdminReturnsPage() {
@@ -12,7 +13,16 @@ export default async function AdminReturnsPage() {
     include: {
       order: { select: { orderNumber: true } },
       user: { select: { firstName: true, lastName: true, email: true } },
-      items: { include: { orderItem: true } },
+      items: {
+        include: {
+          orderItem: {
+            include: {
+              product: { select: { nameEn: true, nameAr: true } },
+              bundle: { select: { nameEn: true, nameAr: true } },
+            },
+          },
+        },
+      },
     },
     orderBy: { createdAt: "desc" },
   });
@@ -46,7 +56,7 @@ export default async function AdminReturnsPage() {
               </div>
               {request.items.map((item) => (
                 <div key={item.id} className="rounded-lg bg-surface-secondary p-3 text-sm">
-                  <p className="font-medium text-ink">{item.orderItem.nameSnapshot} × {item.quantity}</p>
+                  <p className="font-medium text-ink">{resolveOrderItemName(item.orderItem, locale)} × {item.quantity}</p>
                   <p className="text-ink-muted">{item.reason}{item.reasonNote ? ` — ${item.reasonNote}` : ""}</p>
                 </div>
               ))}

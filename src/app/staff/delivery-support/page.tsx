@@ -5,7 +5,11 @@ import { DeliverySupportFilters } from "@/components/delivery-support/DeliverySu
 import { DeliverySupportList } from "@/components/delivery-support/DeliverySupportList";
 import type { Prisma, TicketStatus, DeliveryProblemType } from "@/generated/prisma/client";
 
-export const metadata: Metadata = { title: "Delivery Support - Betolla Staff" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("staff.deliverySupport");
+  const tCommon = await getTranslations("common");
+  return { title: t("metaTitle", { brand: tCommon("brand") }) };
+}
 
 export default async function StaffDeliverySupportPage({
   searchParams,

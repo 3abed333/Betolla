@@ -12,6 +12,7 @@ export function StaffNav({ unreadNotifications = 0 }: { unreadNotifications?: nu
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const t = useTranslations("staff.nav");
+  const tCommon = useTranslations("common");
 
   const LINKS = [
     { href: "/staff", label: t("dashboard"), exact: true },
@@ -50,7 +51,7 @@ export function StaffNav({ unreadNotifications = 0 }: { unreadNotifications?: nu
               </svg>
             </button>
           </DrawerTrigger>
-          <DrawerContent title={t("drawerTitle")}>
+          <DrawerContent title={t("drawerTitle")} closeLabel={tCommon("close")}>
             <nav className="flex flex-col gap-1">
               {LINKS.map((link) => (
                 <Link key={link.href} href={link.href} onClick={() => setOpen(false)} className={linkClassName(isActive(link))}>

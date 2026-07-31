@@ -82,6 +82,9 @@ export async function confirmCodPaymentOnDelivery(orderId: string) {
       category: "LOYALTY_AND_WALLET",
       title: "Loyalty points earned",
       body: `You earned ${result.earned} points on order ${result.order.orderNumber}.`,
+      titleKey: "loyaltyPointsEarnedTitle",
+      bodyKey: "loyaltyPointsEarnedBody",
+      templateParams: { points: result.earned, orderNumber: result.order.orderNumber },
       relatedOrderId: result.order.id,
     });
   }

@@ -6,7 +6,11 @@ import { prisma } from "@/lib/db";
 import { Card, CardContent, EmptyState } from "@/components/ui";
 import { DeliveryStatusBadge } from "@/components/DeliveryStatusBadge";
 
-export const metadata: Metadata = { title: "Active Deliveries - Betolla Delivery" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("delivery.active");
+  const tCommon = await getTranslations("common");
+  return { title: t("metaTitle", { brand: tCommon("brand") }) };
+}
 
 export default async function ActiveDeliveriesPage() {
   const session = await requireRole("DELIVERY");

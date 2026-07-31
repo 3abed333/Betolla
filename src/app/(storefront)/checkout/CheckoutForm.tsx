@@ -16,8 +16,6 @@ type Address = {
   id: string;
   label: string;
   recipientName: string;
-  street: string;
-  area: string;
   city: string;
   isDefaultShipping: boolean;
 };
@@ -59,12 +57,6 @@ export function CheckoutForm({
     recipientName: "",
     phone: "",
     city: shippingZones[0]?.city ?? "",
-    area: "",
-    street: "",
-    buildingInfo: "",
-    floor: "",
-    apartmentNo: "",
-    landmark: "",
     deliveryNotes: "",
   });
 
@@ -86,7 +78,7 @@ export function CheckoutForm({
   // placing a second one.
   const idempotencyKey = useRef(crypto.randomUUID());
 
-  const subtotal = Number(subtotalRaw.toFixed(2));
+  const subtotal = Number(subtotalRaw.toFixed(3));
   const discountAmount = promoResult && "discountAmount" in promoResult ? promoResult.discountAmount : 0;
   const storeCreditApplied = useStoreCredit ? Math.min(storeCreditBalance, subtotal - discountAmount) : 0;
   const loyaltyValue = useMemo(
@@ -203,9 +195,7 @@ export function CheckoutForm({
                   <p className="font-medium text-ink">
                     {a.label} - {a.recipientName}
                   </p>
-                  <p className="text-ink-muted">
-                    {a.street}, {a.area}, {localizedCity(a.city, locale)}
-                  </p>
+                  <p className="text-ink-muted">{localizedCity(a.city, locale)}</p>
                 </div>
               </label>
             ))}
@@ -246,37 +236,6 @@ export function CheckoutForm({
                     ))}
                   </select>
                 </div>
-                <Input
-                  label={t("area")}
-                  value={newAddress.area}
-                  onChange={(e) => setNewAddress({ ...newAddress, area: e.target.value })}
-                />
-                <Input
-                  label={t("street")}
-                  value={newAddress.street}
-                  onChange={(e) => setNewAddress({ ...newAddress, street: e.target.value })}
-                />
-                <Input
-                  label={t("buildingInfo")}
-                  value={newAddress.buildingInfo}
-                  onChange={(e) => setNewAddress({ ...newAddress, buildingInfo: e.target.value })}
-                />
-                <Input
-                  label={t("floor")}
-                  value={newAddress.floor}
-                  onChange={(e) => setNewAddress({ ...newAddress, floor: e.target.value })}
-                />
-                <Input
-                  label={t("apartmentNo")}
-                  value={newAddress.apartmentNo}
-                  onChange={(e) => setNewAddress({ ...newAddress, apartmentNo: e.target.value })}
-                />
-                <Input
-                  label={t("landmark")}
-                  value={newAddress.landmark}
-                  onChange={(e) => setNewAddress({ ...newAddress, landmark: e.target.value })}
-                  className="col-span-2"
-                />
                 <div className="col-span-2">
                   <label className="text-sm font-medium text-ink">{t("deliveryNotes")}</label>
                   <Textarea

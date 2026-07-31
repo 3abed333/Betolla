@@ -28,6 +28,16 @@ export async function POST(request: NextRequest) {
       return respond({ error: parsed.error.issues[0].message }, 400);
     }
     const { email, password } = parsed.data;
+    // Where to send the user after a successful login (e.g. back to the product page they were
+    // trying to wishlist, or to /checkout). Read from the raw body since loginSchema only knows
+    // email/password and safeParse silently strips unrecognized keys. Only ever accepted as a
+    // same-origin relative path - anything else (protocol-relative or absolute) is an open-redirect
+    // attempt and is ignored in favor of the role's normal home page.
+    const rawNext = body && typeof body === "object" && "next" in body ? body.next : null;
+    const safeNext =
+      typeof rawNext === "string" && rawNext.startsWith("/") && !rawNext.startsWith("//") && !rawNext.includes("://")
+        ? rawNext
+        : null;
 
     const ip = getClientIp(request);
     const rateLimitKey = `login:${email}`;
@@ -79,7 +89,7 @@ export async function POST(request: NextRequest) {
       sameSite: "lax",
     });
 
-    const redirectTo = user.mustChangePassword ? "/change-password" : ROLE_HOME[user.role];
+    const redirectTo = user.mustChangePassword ? "/change-password" : (safeNext ?? ROLE_HOME[user.role]);
     logInfo("auth_login_succeeded", { requestId, userId: user.id, role: user.role });
     if (nativeFormSubmission) {
       return new NextResponse(null, {

@@ -61,15 +61,23 @@ export async function updateDeliveryAssignmentStatus(params: {
   await syncOrderStatusFromDelivery(assignment.orderId, params.nextStatus);
 
   if (params.nextStatus === "FAILED") {
+    // Strip any trailing period(s) from the driver-supplied reason before appending the fixed
+    // ". Reassign a driver." sentence - otherwise a reason that already ends in punctuation
+    // (the normal case for a free-text sentence) produces a doubled ".." in the notification body.
+    const strippedReason = params.failedReason ? params.failedReason.trim().replace(/\.+$/, "") : null;
     await notifyRoles(["STAFF", "ADMIN"], {
       category: "OPERATIONS",
       title: "Delivery attempt failed",
-      // Strip any trailing period(s) from the driver-supplied reason before appending the fixed
-      // ". Reassign a driver." sentence - otherwise a reason that already ends in punctuation
-      // (the normal case for a free-text sentence) produces a doubled ".." in the notification body.
       body: `Attempt ${assignment.attemptNumber} for order ${order?.orderNumber ?? assignment.orderId} failed${
-        params.failedReason ? `: ${params.failedReason.trim().replace(/\.+$/, "")}` : ""
+        strippedReason ? `: ${strippedReason}` : ""
       }. Reassign a driver.`,
+      titleKey: "deliveryAttemptFailedTitle",
+      bodyKey: "deliveryAttemptFailedBody",
+      templateParams: {
+        attemptNumber: assignment.attemptNumber,
+        orderNumber: order?.orderNumber ?? assignment.orderId,
+        reason: strippedReason ?? "none",
+      },
       relatedOrderId: assignment.orderId,
     });
   }

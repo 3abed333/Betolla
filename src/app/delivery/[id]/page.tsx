@@ -11,9 +11,14 @@ import { ReportProblemDialog } from "@/components/ReportProblemDialog";
 import { CopyButton } from "@/components/CopyButton";
 import { Money } from "@/components/Money";
 import { DeliveryAssignmentAutoRefresh } from "@/components/DeliveryAssignmentAutoRefresh";
+import { resolveOrderItemName } from "@/lib/orderItemName";
 import type { AppLocale } from "@/i18n/config";
 
-export const metadata: Metadata = { title: "Delivery - Betolla Delivery" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("delivery.detail");
+  const tCommon = await getTranslations("common");
+  return { title: t("metaTitle", { brand: tCommon("brand") }) };
+}
 
 export default async function DeliveryAssignmentPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -27,7 +32,12 @@ export default async function DeliveryAssignmentPage({ params }: { params: Promi
     include: {
       order: {
         include: {
-          items: true,
+          items: {
+            include: {
+              product: { select: { nameEn: true, nameAr: true } },
+              bundle: { select: { nameEn: true, nameAr: true } },
+            },
+          },
           user: { select: { firstName: true, lastName: true, phone: true } },
         },
       },
@@ -104,10 +114,10 @@ export default async function DeliveryAssignmentPage({ params }: { params: Promi
           {order.items.map((item) => (
             <div key={item.id} className="flex items-center gap-4 py-3 first:pt-0 last:pb-0">
               <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-surface-secondary">
-                <Image src={item.imageSnapshot} alt={item.nameSnapshot} fill sizes="56px" className="object-cover" />
+                <Image src={item.imageSnapshot} alt={resolveOrderItemName(item, locale)} fill sizes="56px" className="object-cover" />
               </div>
               <div className="flex-1">
-                <p className="font-medium text-ink">{item.nameSnapshot}</p>
+                <p className="font-medium text-ink">{resolveOrderItemName(item, locale)}</p>
                 <p className="text-sm text-ink-muted">
                   {t("qty")} {item.quantity}
                 </p>

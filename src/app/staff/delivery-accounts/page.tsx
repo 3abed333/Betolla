@@ -8,7 +8,11 @@ import { FormattedDate } from "@/components/FormattedDate";
 import type { AppLocale } from "@/i18n/config";
 import { DeliveryAccountRowActions } from "./DeliveryAccountRowActions";
 
-export const metadata: Metadata = { title: "Delivery Accounts - Betolla Staff" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("staff.deliveryAccounts");
+  const tCommon = await getTranslations("common");
+  return { title: t("metaTitle", { brand: tCommon("brand") }) };
+}
 
 export default async function DeliveryAccountsPage() {
   const t = await getTranslations("staff.deliveryAccounts");

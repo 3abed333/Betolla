@@ -20,6 +20,8 @@ export async function POST(_request: NextRequest, { params }: { params: Promise<
     category: "PROMOTIONS",
     title: "You left something in your cart",
     body: "Come back and finish checking out before it sells out!",
+    titleKey: "abandonedCartTitle",
+    bodyKey: "abandonedCartBody",
   });
 
   await logActivity({

@@ -8,7 +8,11 @@ import { FormattedDate } from "@/components/FormattedDate";
 import type { AppLocale } from "@/i18n/config";
 import { StaffRowActions } from "./StaffRowActions";
 
-export const metadata: Metadata = { title: "Staff - Betolla Admin" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("admin.staff");
+  const tCommon = await getTranslations("common");
+  return { title: t("metaTitle", { brand: tCommon("brand") }) };
+}
 
 export default async function AdminStaffPage() {
   const t = await getTranslations("admin.staff");

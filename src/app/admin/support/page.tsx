@@ -10,7 +10,11 @@ import { supportCategoryKey } from "@/lib/supportCategories";
 import { SupportFilters } from "@/components/support/SupportFilters";
 import type { Prisma, TicketStatus } from "@/generated/prisma/client";
 
-export const metadata: Metadata = { title: "Support Inbox - Betolla Admin" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("admin.support");
+  const tCommon = await getTranslations("common");
+  return { title: t("metaTitle", { brand: tCommon("brand") }) };
+}
 
 export default async function AdminSupportPage({
   searchParams,

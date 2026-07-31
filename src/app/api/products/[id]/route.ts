@@ -60,7 +60,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (before) {
       await notifyWishlistsOnProductChange({
         productId: id,
-        productName: product.nameEn,
+        productNameEn: product.nameEn,
+        productNameAr: product.nameAr,
         before: { price: Number(before.price), stock: before.stock },
         after: { price: Number(product.price), stock: product.stock },
       });

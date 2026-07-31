@@ -8,7 +8,11 @@ import type { AppLocale } from "@/i18n/config";
 import { UserFilters } from "./UserFilters";
 import type { Prisma } from "@/generated/prisma/client";
 
-export const metadata: Metadata = { title: "Customers - Betolla Admin" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("admin.users");
+  const tCommon = await getTranslations("common");
+  return { title: t("metaTitle", { brand: tCommon("brand") }) };
+}
 
 export default async function AdminUsersPage({
   searchParams,

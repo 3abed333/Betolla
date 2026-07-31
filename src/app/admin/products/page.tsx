@@ -11,7 +11,11 @@ import { isLowStock } from "@/lib/server/services/inventory";
 import { ProductRowActions } from "@/components/products/ProductRowActions";
 import { ProductFeaturedToggle } from "@/components/products/ProductFeaturedToggle";
 
-export const metadata: Metadata = { title: "Products - Betolla Admin" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("admin.products");
+  const tCommon = await getTranslations("common");
+  return { title: t("metaTitle", { brand: tCommon("brand") }) };
+}
 
 export default async function AdminProductsPage({
   searchParams,

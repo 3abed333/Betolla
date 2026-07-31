@@ -8,7 +8,11 @@ import { Money } from "@/components/Money";
 import { FormattedDate } from "@/components/FormattedDate";
 import type { AppLocale } from "@/i18n/config";
 
-export const metadata: Metadata = { title: "Promo Code Usage - Betolla Admin" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("admin.promoCodes.detail");
+  const tCommon = await getTranslations("common");
+  return { title: t("metaTitle", { brand: tCommon("brand") }) };
+}
 
 export default async function PromoCodeDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

@@ -32,7 +32,14 @@ export default async function HomePage() {
 
   return (
     <div className="flex flex-col gap-12 sm:gap-16">
-      {banners.length > 0 && <HeroCarousel label={t("carouselLabel")} slides={banners.map((banner) => ({
+      {banners.length > 0 && <HeroCarousel
+        label={t("carouselLabel")}
+        prevLabel={t("carouselPrev")}
+        nextLabel={t("carouselNext")}
+        slideLabels={banners.map((_, index) => t("carouselSlide", { number: index + 1 }))}
+        resumeLabel={t("carouselResume")}
+        pauseLabel={t("carouselPause")}
+        slides={banners.map((banner) => ({
         id: banner.id,
         mediaType: banner.mediaType,
         desktopMediaUrl: banner.desktopMediaUrl,

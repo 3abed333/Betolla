@@ -36,6 +36,9 @@ export async function adjustStoreCredit({
       category: "LOYALTY_AND_WALLET",
       title: amount >= 0 ? "Store credit added" : "Store credit adjusted",
       body: `${amount >= 0 ? "+" : ""}${amount.toFixed(3)} JD: ${reason}`,
+      titleKey: amount >= 0 ? "storeCreditAddedTitle" : "storeCreditAdjustedTitle",
+      bodyKey: "storeCreditBody",
+      templateParams: { signedAmount: `${amount >= 0 ? "+" : ""}${amount.toFixed(3)}`, reason },
     });
     return updated;
   });

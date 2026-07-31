@@ -21,9 +21,9 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/DropdownMenu";
 
-function CartIcon({ count }: { count: number }) {
+function CartIcon({ count, ariaLabel }: { count: number; ariaLabel: string }) {
   return (
-    <Link href="/cart" aria-label="Cart" className="relative flex h-10 w-10 items-center justify-center rounded-full border border-border text-ink-muted hover:text-ink">
+    <Link href="/cart" aria-label={ariaLabel} className="relative flex h-10 w-10 items-center justify-center rounded-full border border-border text-ink-muted hover:text-ink">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="h-5 w-5">
         <path strokeLinecap="round" strokeLinejoin="round" d="M3 3h2l2.4 12.2a2 2 0 002 1.8h8.2a2 2 0 002-1.6L21 8H6" />
         <circle cx="9" cy="20" r="1.4" fill="currentColor" stroke="none" />
@@ -105,7 +105,7 @@ export function StorefrontHeader({ whatsapp }: { whatsapp: string | null }) {
         <div className="flex items-center justify-between gap-3 sm:hidden">
           <Link href="/" aria-label="Betolla Cosmetics home"><BrandLogo priority className="h-10 w-32" /></Link>
           <div className="flex items-center gap-2">
-            <CartIcon count={count} />
+            <CartIcon count={count} ariaLabel={t("cartAriaLabel")} />
             <Drawer open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <DrawerTrigger asChild>
                 <button
@@ -116,7 +116,7 @@ export function StorefrontHeader({ whatsapp }: { whatsapp: string | null }) {
                   <MenuIcon />
                 </button>
               </DrawerTrigger>
-              <DrawerContent title={t("menuTitle")} side="end">
+              <DrawerContent title={t("menuTitle")} closeLabel={tCommon("close")} side="end">
                 <Link href="/" onClick={() => setMobileMenuOpen(false)} aria-label="Betolla Cosmetics home">
                   <BrandLogo className="h-16 w-44" />
                 </Link>
@@ -183,7 +183,7 @@ export function StorefrontHeader({ whatsapp }: { whatsapp: string | null }) {
           <div className="flex items-center gap-3">
             <ThemeToggle allowPlainDark={false} />
             <LanguageSwitcher />
-            <CartIcon count={count} />
+            <CartIcon count={count} ariaLabel={t("cartAriaLabel")} />
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger className="rounded-full border border-border px-4 py-2 text-sm text-ink">

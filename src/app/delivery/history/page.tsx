@@ -8,7 +8,11 @@ import { DeliveryStatusBadge } from "@/components/DeliveryStatusBadge";
 import { DeliveryHistoryFilters } from "./DeliveryHistoryFilters";
 import type { Prisma } from "@/generated/prisma/client";
 
-export const metadata: Metadata = { title: "Delivery History - Betolla Delivery" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("delivery.history");
+  const tCommon = await getTranslations("common");
+  return { title: t("metaTitle", { brand: tCommon("brand") }) };
+}
 
 export default async function DeliveryHistoryPage({
   searchParams,

@@ -51,6 +51,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       category: "SUPPORT",
       title: "New reply to your support ticket",
       body: `${ticket.subject}: you have a new reply from Betolla Support.`,
+      titleKey: "newSupportReplyTitle",
+      bodyKey: "newSupportReplyBody",
+      templateParams: { subject: ticket.subject },
     });
   }
 

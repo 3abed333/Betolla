@@ -10,7 +10,11 @@ import { FormattedDate } from "@/components/FormattedDate";
 import type { AppLocale } from "@/i18n/config";
 import { ReorderButton } from "./ReorderButton";
 
-export const metadata: Metadata = { title: "My Orders - Betolla Cosmetics" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("account.orders");
+  const tCommon = await getTranslations("common");
+  return { title: t("metaTitle", { brand: tCommon("brand") }) };
+}
 
 export default async function OrdersPage() {
   const session = await requireRole("CUSTOMER");

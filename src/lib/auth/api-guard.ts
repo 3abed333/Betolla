@@ -9,8 +9,14 @@ import { getCurrentSession, type CurrentSession } from "./session";
  * `const result = await requireApiRole(...); if (result instanceof NextResponse) return result;`
  */
 export async function requireApiRole(...allowed: Role[]): Promise<CurrentSession | NextResponse> {
-  const session = await getCurrentSession();
+  const session = await getCurrentSession({ allowPasswordChangeRequired: true });
   if (!session) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  if (session.mustChangePassword) {
+    return NextResponse.json(
+      { error: "You must change your password before continuing", code: "MUST_CHANGE_PASSWORD", redirectTo: "/change-password" },
+      { status: 403 },
+    );
+  }
   if (!allowed.includes(session.role)) {
     return NextResponse.json({ error: "You don't have permission to do that" }, { status: 403 });
   }

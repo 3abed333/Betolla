@@ -12,8 +12,8 @@ const SWIPE_CLOSE_THRESHOLD_PX = 60;
 
 export const DrawerContent = forwardRef<
   React.ComponentRef<typeof DialogPrimitive.Content>,
-  ComponentProps<typeof DialogPrimitive.Content> & { title: string; side?: "start" | "end" }
->(({ className, children, title, side = "start", onTouchStart, onTouchEnd, ...props }, ref) => {
+  ComponentProps<typeof DialogPrimitive.Content> & { title: string; closeLabel?: string; side?: "start" | "end" }
+>(({ className, children, title, closeLabel = "Close", side = "start", onTouchStart, onTouchEnd, ...props }, ref) => {
   const closeRef = useRef<HTMLButtonElement>(null);
   const touchStartX = useRef<number | null>(null);
 
@@ -55,7 +55,7 @@ export const DrawerContent = forwardRef<
       >
         <DialogPrimitive.Title className="sr-only">{title}</DialogPrimitive.Title>
         <DialogPrimitive.Close ref={closeRef} className="sr-only" tabIndex={-1}>
-          Close
+          {closeLabel}
         </DialogPrimitive.Close>
         {children}
       </DialogPrimitive.Content>

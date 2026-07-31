@@ -14,20 +14,53 @@ const VALID_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   CANCELLED: [],
 };
 
-function orderStatusNotification(status: OrderStatus, orderNumber: string, cancellationReason?: string | null) {
+type OrderNotification = {
+  title: string;
+  body: string;
+  titleKey: string;
+  bodyKey: string;
+  templateParams: Record<string, string>;
+};
+
+function orderStatusNotification(
+  status: OrderStatus,
+  orderNumber: string,
+  cancellationReason?: string | null,
+): OrderNotification | null {
   switch (status) {
     case "CONFIRMED":
-      return { title: "Order confirmed", body: `Your order ${orderNumber} has been confirmed and is being prepared.` };
+      return {
+        title: "Order confirmed",
+        body: `Your order ${orderNumber} has been confirmed and is being prepared.`,
+        titleKey: "orderConfirmedTitle",
+        bodyKey: "orderConfirmedBody",
+        templateParams: { orderNumber },
+      };
     case "ON_DELIVERY":
-      return { title: "Order out for delivery", body: `Your order ${orderNumber} is on its way.` };
+      return {
+        title: "Order out for delivery",
+        body: `Your order ${orderNumber} is on its way.`,
+        titleKey: "orderOutForDeliveryTitle",
+        bodyKey: "orderOutForDeliveryBody",
+        templateParams: { orderNumber },
+      };
     case "DELIVERED":
-      return { title: "Order delivered", body: `Your order ${orderNumber} has been delivered. Enjoy!` };
+      return {
+        title: "Order delivered",
+        body: `Your order ${orderNumber} has been delivered. Enjoy!`,
+        titleKey: "orderDeliveredTitle",
+        bodyKey: "orderDeliveredBody",
+        templateParams: { orderNumber },
+      };
     case "CANCELLED":
       return {
         title: "Order cancelled",
         body: cancellationReason
           ? `Your order ${orderNumber} was cancelled: ${cancellationReason}`
           : `Your order ${orderNumber} was cancelled.`,
+        titleKey: "orderCancelledTitle",
+        bodyKey: "orderCancelledBody",
+        templateParams: { orderNumber, reason: cancellationReason ?? "none" },
       };
     default:
       return null;
@@ -233,6 +266,9 @@ export async function updateOrderStatus(params: {
         category: "OPERATIONS",
         title: "Order confirmed without a driver",
         body: `Order ${updated.orderNumber} is confirmed but has no delivery driver assigned yet.`,
+        titleKey: "orderConfirmedNoDriverTitle",
+        bodyKey: "orderConfirmedNoDriverBody",
+        templateParams: { orderNumber: updated.orderNumber },
         relatedOrderId: order.id,
       });
     }

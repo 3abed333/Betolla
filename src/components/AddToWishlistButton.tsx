@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { cn } from "@/lib/cn";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -10,6 +10,7 @@ export function AddToWishlistButton({ productId }: { productId: string }) {
   const t = useTranslations("storefront.productDetail");
   const { data: user } = useCurrentUser();
   const router = useRouter();
+  const pathname = usePathname();
   const queryClient = useQueryClient();
   const { data } = useQuery({
     queryKey: ["wishlistedProductIds"],
@@ -25,7 +26,7 @@ export function AddToWishlistButton({ productId }: { productId: string }) {
 
   async function toggle() {
     if (!user) {
-      router.push("/login?next=/products");
+      router.push(`/login?next=${encodeURIComponent(pathname)}`);
       return;
     }
     if (isWishlisted) {

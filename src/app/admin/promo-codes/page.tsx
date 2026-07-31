@@ -7,7 +7,11 @@ import { formatCurrency } from "@/lib/format";
 import type { AppLocale } from "@/i18n/config";
 import { PromoCodeRowActions } from "./PromoCodeRowActions";
 
-export const metadata: Metadata = { title: "Promo Codes - Betolla Admin" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("admin.promoCodes");
+  const tCommon = await getTranslations("common");
+  return { title: t("metaTitle", { brand: tCommon("brand") }) };
+}
 
 function formatDiscount(discountType: string, discountValue: string, locale: AppLocale) {
   return discountType === "PERCENTAGE" ? `${Number(discountValue)}%` : formatCurrency(discountValue, locale);

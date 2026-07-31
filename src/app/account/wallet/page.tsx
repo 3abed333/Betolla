@@ -8,7 +8,11 @@ import { FormattedDate } from "@/components/FormattedDate";
 import { localizedField } from "@/lib/localizedField";
 import type { AppLocale } from "@/i18n/config";
 
-export const metadata: Metadata = { title: "Wallet & Loyalty - Betolla Cosmetics" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("account.wallet");
+  const tCommon = await getTranslations("common");
+  return { title: t("metaTitle", { brand: tCommon("brand") }) };
+}
 
 export default async function WalletPage() {
   const session = await requireRole("CUSTOMER");

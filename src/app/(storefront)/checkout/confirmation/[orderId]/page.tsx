@@ -7,9 +7,14 @@ import { prisma } from "@/lib/db";
 import { Button, Card, CardContent } from "@/components/ui";
 import { Money } from "@/components/Money";
 import { GiftOrderCard } from "@/components/orders/GiftOrderCard";
+import { resolveOrderItemName } from "@/lib/orderItemName";
 import type { AppLocale } from "@/i18n/config";
 
-export const metadata: Metadata = { title: "Order Confirmed - Betolla Cosmetics" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("storefront.confirmation");
+  const tCommon = await getTranslations("common");
+  return { title: t("metaTitle", { brand: tCommon("brand") }) };
+}
 
 export default async function OrderConfirmationPage({ params }: { params: Promise<{ orderId: string }> }) {
   const { orderId } = await params;
@@ -18,7 +23,17 @@ export default async function OrderConfirmationPage({ params }: { params: Promis
   const t = await getTranslations("storefront.confirmation");
   const locale = (await getLocale()) as AppLocale;
 
-  const order = await prisma.order.findUnique({ where: { id: orderId }, include: { items: true } });
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    include: {
+      items: {
+        include: {
+          product: { select: { nameEn: true, nameAr: true } },
+          bundle: { select: { nameEn: true, nameAr: true } },
+        },
+      },
+    },
+  });
   if (!order || order.userId !== session.userId) notFound();
 
   const discountTotal = Number(order.discountTotal);
@@ -50,7 +65,7 @@ export default async function OrderConfirmationPage({ params }: { params: Promis
           {order.items.map((item) => (
             <div key={item.id} className="flex justify-between text-sm">
               <span className="text-ink">
-                {item.nameSnapshot} x{item.quantity}
+                {resolveOrderItemName(item, locale)} x{item.quantity}
               </span>
               <span className="text-ink-muted">
                 <Money value={Number(item.priceSnapshot) * item.quantity} locale={locale} />

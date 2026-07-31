@@ -20,7 +20,11 @@ import { WriteOrderItemReviewDialog } from "./WriteOrderItemReviewDialog";
 import { WriteDeliveryRatingDialog } from "./WriteDeliveryRatingDialog";
 import { CancelOrderButton } from "./CancelOrderButton";
 
-export const metadata: Metadata = { title: "Order Details - Betolla Cosmetics" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("account.orders.detail");
+  const tCommon = await getTranslations("common");
+  return { title: t("metaTitle", { brand: tCommon("brand") }) };
+}
 
 export default async function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

@@ -26,12 +26,6 @@ type EditableAddress = {
   recipientName: string;
   phone: string;
   city: string;
-  area: string;
-  street: string;
-  buildingInfo?: string | null;
-  floor?: string | null;
-  apartmentNo?: string | null;
-  landmark?: string | null;
   deliveryNotes?: string | null;
   isDefaultShipping: boolean;
 };
@@ -56,12 +50,6 @@ export function AddressFormDialog({
     recipientName: address?.recipientName ?? "",
     phone: address?.phone ?? "",
     city: address?.city ?? shippingZones[0]?.city ?? "",
-    area: address?.area ?? "",
-    street: address?.street ?? "",
-    buildingInfo: address?.buildingInfo ?? "",
-    floor: address?.floor ?? "",
-    apartmentNo: address?.apartmentNo ?? "",
-    landmark: address?.landmark ?? "",
     deliveryNotes: address?.deliveryNotes ?? "",
     isDefaultShipping: address?.isDefaultShipping ?? false,
   });
@@ -120,33 +108,6 @@ export function AddressFormDialog({
                 ))}
               </select>
             </div>
-            <Input label={t("form.area")} value={form.area} onChange={(e) => setForm({ ...form, area: e.target.value })} />
-            <Input
-              label={t("form.street")}
-              value={form.street}
-              onChange={(e) => setForm({ ...form, street: e.target.value })}
-            />
-            <Input
-              label={t("form.buildingInfo")}
-              value={form.buildingInfo}
-              onChange={(e) => setForm({ ...form, buildingInfo: e.target.value })}
-            />
-            <Input
-              label={t("form.floor")}
-              value={form.floor}
-              onChange={(e) => setForm({ ...form, floor: e.target.value })}
-            />
-            <Input
-              label={t("form.apartmentNo")}
-              value={form.apartmentNo}
-              onChange={(e) => setForm({ ...form, apartmentNo: e.target.value })}
-            />
-            <Input
-              label={t("form.landmark")}
-              value={form.landmark}
-              onChange={(e) => setForm({ ...form, landmark: e.target.value })}
-              className="sm:col-span-2"
-            />
           </div>
           <div>
             <label className="text-sm font-medium text-ink">{t("form.deliveryNotes")}</label>

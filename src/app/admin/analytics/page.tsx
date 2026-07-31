@@ -38,7 +38,11 @@ import { BannerPerformanceChart } from "./BannerPerformanceChart";
 import { BusinessOverview } from "./BusinessOverview";
 import { ProductPerformanceChart } from "./ProductPerformanceChart";
 
-export const metadata: Metadata = { title: "Analytics - Betolla Admin" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("admin.analytics");
+  const tCommon = await getTranslations("common");
+  return { title: t("metaTitle", { brand: tCommon("brand") }) };
+}
 
 const CARD_CLASS = "rounded-lg";
 const CONTENT_CLASS = "p-3.5";

@@ -30,7 +30,26 @@ function track(bannerId: string, type: "IMPRESSION" | "CLICK") {
   });
 }
 
-export function HeroCarousel({ slides, label }: { slides: Slide[]; label: string }) {
+export function HeroCarousel({
+  slides,
+  label,
+  prevLabel,
+  nextLabel,
+  slideLabels,
+  resumeLabel,
+  pauseLabel,
+}: {
+  slides: Slide[];
+  label: string;
+  prevLabel: string;
+  nextLabel: string;
+  // Precomputed per-slide labels, not a function - functions can't cross the server/client
+  // component boundary (React Server Components serializes props, and a closure isn't
+  // serializable), so the parent server component resolves all of them upfront instead.
+  slideLabels: string[];
+  resumeLabel: string;
+  pauseLabel: string;
+}) {
   const [active, setActive] = useState(0);
   const [paused, setPaused] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
@@ -157,11 +176,11 @@ export function HeroCarousel({ slides, label }: { slides: Slide[]; label: string
       ))}
       {slides.length > 1 && (
         <>
-          <button type="button" aria-label="Previous slide" onClick={() => go(active - 1)} className="absolute start-3 top-1/2 z-20 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-xl text-white backdrop-blur sm:flex">‹</button>
-          <button type="button" aria-label="Next slide" onClick={() => go(active + 1)} className="absolute end-3 top-1/2 z-20 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-xl text-white backdrop-blur sm:flex">›</button>
+          <button type="button" aria-label={prevLabel} onClick={() => go(active - 1)} className="absolute start-3 top-1/2 z-20 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-xl text-white backdrop-blur sm:flex">‹</button>
+          <button type="button" aria-label={nextLabel} onClick={() => go(active + 1)} className="absolute end-3 top-1/2 z-20 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-xl text-white backdrop-blur sm:flex">›</button>
           <div className="absolute bottom-3 end-4 z-20 flex items-center gap-2" role="tablist">
-            {slides.map((slide, index) => <button key={slide.id} type="button" role="tab" aria-selected={index === active} aria-label={`Slide ${index + 1}`} onClick={() => go(index)} className={cn("h-2.5 rounded-full bg-white/70 transition-all", index === active ? "w-7" : "w-2.5")} />)}
-            <button type="button" aria-label={paused ? "Resume slides" : "Pause slides"} aria-pressed={paused} onClick={() => setPaused((value) => !value)} className="ms-1 flex h-8 w-8 items-center justify-center rounded-full bg-black/45 text-xs text-white">{paused ? "▶" : "Ⅱ"}</button>
+            {slides.map((slide, index) => <button key={slide.id} type="button" role="tab" aria-selected={index === active} aria-label={slideLabels[index]} onClick={() => go(index)} className={cn("h-2.5 rounded-full bg-white/70 transition-all", index === active ? "w-7" : "w-2.5")} />)}
+            <button type="button" aria-label={paused ? resumeLabel : pauseLabel} aria-pressed={paused} onClick={() => setPaused((value) => !value)} className="ms-1 flex h-8 w-8 items-center justify-center rounded-full bg-black/45 text-xs text-white">{paused ? "▶" : "Ⅱ"}</button>
           </div>
         </>
       )}

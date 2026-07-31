@@ -55,37 +55,29 @@ test("address creation is complete while address editing may be partial", () => 
     recipientName: "A Customer",
     phone: "0790000000",
     city: "Amman",
-    area: "Shmeisani",
-    street: "Main Street",
   };
   assert.equal(createAddressSchema.safeParse(address).success, true);
-  assert.equal(updateAddressSchema.safeParse({ street: "Second Street" }).success, true);
+  assert.equal(updateAddressSchema.safeParse({ city: "Zarqa" }).success, true);
   assert.equal(updateAddressSchema.safeParse({}).success, false);
 });
 
-test("address creation requires governorate/city, area, street, recipient name and phone", () => {
+test("address creation requires recipient name, phone and city", () => {
   const base = {
     label: "Home",
     recipientName: "A Customer",
     phone: "0790000000",
     city: "Amman",
-    area: "Shmeisani",
-    street: "Main Street",
   };
-  for (const key of ["recipientName", "phone", "city", "area", "street"] as const) {
+  for (const key of ["recipientName", "phone", "city"] as const) {
     const rest: Record<string, string> = { ...base };
     delete rest[key];
     assert.equal(createAddressSchema.safeParse(rest).success, false, `${key} should be required`);
   }
-  // floor/apartmentNo/landmark/deliveryNotes/buildingInfo stay optional.
+  // deliveryNotes stays optional.
   assert.equal(
     createAddressSchema.safeParse({
       ...base,
-      floor: "3",
-      apartmentNo: "12",
-      landmark: "Near the mosque",
       deliveryNotes: "Ring twice",
-      buildingInfo: "Building 5",
     }).success,
     true,
   );
@@ -106,8 +98,6 @@ test("Jordanian phone numbers are validated and normalized to one canonical form
     recipientName: "A Customer",
     phone: "+962 79 000 0000",
     city: "Amman",
-    area: "Shmeisani",
-    street: "Main Street",
   });
   assert.equal(parsed.success, true);
   if (parsed.success) assert.equal(parsed.data.phone, "0790000000");
@@ -118,8 +108,6 @@ test("Jordanian phone numbers are validated and normalized to one canonical form
       recipientName: "A Customer",
       phone: "12345",
       city: "Amman",
-      area: "Shmeisani",
-      street: "Main Street",
     }).success,
     false,
   );

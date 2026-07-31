@@ -7,7 +7,11 @@ import { Money } from "@/components/Money";
 import { FormattedDate } from "@/components/FormattedDate";
 import type { AppLocale } from "@/i18n/config";
 
-export const metadata: Metadata = { title: "Today's Collections - Betolla Delivery" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("delivery.collections");
+  const tCommon = await getTranslations("common");
+  return { title: t("metaTitle", { brand: tCommon("brand") }) };
+}
 
 // Drivers are salaried, not paid per delivery - a Cash-on-Delivery order's total is the customer's
 // money, collected on the company's behalf and owed to the accountant, not the driver's earnings.

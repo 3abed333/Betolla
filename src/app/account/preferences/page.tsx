@@ -6,7 +6,11 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { NotificationPreferencesGrid } from "./NotificationPreferencesGrid";
 
-export const metadata: Metadata = { title: "Preferences - Betolla Cosmetics" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("account.preferences");
+  const tCommon = await getTranslations("common");
+  return { title: t("metaTitle", { brand: tCommon("brand") }) };
+}
 
 export default async function PreferencesPage() {
   await requireRole("CUSTOMER");

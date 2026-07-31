@@ -1,9 +1,14 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { getCurrentSession } from "@/lib/auth/session";
 import { ChangePasswordForm } from "./ChangePasswordForm";
 
-export const metadata: Metadata = { title: "Change password - Betolla Cosmetics" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("changePassword");
+  const tCommon = await getTranslations("common");
+  return { title: t("metaTitle", { brand: tCommon("brand") }) };
+}
 
 export default async function ChangePasswordPage() {
   const session = await getCurrentSession({ allowPasswordChangeRequired: true });

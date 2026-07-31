@@ -11,7 +11,11 @@ import { FormattedDate } from "@/components/FormattedDate";
 import type { AppLocale } from "@/i18n/config";
 import { localizedCity } from "@/lib/cityAr";
 
-export const metadata: Metadata = { title: "Customer - Betolla Admin" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("admin.users.detail");
+  const tCommon = await getTranslations("common");
+  return { title: t("metaTitle", { brand: tCommon("brand") }) };
+}
 
 export default async function CustomerDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -157,9 +161,7 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
                       {addr.phone}
                     </span>
                   </p>
-                  <p className="text-ink-muted">
-                    {addr.street}, {addr.area}, {localizedCity(addr.city, locale)}
-                  </p>
+                  <p className="text-ink-muted">{localizedCity(addr.city, locale)}</p>
                 </Card>
               ))}
             </div>

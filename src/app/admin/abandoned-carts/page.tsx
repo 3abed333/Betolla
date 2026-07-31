@@ -7,7 +7,11 @@ import { localizedField } from "@/lib/localizedField";
 import type { AppLocale } from "@/i18n/config";
 import { RemindButton } from "./RemindButton";
 
-export const metadata: Metadata = { title: "Abandoned Carts - Betolla Admin" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("admin.abandonedCarts");
+  const tCommon = await getTranslations("common");
+  return { title: t("metaTitle", { brand: tCommon("brand") }) };
+}
 
 export default async function AbandonedCartsPage() {
   const t = await getTranslations("admin.abandonedCarts");

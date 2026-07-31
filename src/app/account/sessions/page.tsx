@@ -7,7 +7,11 @@ import { FormattedDate } from "@/components/FormattedDate";
 import type { AppLocale } from "@/i18n/config";
 import { RevokeSessionButton } from "./RevokeSessionButton";
 
-export const metadata: Metadata = { title: "Active sessions - Betolla Cosmetics" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("account.sessions");
+  const tCommon = await getTranslations("common");
+  return { title: t("metaTitle", { brand: tCommon("brand") }) };
+}
 
 function describeSession(userAgent: string | null, t: Awaited<ReturnType<typeof getTranslations<"account.sessions">>>) {
   if (!userAgent) return t("device.unknown");

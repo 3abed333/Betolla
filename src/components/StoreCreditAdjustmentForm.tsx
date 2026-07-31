@@ -45,7 +45,7 @@ export function StoreCreditAdjustmentForm({ userId }: { userId: string }) {
           <Input
             label={t("amountLabel")}
             type="number"
-            step="0.01"
+            step="0.001"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             hint={t("amountHint")}

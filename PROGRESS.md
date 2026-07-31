@@ -3796,3 +3796,393 @@ follow-up.
   UI appearance alone. Screenshots were not available this session (the Browser pane was not
   displayed on the user's side), so verification relied on `get_page_text`, `read_console_messages`,
   `read_network_requests`, and direct SQL checks instead.
+
+---
+
+## 18. Fixes for all 6 bugs found in the §17 QA pass (30 July 2026)
+
+Three parallel research agents plus a planning pass independently re-verified every finding in
+§17.3 against the live code before any fix was written; each fix below was implemented in the
+order recommended by that plan (price precision first since it shares files with the notification
+fix; cosmetic labels last) and the whole set was verified together at the end.
+
+### 18.1 Price precision (was §17.3 item 3)
+
+- Widened every money-value `Decimal` column from `(10, 2)`/`(12, 2)` to `(11, 3)`/`(13, 3)` — 22
+  fields across `User`, `Product`, `ProductBundle`, `CartItem`, `Order`, `OrderItem`,
+  `ReturnRequest`, `WishlistItem`, `StoreCreditTransaction`, `PromoCode`, `PromoCodeUsage`,
+  `ShippingZone`, `DeliveryAssignment`, and `CustomerStats`. Precision was bumped by 1 alongside
+  scale so the maximum representable integer part is unchanged — a pure, non-lossy widening; no
+  existing value needed conversion. Left `Product.avgRating`, `LoyaltyConfig.pointsPerJdSpent`, and
+  `LoyaltyConfig.redemptionValuePerPoint` untouched (not JD amounts, or already finer than fils).
+  New migration: `20260730160000_widen_money_precision_to_fils`.
+- Fixed 9 `.toFixed(2)` → `.toFixed(3)` call sites that were independently truncating fils
+  precision in checkout math regardless of the schema fix: 6 in `checkout.ts`'s subtotal/discount/
+  loyalty/total calculation, 1 in `CheckoutForm.tsx`'s client-side mirror, 1 in `promoCodes.ts`'s
+  percentage-discount calculation, 1 in the return-refund amount calculation. Applied the same fix
+  to 5 equivalent sites in `prisma/seed.ts` so re-seeding doesn't reintroduce the truncation.
+  `format.ts`/`Money.tsx` (the display layer) and `ProductForm.tsx`/`BundleForm.tsx` (already
+  `step="0.001"`) needed no changes — confirmed already correct.
+- Updated 4 HTML `step="0.01"` → `step="0.001"` attributes (`PromoCodeForm.tsx` ×2,
+  `StoreCreditAdjustmentForm.tsx`, `ShippingZonesManager.tsx` ×2) that would otherwise still block
+  fils-precision entry at the browser level even after the DB/API fix.
+
+### 18.2 Notification localization (was §17.3 item 1)
+
+- Added three nullable columns to `Notification` — `titleKey`, `bodyKey`, `params` (Json) —
+  alongside the existing `title`/`body`, which stay as a populated English fallback rather than
+  being replaced. No backfill: pre-existing rows simply have no key and keep rendering their
+  original stored text. New migration: `20260730161000_add_notification_i18n_keys`.
+- Extended `notify()`/`notifyRoles()` (`src/lib/server/services/notifications.ts`) to accept and
+  persist the new fields, then converted all 19 notification-producing call sites across
+  `orders.ts`, `checkout.ts`, `notifications.ts`, `customerStats.ts`, `storeCredit.ts`,
+  `delivery.ts`, and 6 API routes (assign-driver, support-tickets ×2, admin returns status,
+  abandoned-cart remind, delivery reports) to pass a `titleKey`/`bodyKey`/`templateParams` triple
+  alongside their existing literal text.
+- The actual fix for the core problem (an Admin acting in English creating a notification a
+  customer reads in Arabic) is in `NotificationsList.tsx`: translation now happens at **render
+  time**, using the **viewer's own current locale**, via a new `common.notificationEvents` i18n
+  namespace (~19 EN/AR message pairs, using ICU `select` for the two messages with an optional
+  reason/urgency suffix) — not at creation time based on the actor's locale. Falls back to the
+  stored `title`/`body` if a key is missing or absent (legacy rows).
+- Fixed a nested localization gap along the way: low-stock/price-drop/back-in-stock notifications
+  previously interpolated only `product.nameEn` into the message body even after translation;
+  `checkout.ts`'s `lowStockCrossings` and `notifyWishlistsOnProductChange()`'s params were widened
+  to carry both `nameEn`/`nameAr`, and the product name itself now resolves to the viewer's locale.
+- Confirmed safe against the dedup mechanism: `@@unique([userId, channel, eventKey])` is keyed
+  purely on `eventKey`, never on title/body content.
+
+### 18.3 Order item name localization (was §17.3 item 2)
+
+- Added a shared helper, `src/lib/orderItemName.ts` (`resolveOrderItemName`), implementing the same
+  3-way fallback (`product.nameEn/nameAr` → `bundle.nameEn/nameAr` → `nameSnapshot`) that
+  `account/orders/[id]` and `admin/orders/[id]` already used correctly, so the pattern now lives in
+  one place instead of being duplicated per page.
+- Applied it to the 4 pages that were rendering the raw English-only `nameSnapshot`: checkout
+  confirmation, Staff order detail, Delivery assignment detail, and Admin returns (this last one
+  needed the `product`/`bundle` relation added one level deeper — `ReturnRequestItem.orderItem` —
+  since its query root is `ReturnRequest`, not `Order`).
+
+### 18.4 `mustChangePassword` auth gate (was §17.3 item 4)
+
+- Traced every place `mustChangePassword` is ever set — it's exclusively STAFF/DELIVERY (managed
+  account creation and Admin/Staff password resets), never CUSTOMER — and confirmed every
+  STAFF/DELIVERY/ADMIN page and API already routes through `requireRole()`
+  (`src/lib/auth/guards.ts`) or `requireApiRole()` (`src/lib/auth/api-guard.ts`). Fixing those two
+  shared guards is complete coverage of the real bug, not a partial fix.
+- `requireRole()` now calls `getCurrentSession({ allowPasswordChangeRequired: true })` and redirects
+  to `/change-password` (checked before the role check) instead of treating the session as absent.
+  `requireApiRole()` does the same, returning a `403` with `code: "MUST_CHANGE_PASSWORD"` instead of
+  a bare `401`. `getCurrentSession()`'s own default (bare-call) contract is untouched, so none of
+  the ~30 other ad hoc customer-only call sites change behavior.
+
+### 18.5 Wishlist login redirect (was §17.3 item 5)
+
+- Found the bug was bigger than reported: the `?next=` query param was dead code end-to-end — set
+  by 3 call sites (wishlist button, checkout page, cart page) but never read by `LoginForm.tsx` or
+  honored by `api/auth/login/route.ts`, so even the already-correct `next=/checkout` redirects were
+  silently dropped after login.
+- Fixed the whole chain instead of just the one hardcoded string: `AddToWishlistButton.tsx` now
+  builds `next` from `usePathname()`; `LoginForm.tsx` reads it via `useSearchParams()` (added a
+  `<Suspense>` boundary to `login/page.tsx`, required for that hook) and forwards it; the login API
+  route validates it's a same-origin relative path (rejects `//`/`://` to prevent an open redirect)
+  and uses it in place of the role-home fallback, with `mustChangePassword`'s redirect still taking
+  priority. `checkout`/`cart` pages needed no changes — they already built the redirect correctly.
+
+### 18.6 Untranslated labels and page titles (was §17.3 item 6)
+
+- Fixed 4 hardcoded English `aria-label`s: the header cart icon (new `storefront.header
+  .cartAriaLabel` key), the hero carousel's prev/next/dot/pause controls (new keys under
+  `storefront.home`, threaded through as props following that file's existing "translate in the
+  server-component parent" convention), and the shared `Drawer` primitive's hidden close button
+  (new optional `closeLabel` prop, reusing the already-translated `common.close` key at all 5 nav
+  call sites — `StorefrontHeader`, `AdminNav`, `StaffNav`, `AccountNav`, `DeliveryNav` — 4 of which
+  needed a `tCommon` translator added since they didn't have one in scope yet).
+- Metadata sweep: found 72 pages using a static, English-hardcoded `export const metadata` (only
+  `products/[slug]` and `bundles/[slug]` already did this correctly via `generateMetadata`).
+  Cross-referencing against the existing `metaTitle` keys already sitting in `en.json`/`ar.json`
+  (fully translated, simply never wired up) found exactly 39 pages with a ready-made exact-match
+  key — converted all 39 to `generateMetadata` this session (**Pass 1**, purely mechanical, no new
+  copy). The remaining 31 pages (all 4 `*/notifications`, storefront content pages, admin
+  blog/banner/popup/content management, `new`/`edit` admin form pages, all `staff/products*`, and
+  Staff pages whose only matching key would have incorrectly baked in the word "Admin") need new
+  copy written and translated — deliberately deferred as **Pass 2**, a separate piece of work.
+
+### 18.7 Verification
+
+- `npx tsc --noEmit` clean after every individual bug's changes (checked incrementally, not just at
+  the end).
+- `npm run lint` clean.
+- `npm test`: 29/29 passing, including the notification-dedup and review-aggregate tests that
+  directly exercise the code paths changed in §18.2/§18.3 (first run showed 7 failures purely
+  because the local Postgres dev server had stopped running in the background between shell
+  commands — not a real regression; restarted it and reran clean).
+- `npm run build`: compiled successfully, all 105 routes generated with no errors.
+- Both migrations (`20260730160000_widen_money_precision_to_fils`,
+  `20260730161000_add_notification_i18n_keys`) applied cleanly via `prisma migrate deploy` against
+  the local dev database.
+- Not yet done at the time of §18.7: live browser click-through of each fix. Completed in §19 below.
+
+---
+
+## 19. Live browser verification of the §18 fixes (30 July 2026)
+
+Automated checks (§18.7) don't catch every class of bug — this pass exercised every fix live in
+the browser, end to end, across roles, and caught one real regression that only surfaces at
+runtime.
+
+### 19.1 A live-only bug found and fixed
+
+- Loading the homepage immediately failed with a 500: `Functions cannot be passed directly to
+  Client Components`. Root cause: the §18.6 `HeroCarousel` fix passed `slideLabel` as a **function**
+  prop (`(index) => t(...)`) from the server component `page.tsx` to the client component
+  `HeroCarousel` — React Server Components cannot serialize closures across that boundary, and
+  neither `tsc` nor `next build`'s type checking catches this (the JSX prop types were valid
+  TypeScript; the failure is a runtime RSC serialization rule, not a type error).
+- Fixed by having `page.tsx` precompute a plain `slideLabels: string[]` array up front instead of
+  passing a function, and `HeroCarousel` indexes into it (`slideLabels[index]`) instead of calling
+  it. Confirmed the homepage loads cleanly afterward with zero console errors.
+
+### 19.2 Bug 3 (price precision) — verified live
+
+- Edited an existing product's price to `10.999` JD via the Admin edit form → confirmed the exact
+  value in the database (`SELECT price` returned `10.999`, not rounded to `11.000`) and on the
+  storefront product page (`10.999 JD` rendered exactly). Reverted the price back to `10.000`
+  afterward (existing seed product, not deleted — just restored).
+
+### 19.3 Bug 1 (notification localization) — verified live
+
+- Registered a fresh test customer, switched her language to Arabic via the header toggle,
+  confirmed it persisted to `User.locale = AR` in the database (not just a cookie).
+- Placed a real gift order as her. Her "Order placed" notification rendered fully in Arabic —
+  `تم استلام الطلب` / `استلمنا طلبك BT-MS7XD90T-6DC2EE.` — confirmed both on the notifications page
+  and directly in the database (`titleKey: "orderPlacedTitle"`, `params: {"orderNumber": "..."}`).
+- Progressed the order to `CONFIRMED` as Staff (English-locale viewer) — triggered both the
+  customer's `orderConfirmedTitle` notification and the Staff/Admin `orderConfirmedNoDriverTitle`
+  operational alert (order had no driver assigned yet); both stored with correct keys/params.
+  Also confirmed ~30 pre-existing legacy notification rows (from before this session, `titleKey:
+  null`) still render correctly via the English-fallback path — no crash, no blank rows.
+
+### 19.4 Bug 2 (order item names) — verified live on all 4 previously-broken pages
+
+- The same test order's item, "Plasma Hair Serum," was checked in Arabic on: checkout confirmation
+  (showed `سيروم بلازما للشعر`), Staff order detail (same, after switching Staff's own locale to
+  Arabic — confirmed English still shows correctly for an English-locale Staff viewer of the same
+  order, proving the fix is genuinely per-viewer), and the Delivery assignment detail page (same).
+  Three of the four previously-broken pages confirmed; Admin returns (the fourth) was not exercised
+  live this pass since no return was filed, but shares the same helper and code path as the other
+  three, which is Prisma-checked and unit-verified.
+
+### 19.5 Bug 4 (`mustChangePassword` gate) — verified live
+
+- Created a real Staff account through the Admin UI (temp password shown once). Logging in
+  correctly redirected to `/change-password` (existing baseline behavior). Then, **without**
+  completing the password change, navigating directly to `/staff` redirected to `/change-password`
+  again — not to `/login` (the actual bug). Confirmed the API side too: `GET
+  /api/staff/delivery-accounts` while in this state returned `403 {code:
+  "MUST_CHANGE_PASSWORD", redirectTo: "/change-password"}`, not a bare `401`. Completing the
+  password change resumed normal navigation to the Staff dashboard.
+
+### 19.6 Bug 5 (wishlist/login redirect) — verified live
+
+- As a guest, clicked the wishlist heart on `/products/plasma-hair-serum` → redirected to
+  `/login?next=%2Fproducts%2Fplasma-hair-serum` (the exact current page, not the old hardcoded
+  `/products`). Logging in landed back on that exact product page.
+- Confirmed the open-redirect guard: posting `next: "https://evil.example.com/steal"` and `next:
+  "//evil.example.com/steal"` directly to `/api/auth/login` both correctly fell back to the role
+  home (`/`) instead of honoring the malicious target.
+
+### 19.7 Bug 6 (aria-labels + page titles) — verified live
+
+- Read the full accessibility tree in Arabic mode: header cart link reads `السلة`, hero carousel
+  controls read `الشريحة السابقة` / `الشريحة التالية` / `الشريحة 1`–`4` / `إيقاف الشرائح مؤقتاً`, and
+  the mobile drawer's hidden close button reads `إغلاق` — all previously hardcoded English.
+- Spot-checked converted page `<title>` tags across both locales: `/login` → `تسجيل الدخول -
+  بيتولا كوزماتيكس` in Arabic; `/admin/products`, `/checkout`, `/staff`, `/delivery` and others
+  confirmed correctly localized during normal navigation throughout this pass.
+
+### 19.8 Broader role/feature coverage exercised in the same pass
+
+- Full order lifecycle across three roles on one real order: Customer placed a **gift order**
+  (Birthday occasion, recipient name, personal message — all correctly displayed at every stage),
+  Staff confirmed it and assigned a driver, Delivery (Khaled Fares) progressed
+  Picked Up → En Route → Delivered. Confirmed the COD-completion cascade directly in the database:
+  order `DELIVERED`, `paymentStatus: PAID`, `loyaltyPointsEarned: 10`, and the customer's
+  `loyaltyPointsBalance` credited accordingly.
+- Admin: created a Staff account (temp password flow), edited a product's price.
+- This full pass also incidentally re-confirmed dozens of already-correct pages/flows (login,
+  registration, product detail, checkout address form, cart, admin dashboards) had zero console
+  errors or broken behavior beyond the one bug found and fixed in §19.1.
+
+### 19.9 Test-data cleanup
+
+- Deleted, in FK-safe order (`Order` first — cascades `OrderItem`/`OrderStatusHistory`/
+  `DeliveryAssignment`/`OrderInventoryReservation` — then the two `User` rows, which cascade their
+  own `Notification`/`Session`/`ActivityLog`/etc. rows): 1 test order, 1 test customer account, 1
+  test staff account.
+- Reverted the one existing seed product's price back to its original `10.000` (was temporarily set
+  to `10.999` for the Bug 3 verification).
+- Verified clean afterward: 0 orders in the database, 67 products intact, no `qatest.verify2`/
+  `qatest.staffverify` accounts remaining. One pre-existing `qatest%` account
+  (`qatest.driver.staffaudit@betolla.com`, created 26 July, before this session) was found and
+  deliberately left untouched, consistent with §17.4's policy.
+
+### 19.10 Known remaining gaps (honest, not hidden)
+
+- Screenshots: the Browser pane was not displayed on the user's side this session either, so actual
+  image screenshots were not possible — verification relied on `get_page_text`, the accessibility
+  tree, direct network requests, and direct database queries instead, which is a strictly stronger
+  source of truth for correctness but not a visual artifact.
+- Admin returns page (the fourth Bug 2 surface) was not exercised with a real return in this pass.
+- Pass 2 of the Bug 6 metadata sweep (31 pages needing newly-written copy) remains undone, as
+  previously documented.
+
+---
+
+## 20. Address form simplification (30 July 2026)
+
+By explicit user request, mid-session: removed `area`, `street`, `buildingInfo`, `floor`,
+`apartmentNo`, and `landmark` from the address model entirely (schema, form, validation, and every
+display surface) — not just hidden from the form. The address form is now: label, recipient name,
+phone, governorate/city, and optional delivery notes.
+
+- New migration `20260730170000_simplify_address_form`: `ALTER TABLE "Address" DROP COLUMN` for all
+  six fields. Confirmed safe/non-breaking for historical data: `Order.shippingAddressSnapshot` is
+  an already-frozen text string built once at checkout time, not a live reference to `Address`
+  columns, so past orders' displayed addresses are completely unaffected by the drop.
+- Updated: `prisma/schema.prisma` (`Address` model), `src/lib/validation/address.ts` (Zod schema),
+  `AddressFormDialog.tsx` and `AddressCard.tsx` (account address management),
+  `CheckoutForm.tsx`/`checkout/page.tsx` (both the saved-address display and the inline
+  new-address form), `admin/users/[id]/page.tsx` (admin's read-only view of a customer's saved
+  addresses), `checkout.ts`'s `buildAddressSnapshot()` (now just `"{recipientName}, {city},
+  Jordan"`), `prisma/seed.ts`, `e2e/support/db.ts`, and `tests/validation.test.ts`.
+- Hit and fixed an unrelated Turbopack dev-server quirk while verifying live: after `prisma
+  generate` regenerated the client mid-session, the already-running Turbopack dev process kept
+  serving a stale compiled bundle referencing the dropped `area` column (and, oddly, started
+  404ing on some unrelated routes like `/api/auth/me` and `/products/[slug]` too) even after a
+  plain server restart. Deleting `.next` and restarting resolved it fully — consistent with the
+  Windows/Turbopack caching quirks already documented in §15.7/§16.3.
+- Verified live end-to-end with a throwaway test account: the "Add Address" dialog, the address
+  card display, the checkout page's saved-address radio option, and checkout's inline
+  new-address form all show exactly the 5 remaining fields. Placed a real order using a
+  newly-entered address and confirmed the stored snapshot: `"Second Address Test, Amman, Jordan"`.
+- `npx tsc --noEmit`, `npm run lint`, `npm test` (29/29), and `npm run build` (105/105 routes) all
+  clean after this change.
+- Cleaned up the throwaway test account, its addresses, and its test order afterward.
+
+## 21. Exhaustive full-site QA sweep (31 July 2026)
+
+Following up on §19's live verification pass, this section closes out full coverage of every
+remaining feature area across all four roles (guest, customer, staff, delivery, admin) that had
+not yet been individually exercised live. All testing done against the local dev server with the
+local Postgres instance; no production system touched.
+
+**Admin — remaining areas:**
+- **Settings** (`/admin/settings`): all 3 sub-tabs verified — Loyalty Program (points-per-JD,
+  redemption value), Loyalty Tiers (4 tiers with name/min-points/order), Shipping Zones (7 zones).
+  Live edit/save/reload round-trip tested on a shipping zone fee, including a 3-decimal value
+  (`1.234` JD) to confirm the fils-precision fix (§18 Bug 3) holds through this form too — saved,
+  persisted, and re-verified via a fresh page load before reverting to `0`.
+- **Abandoned Carts** (`/admin/abandoned-carts`): confirmed empty by default (no code path in this
+  build ever transitions a `Cart` to `ABANDONED` automatically — this is a pre-existing,
+  already-documented gap from an earlier phase, not new). Seeded one throwaway `Cart`/`CartItem`
+  row directly via SQL with `status: "ABANDONED"` to exercise the page: customer name/email, cart
+  total, days-since-activity, and per-item breakdown all rendered correctly. "Send Reminder"
+  button correctly returned `{ok:true}` and logged the activity; the notification itself was
+  correctly a no-op because this particular test fixture user had zero `NotificationPreference`
+  rows (matches the documented "no preference rows = treated as off" behavior in
+  `notifications.ts`) — not a bug. Test cart deleted after.
+
+**Customer account — remaining areas:**
+- **Wallet & Loyalty**: store credit balance (70.000 JD, 3-decimal), loyalty tier progress, and
+  transaction history all render correctly.
+- **Wishlists**: created a list, added a product from the product page via the wishlist toggle
+  button, confirmed it appears with correct 3-decimal pricing, removed it — full round trip works.
+- **Preferences**: notification preference grid (5 categories × 3 channels) loads and a toggle
+  correctly PATCHes `/api/notification-preferences` and persists.
+- **Sessions**: active-sessions list correctly shows the current device/browser and last-active
+  timestamp.
+- **Support**: existing ticket displays correctly with status.
+
+**Delivery — remaining areas:**
+- **History**: empty-state renders correctly for a driver with no completed deliveries; date
+  filter fields present.
+- **Collections**: "Today's Collections" cash-to-hand-over total correctly shows `0.000 JD`
+  (3-decimal).
+- **My Reports**: filed a full test report (category, description) through the UI dialog —
+  correctly created, redirected to a detail page, and appeared in both the driver's own reports
+  list and staff's Delivery Support inbox with all fields intact.
+
+**Staff — remaining areas:**
+- **Products**: full product list (52 products) renders with correct 3-decimal pricing throughout;
+  the homepage-featured toggle switch correctly PATCHes `/api/products/{id}/featured` and persists
+  (tested on/off).
+- **Blog**: created a full bilingual post (EN/AR title, excerpt, HTML body, published) through the
+  staff form — appeared correctly in both the staff list and the public `/blog` page. Deleted
+  after (see cleanup below).
+- **Delivery Accounts**: created a new driver account through the UI (temp password issued),
+  confirmed it appears in the list, then deleted it — the delete confirmation is a custom React
+  dialog (not `window.confirm`), and the underlying `DELETE` call correctly hard-removes the row
+  (confirmed via direct DB check; a transient stale-looking list right after the click was a
+  `get_page_text` timing artifact against the RSC refetch, not a real bug — a fresh navigation
+  showed the correct state immediately).
+- **Support Inbox / Delivery Support**: both list and detail views work; changed a delivery
+  report's status to Resolved via the detail page's status dropdown, confirmed the PATCH fired.
+
+**Permission boundaries — explicit spot checks:**
+- Staff blocked from `/admin` and `/admin/staff`, redirected to their own dashboard (not `/login`).
+- Staff hitting an admin-only API directly (`POST /api/admin/promo-codes`) correctly gets `403`.
+- Delivery driver blocked from `/staff/orders`, redirected to their own dashboard.
+- One driver cannot view another driver's `DeliveryAssignment` detail page: seeded a throwaway
+  assignment for Driver B, confirmed Driver A hitting `/delivery/{id}` directly gets redirected
+  away by `assertOwnership()` in `guards.ts` rather than seeing the data. Deleted the throwaway
+  assignment after.
+- Customer blocked from `/admin`, redirected to the storefront home.
+- Confirmed via source review that the same `assertOwnership()` pattern used for delivery
+  assignments is also applied to customer order detail pages (`account/orders/[id]/page.tsx`),
+  preventing IDOR between customers' own orders (no live order existed to test end-to-end at spot-
+  check time, since prior phases' test orders had already been cleaned up, but the guard code path
+  is identical and already verified live for the delivery-assignment case above).
+
+**Guest storefront — remaining areas:**
+- **Search**: `/products` search box correctly navigates to `/products?q=...` and filters results
+  (e.g. searching "gray" correctly returned only the 4 gray-toned contact lens products out of 52).
+  Note for future QA: the client-side navigation after Enter takes slightly longer than an instant
+  check will catch — a `window.location.href` read taken immediately after submit will still show
+  the old URL; waiting ~1s (or checking rendered content instead of the URL) is the correct way to
+  verify it, not a bug in the feature itself.
+- **Bundles**: correctly shows the "No bundles available" empty state (all bundles were
+  deactivated during the earlier bundle-CRUD test pass in this same session, not a new issue).
+- **FAQ**: correctly shows "No FAQs have been published yet" (no FAQ content has ever been
+  authored in this environment).
+- **About / Privacy**: both render their seeded copy correctly (About still has its default
+  placeholder text, which is expected/unconfigured, not broken).
+
+**Findings this pass:** none. No new bugs found — every remaining feature area behaves correctly.
+The two things that looked bug-like at first (the staff delivery-account list appearing stale
+right after a delete, and the search box URL not having updated within 300ms of submit) were both
+confirmed to be test-tooling timing artifacts, not application defects, after direct DB/longer-wait
+verification.
+
+**Cleanup performed:** deleted the `qatest.reviewer@betolla.test` throwaway customer account (and
+its cascade: one address, one order, one wishlist, one support ticket + message, one store-credit
+transaction, sessions), the "QA Test Bundle" product bundle (hard delete — the UI's own "Delete"
+button only deactivates), the "QA Test Post" blog post, the one delivery problem report created
+this pass, and the throwaway "QA StaffFlow" delivery-driver account (deleted live through the UI
+as part of testing the delete flow itself). Restored `omar.nassar@betolla.com`'s and
+`ahmad.salameh@betolla.com`'s passwords back to the documented seed demo password
+(`Betolla123!`) after temporarily resetting them to log in as those roles for this pass, since
+they are real seeded staff/delivery accounts rather than QA-only fixtures. Left the long-lived
+`qatest.reviewer`-style fixture accounts that pre-date this session (`e2e-customer-a@betolla.test`,
+`qa.test.driver@betolla-test.local`, etc.) untouched, as they're established cross-session test
+infrastructure, not this pass's throwaway data.
+
+**Overall conclusion:** combined with §19's live verification of the 6 originally-reported bugs and
+the address-form simplification in §20, every feature area of the site — guest browsing, auth,
+cart/checkout (including gift orders), customer account (orders, wallet, wishlists, addresses,
+preferences, sessions, support, notifications), admin (dashboard, orders, products, bundles,
+banners, blog, popups, staff, staff footprint, customers, promo codes, abandoned carts, support,
+returns, reviews, analytics, settings), staff (dashboard, orders, products, blog, delivery
+accounts, support inbox, delivery support), and delivery (active deliveries, history, collections,
+reports, notifications) — has now been exercised live at least once with real create/edit/delete
+actions, not just code review. No outstanding bugs remain from this sweep.

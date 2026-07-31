@@ -6,7 +6,11 @@ import { OrderFilters } from "@/components/orders/OrderFilters";
 import { Button } from "@/components/ui";
 import type { Prisma, OrderStatus } from "@/generated/prisma/client";
 
-export const metadata: Metadata = { title: "Orders - Betolla Admin" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("admin.orders");
+  const tCommon = await getTranslations("common");
+  return { title: t("metaTitle", { brand: tCommon("brand") }) };
+}
 
 export default async function AdminOrdersPage({
   searchParams,

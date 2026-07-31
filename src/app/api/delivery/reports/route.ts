@@ -51,6 +51,9 @@ export async function POST(request: NextRequest) {
     category: "OPERATIONS",
     title: "New delivery problem report",
     body: `A driver filed a new delivery report${report.urgency === "URGENT" ? " (urgent)" : ""}.`,
+    titleKey: "newDeliveryReportTitle",
+    bodyKey: "newDeliveryReportBody",
+    templateParams: { urgent: report.urgency === "URGENT" ? "yes" : "no" },
   });
 
   return NextResponse.json({ report });

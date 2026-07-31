@@ -11,6 +11,7 @@ import { NavBadge } from "@/components/NavBadge";
 
 export function AccountNav({ unreadNotifications = 0 }: { unreadNotifications?: number }) {
   const t = useTranslations("account.nav");
+  const tCommon = useTranslations("common");
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
@@ -52,7 +53,7 @@ export function AccountNav({ unreadNotifications = 0 }: { unreadNotifications?: 
               </svg>
             </button>
           </DrawerTrigger>
-          <DrawerContent title={t("menuTitle")}>
+          <DrawerContent title={t("menuTitle")} closeLabel={tCommon("close")}>
             <nav className="flex flex-col gap-1">
               {LINKS.map((link) => (
                 <Link key={link.href} href={link.href} onClick={() => setOpen(false)} className={linkClassName(isActive(link))}>

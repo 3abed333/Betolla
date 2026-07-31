@@ -10,7 +10,11 @@ import { supportCategoryKey } from "@/lib/supportCategories";
 import { TicketControls } from "@/components/support/TicketControls";
 import { AdminReplyForm } from "@/components/support/AdminReplyForm";
 
-export const metadata: Metadata = { title: "Support Ticket - Betolla Admin" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("admin.support.detail");
+  const tCommon = await getTranslations("common");
+  return { title: t("metaTitle", { brand: tCommon("brand") }) };
+}
 
 export default async function AdminTicketDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

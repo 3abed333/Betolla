@@ -6,7 +6,11 @@ import { Button, EmptyState } from "@/components/ui";
 import { AddressFormDialog } from "./AddressFormDialog";
 import { AddressCard } from "./AddressCard";
 
-export const metadata: Metadata = { title: "Addresses - Betolla Cosmetics" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("account.addresses");
+  const tCommon = await getTranslations("common");
+  return { title: t("metaTitle", { brand: tCommon("brand") }) };
+}
 
 export default async function AddressesPage() {
   const session = await requireRole("CUSTOMER");

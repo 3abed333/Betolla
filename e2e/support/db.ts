@@ -77,8 +77,6 @@ export async function upsertE2eAddress(userId: string, lastName: string) {
           "recipientName" = $2,
           "phone" = '0790000000',
           "city" = 'Amman',
-          "area" = 'Shmeisani',
-          "street" = 'E2E Test Street 1',
           "isDefaultShipping" = true,
           "updatedAt" = NOW()
         WHERE "id" = $1
@@ -91,12 +89,12 @@ export async function upsertE2eAddress(userId: string, lastName: string) {
   const created = await pool.query<{ id: string }>(
     `
       INSERT INTO "Address" (
-        "id", "userId", "label", "recipientName", "phone", "city", "area", "street",
+        "id", "userId", "label", "recipientName", "phone", "city",
         "isDefaultShipping", "createdAt", "updatedAt"
       )
       VALUES (
-        gen_random_uuid()::text, $1, 'E2E Home', $2, '0790000000', 'Amman', 'Shmeisani',
-        'E2E Test Street 1', true, NOW(), NOW()
+        gen_random_uuid()::text, $1, 'E2E Home', $2, '0790000000', 'Amman',
+        true, NOW(), NOW()
       )
       RETURNING "id"
     `,

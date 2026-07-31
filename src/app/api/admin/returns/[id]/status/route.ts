@@ -50,7 +50,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       const refundAmount = Number(current.items.reduce(
         (sum, item) => sum + Number(item.orderItem.priceSnapshot) * item.quantity,
         0,
-      ).toFixed(2));
+      ).toFixed(3));
 
       const changed = await tx.returnRequest.updateMany({
         where: { id, status: current.status },
@@ -168,6 +168,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     category: "ORDER_UPDATES",
     title: "Return updated",
     body: `Your return for order ${result.current.order.orderNumber} is now ${parsed.data.status.toLowerCase()}.`,
+    titleKey: "returnUpdatedTitle",
+    bodyKey: "returnUpdatedBody",
+    templateParams: { orderNumber: result.current.order.orderNumber, status: parsed.data.status.toLowerCase() },
     relatedOrderId: result.current.orderId,
   });
   return NextResponse.json({ ok: true, status: parsed.data.status, refundAmount: result.refundAmount });

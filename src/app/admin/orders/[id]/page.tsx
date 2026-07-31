@@ -15,7 +15,11 @@ import { FormattedDate } from "@/components/FormattedDate";
 import { localizedField } from "@/lib/localizedField";
 import type { AppLocale } from "@/i18n/config";
 
-export const metadata: Metadata = { title: "Order Details - Betolla Admin" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("admin.orders.detail");
+  const tCommon = await getTranslations("common");
+  return { title: t("metaTitle", { brand: tCommon("brand") }) };
+}
 
 export default async function AdminOrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

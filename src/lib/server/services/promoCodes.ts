@@ -56,7 +56,7 @@ export async function validatePromoCode(
 
   const discountAmount =
     promo.discountType === "PERCENTAGE"
-      ? Number(((subtotal * Number(promo.discountValue)) / 100).toFixed(2))
+      ? Number(((subtotal * Number(promo.discountValue)) / 100).toFixed(3))
       : Math.min(Number(promo.discountValue), subtotal);
 
   return { promo, discountAmount };

@@ -11,6 +11,7 @@ import { NoDriverAlert } from "@/components/orders/NoDriverAlert";
 import { GiftOrderCard } from "@/components/orders/GiftOrderCard";
 import { Money } from "@/components/Money";
 import { FormattedDate } from "@/components/FormattedDate";
+import { resolveOrderItemName } from "@/lib/orderItemName";
 import type { AppLocale } from "@/i18n/config";
 
 export const metadata: Metadata = { title: "Order Details - Betolla Staff" };
@@ -22,7 +23,12 @@ export default async function StaffOrderDetailPage({ params }: { params: Promise
     prisma.order.findUnique({
       where: { id },
       include: {
-        items: true,
+        items: {
+          include: {
+            product: { select: { nameEn: true, nameAr: true } },
+            bundle: { select: { nameEn: true, nameAr: true } },
+          },
+        },
         statusHistory: { orderBy: { createdAt: "asc" } },
         user: { select: { firstName: true, lastName: true } },
         deliveryAssignments: { orderBy: { assignedAt: "desc" }, include: { driver: { select: { firstName: true, lastName: true } } } },
@@ -100,10 +106,10 @@ export default async function StaffOrderDetailPage({ params }: { params: Promise
           {order.items.map((item) => (
             <div key={item.id} className="flex items-center gap-4 py-3 first:pt-0 last:pb-0">
               <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-surface-secondary">
-                <Image src={item.imageSnapshot} alt={item.nameSnapshot} fill sizes="56px" className="object-cover" />
+                <Image src={item.imageSnapshot} alt={resolveOrderItemName(item, locale)} fill sizes="56px" className="object-cover" />
               </div>
               <div className="flex-1">
-                <p className="font-medium text-ink">{item.nameSnapshot}</p>
+                <p className="font-medium text-ink">{resolveOrderItemName(item, locale)}</p>
                 <p className="text-sm text-ink-muted">
                   {t("qty")} {item.quantity} &middot; <Money value={Number(item.priceSnapshot)} locale={locale} /> {t("each")}
                 </p>

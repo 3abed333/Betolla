@@ -3,7 +3,11 @@ import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/db";
 import { SettingsTabs } from "./SettingsTabs";
 
-export const metadata: Metadata = { title: "Settings - Betolla Admin" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("admin.settings");
+  const tCommon = await getTranslations("common");
+  return { title: t("metaTitle", { brand: tCommon("brand") }) };
+}
 
 export default async function AdminSettingsPage() {
   const t = await getTranslations("admin.settings");
