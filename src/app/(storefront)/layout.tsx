@@ -1,12 +1,12 @@
 import { StorefrontHeader } from "./StorefrontHeader";
 import { StorefrontFooter } from "./StorefrontFooter";
 import { StorefrontPopup } from "@/components/StorefrontPopup";
-import { prisma } from "@/lib/db";
 import { getEligiblePopupCampaigns } from "@/lib/server/popupEligibility";
+import { getSiteSettings } from "@/lib/server/storefrontCache";
 
 export default async function StorefrontLayout({ children }: { children: React.ReactNode }) {
   const [settings, popups] = await Promise.all([
-    prisma.siteSettings.findUnique({ where: { id: "default" } }),
+    getSiteSettings(),
     getEligiblePopupCampaigns(),
   ]);
   return (

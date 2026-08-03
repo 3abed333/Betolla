@@ -2,36 +2,10 @@ import "server-only";
 import { prisma } from "@/lib/db";
 import { getCurrentSession } from "@/lib/auth/session";
 import { popupAudienceMatches, type PopupAudienceCustomer } from "@/lib/popupAudience";
+import { getActivePopupCampaignPool } from "@/lib/server/storefrontCache";
 
 export async function getEligiblePopupCampaigns(now = new Date()) {
-  const popups = await prisma.popupCampaign.findMany({
-    where: {
-      isActive: true,
-      AND: [
-        { OR: [{ startsAt: null }, { startsAt: { lte: now } }] },
-        { OR: [{ endsAt: null }, { endsAt: { gte: now } }] },
-      ],
-    },
-    orderBy: { updatedAt: "desc" },
-    take: 50,
-    select: {
-      id: true,
-      template: true,
-      trigger: true,
-      imageUrl: true,
-      audienceType: true,
-      customerSegment: true,
-      titleEn: true,
-      titleAr: true,
-      announcementEn: true,
-      announcementAr: true,
-      bodyHtmlEn: true,
-      bodyHtmlAr: true,
-      ctaLabelEn: true,
-      ctaLabelAr: true,
-      ctaUrl: true,
-    },
-  });
+  const popups = await getActivePopupCampaignPool();
 
   if (popups.length === 0) return popups;
   const session = await getCurrentSession();

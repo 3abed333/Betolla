@@ -1,19 +1,16 @@
 import Link from "next/link";
 import Image from "next/image";
 import { getLocale } from "next-intl/server";
-import { prisma } from "@/lib/db";
 import { Card, CardContent, EmptyState } from "@/components/ui";
 import { localizedField } from "@/lib/localizedField";
 import type { AppLocale } from "@/i18n/config";
+import { getPublishedBlogPosts } from "@/lib/server/storefrontCache";
 
 export const metadata = { title: "Blog - Betolla Cosmetics" };
 
 export default async function BlogPage() {
   const locale = (await getLocale()) as AppLocale;
-  const posts = await prisma.blogPost.findMany({
-    where: { isPublished: true, publishedAt: { lte: new Date() } },
-    orderBy: { publishedAt: "desc" },
-  });
+  const posts = await getPublishedBlogPosts();
   return (
     <div className="flex flex-col gap-6">
       <div>

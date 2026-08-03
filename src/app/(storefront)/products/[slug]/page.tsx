@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations, getLocale } from "next-intl/server";
-import { prisma } from "@/lib/db";
 import { Badge, Button } from "@/components/ui";
 import { StarRatingDisplay } from "@/components/ui/StarRating";
 import { Gallery } from "./Gallery";
@@ -12,6 +11,7 @@ import { AddToWishlistButton } from "@/components/AddToWishlistButton";
 import { Money } from "@/components/Money";
 import { localizedField } from "@/lib/localizedField";
 import type { AppLocale } from "@/i18n/config";
+import { getProductBySlugWithDetails } from "@/lib/server/storefrontCache";
 
 export async function generateMetadata({
   params,
@@ -19,7 +19,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const product = await prisma.product.findUnique({ where: { slug } });
+  const product = await getProductBySlugWithDetails(slug);
   const t = await getTranslations("storefront.productDetail");
   const tCommon = await getTranslations("common");
   const locale = (await getLocale()) as AppLocale;
@@ -34,10 +34,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
   const { slug } = await params;
   const t = await getTranslations("storefront.productDetail");
   const locale = (await getLocale()) as AppLocale;
-  const product = await prisma.product.findUnique({
-    where: { slug },
-    include: { images: { orderBy: { sortOrder: "asc" } }, category: true, knowledge: true },
-  });
+  const product = await getProductBySlugWithDetails(slug);
   if (!product || !product.isActive) notFound();
 
   const images = [...new Set([product.mainImageUrl, ...product.images.map((i) => i.url)])];

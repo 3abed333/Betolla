@@ -5,6 +5,7 @@ import { ProductCard } from "../ProductCard";
 import { EmptyState } from "@/components/ui";
 import { CategoryFilter } from "./CategoryFilter";
 import type { Prisma } from "@/generated/prisma/client";
+import { getActiveCategories, getProductsByCategory } from "@/lib/server/storefrontCache";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("storefront.products");
@@ -20,20 +21,22 @@ export default async function ProductsPage({
   const { category, q } = await searchParams;
   const t = await getTranslations("storefront.products");
 
-  const where: Prisma.ProductWhereInput = { isActive: true };
-  if (category) where.category = { slug: category };
+  let products;
   if (q) {
-    where.OR = [
-      { nameEn: { contains: q, mode: "insensitive" } },
-      { nameAr: { contains: q, mode: "insensitive" } },
-      { descriptionEn: { contains: q, mode: "insensitive" } },
-    ];
+    const where: Prisma.ProductWhereInput = {
+      isActive: true,
+      ...(category ? { category: { slug: category } } : {}),
+      OR: [
+        { nameEn: { contains: q, mode: "insensitive" } },
+        { nameAr: { contains: q, mode: "insensitive" } },
+        { descriptionEn: { contains: q, mode: "insensitive" } },
+      ],
+    };
+    products = await prisma.product.findMany({ where, orderBy: { createdAt: "desc" } });
+  } else {
+    products = await getProductsByCategory(category ?? null);
   }
-
-  const [products, categories] = await Promise.all([
-    prisma.product.findMany({ where, orderBy: { createdAt: "desc" } }),
-    prisma.category.findMany({ where: { isActive: true }, orderBy: { sortOrder: "asc" } }),
-  ]);
+  const categories = await getActiveCategories();
 
   return (
     <div className="flex flex-col gap-6">

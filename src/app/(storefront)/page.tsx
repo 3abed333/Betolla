@@ -1,34 +1,17 @@
 import Link from "next/link";
 import Image from "next/image";
 import { getTranslations, getLocale } from "next-intl/server";
-import { prisma } from "@/lib/db";
 import { Button } from "@/components/ui";
 import { ProductCard } from "./ProductCard";
 import { localizedField } from "@/lib/localizedField";
 import type { AppLocale } from "@/i18n/config";
 import { HeroCarousel } from "./HeroCarousel";
+import { getHomepageData } from "@/lib/server/storefrontCache";
 
 export default async function HomePage() {
   const t = await getTranslations("storefront.home");
   const locale = (await getLocale()) as AppLocale;
-  const [banners, categories, featuredProducts] = await Promise.all([
-    prisma.banner.findMany({
-      where: {
-        isActive: true,
-        AND: [
-          { OR: [{ startsAt: null }, { startsAt: { lte: new Date() } }] },
-          { OR: [{ endsAt: null }, { endsAt: { gt: new Date() } }] },
-        ],
-      },
-      orderBy: { sortOrder: "asc" },
-    }),
-    prisma.category.findMany({ where: { isActive: true }, orderBy: { sortOrder: "asc" } }),
-    prisma.product.findMany({
-      where: { isActive: true, isFeatured: true },
-      orderBy: { createdAt: "desc" },
-      take: 8,
-    }),
-  ]);
+  const { banners, categories, featuredProducts } = await getHomepageData();
 
   return (
     <div className="flex flex-col gap-12 sm:gap-16">

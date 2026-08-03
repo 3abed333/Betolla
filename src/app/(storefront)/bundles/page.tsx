@@ -2,11 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { getTranslations, getLocale } from "next-intl/server";
-import { prisma } from "@/lib/db";
 import { Badge, EmptyState } from "@/components/ui";
 import { Money } from "@/components/Money";
 import { localizedField } from "@/lib/localizedField";
 import type { AppLocale } from "@/i18n/config";
+import { getActiveBundles } from "@/lib/server/storefrontCache";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("storefront.bundles");
@@ -17,10 +17,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function BundlesPage() {
   const t = await getTranslations("storefront.bundles");
   const locale = (await getLocale()) as AppLocale;
-  const bundles = await prisma.productBundle.findMany({
-    where: { isActive: true },
-    include: { items: { include: { product: true } } },
-  });
+  const bundles = await getActiveBundles();
 
   if (bundles.length === 0) {
     return <EmptyState title={t("noBundlesAvailable")} />;
