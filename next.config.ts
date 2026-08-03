@@ -26,6 +26,13 @@ const nextConfig: NextConfig = {
   // in-app browser use 127.0.0.1. Allow that loopback host so Next's HMR WebSocket is
   // not rejected and the dev issue overlay does not appear on every account layout.
   allowedDevOrigins: ["127.0.0.1"],
+  // Shares unstable_cache/Data Cache entries across all PM2 process instances via
+  // Redis, instead of each process keeping its own private in-memory copy (Next's
+  // built-in file-system handler only persists to disk when flushToDisk is set, which
+  // a plain `next start` deployment does not do). Gated on REDIS_URL rather than
+  // isProduction since `next build` always sets NODE_ENV=production internally, even
+  // for local builds where Redis isn't running.
+  ...(process.env.REDIS_URL ? { cacheHandler: require.resolve("./cache-handler.js") } : {}),
   images: {
     remotePatterns: [{ protocol: "https", hostname: "picsum.photos" }],
   },

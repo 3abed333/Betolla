@@ -14,6 +14,9 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Generated Prisma client - not hand-written, not ours to lint.
     "src/generated/**",
+    // Loaded directly by Next.js's config loader outside the TS build pipeline -
+    // must stay plain CommonJS (require), per Next.js's own cacheHandler docs.
+    "cache-handler.js",
   ]),
 ]);
 
