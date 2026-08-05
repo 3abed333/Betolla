@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { getTranslations, getLocale } from "next-intl/server";
 import { Badge, Button } from "@/components/ui";
 import { StarRatingDisplay } from "@/components/ui/StarRating";
+import { RichContent } from "@/components/RichContent";
 import { Gallery } from "./Gallery";
 import { AddToCartForm } from "./AddToCartForm";
 import { ReviewsSection } from "./ReviewsSection";
@@ -64,7 +65,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
             )}
             {onSale && <Badge variant="accent">{t("sale")}</Badge>}
           </div>
-          <p className="text-ink-muted">{description}</p>
+          <RichContent html={description} className="product-description-html" />
           {product.stock > 0 && product.stock <= (product.lowStockThreshold ?? 15) && (
             <p className="text-sm text-accent">{t("onlyLeftInStock", { count: product.stock })}</p>
           )}

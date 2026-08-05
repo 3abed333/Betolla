@@ -4186,3 +4186,128 @@ returns, reviews, analytics, settings), staff (dashboard, orders, products, blog
 accounts, support inbox, delivery support), and delivery (active deliveries, history, collections,
 reports, notifications) — has now been exercised live at least once with real create/edit/delete
 actions, not just code review. No outstanding bugs remain from this sweep.
+
+---
+
+## 22. Seven-point feature/bug list, real transactional email, and the BETO lens film on the Lenses category (5 August 2026)
+
+Worked a 7-item list from the user (product description HTML, Google OAuth, blog image upload,
+slider/YouTube field, reviews visibility, orders export, abandoned carts), then continued into two
+follow-on asks (real email sending, and moving the BETO lens film) that came up mid-session. Two of
+the original 7 needed no work: the YouTube banner field (§ was already fully built - schema enum,
+admin form, storefront embed) and the reviews pipeline (already correctly gated behind admin
+approval, not a bug) — user confirmed both live via `AskUserQuestion` after I found them already
+working in code, so nothing changed there.
+
+**1. Product description HTML sanitization.** `descriptionEn/Ar` now goes through the same
+sanitize-on-save path `ProductKnowledge` already had (`sanitizeRichHtml` in
+`lib/server/sanitizeHtml.ts`) instead of being stored raw-but-rendered-as-escaped-text. Extended
+the allowlist: `details`/`summary` tags, and a `style` attribute gated by a `SAFE_STYLE_VALUE`
+regex blocking `url()`/`expression()`/`javascript:`/`@import`/angle-brackets while still allowing
+ordinary colors/units/spacing. Verified the sanitizer directly against a battery of attack strings
+(escaped `url()`, `<script>`, `onclick=`, `javascript:` href) - all correctly stripped, all
+legitimate styling preserved. Storefront now renders via `RichContent` instead of a plain
+`<p>{description}</p>`, styled with a new fixed Beige/White/Brown `.product-description-html`
+class in `globals.css` (deliberately independent of the site's own light/dark theme, same
+reasoning as `.analytics-theme`) - live-clicked the resulting `<details>` accordion, confirmed
+`open` state toggles and computed colors match the shipped CSS. `descriptionEn/Ar`'s max length
+raised 4,000 → 20,000 chars to fit real HTML. Regression found and fixed later in the session (see
+below): `ProductCard.tsx`'s two-line teaser was rendering the raw HTML as literal text since it
+was never updated for the new HTML content — added `stripHtmlToText()` in `lib/localizedField.ts`.
+
+**2. Google OAuth.** New `lib/auth/google.ts` (auth-URL builder, JWKS-verified id_token check via
+`jose` - already a dependency, no new package needed for verification), `/api/auth/google` +
+`/api/auth/google/callback` routes reusing the existing `createSession()`/`hashPassword()`
+infrastructure, a "Continue with Google" button on both login and register. `User.googleId` added
+(nullable, unique) via new migration; `passwordHash` stays `NOT NULL` - Google-only accounts get a
+securely random, never-disclosed hash rather than threading `string | null` through the whole
+codebase. CSRF `state` is a short-lived signed JWT (same `JWT_SECRET`), not a separate cookie.
+Verified live with temporary throwaway credentials: auth-URL construction, all 4 callback error
+paths (missing params, user-cancelled, tampered state, no credentials configured → fails closed
+with 500 rather than proceeding), and the three account-matching cases (new signup, repeat
+Google login, linking to a pre-existing password account by verified email) - each checked against
+real DB rows. **Still needs real `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` in `.env`** - gave the
+user a full Google Cloud Console walkthrough (OAuth consent screen, redirect URI
+`{APP_URL}/api/auth/google/callback`) rather than doing it for them, since it requires their own
+Google account.
+
+**3. Blog featured image upload.** Added `"blogs"` to `UploadSubfolder`/`PUBLIC_UPLOAD_SUBFOLDERS`
+in `lib/server/storage.ts`, allowed ADMIN/STAFF to request it in `/api/uploads`, replaced the
+plain URL text input in `BlogManager.tsx` with a real file-upload widget (same pattern as
+`SingleImageUploader`). Verified live: authenticated multipart upload, file landed on disk,
+re-fetched byte-identical over HTTP, then a full round trip (create a real blog post with the
+uploaded image, confirm it saved, delete the test post + file).
+
+**4. Orders CSV/Excel export.** Two real bugs in `api/admin/orders/export/route.ts` +
+`lib/csv.ts`: no UTF-8 BOM (Excel silently guessed Windows-1252, mangling Arabic customer names -
+reproduced byte-for-byte with a real Arabic name to confirm before/after), and no phone number or
+shipping city/address columns at all. Fixed both; applied the same BOM fix to
+`api/admin/users/export/route.ts` for consistency since it had the identical gap.
+
+**5. Abandoned carts.** This wasn't a timing issue, it was fully disconnected - nothing anywhere in
+the codebase ever set `Cart.status = "ABANDONED"`, and there was no scheduler of any kind. New
+`lib/server/services/abandonedCarts.ts` (24h threshold, only carts with items, never touches
+`CONVERTED` orders) wired into `src/instrumentation.ts`'s `register()` so it runs on server start
+and every 15 minutes after - fits this app's PM2/self-hosted deployment better than Vercel Cron.
+Verified against 5 real DB scenarios (stale-with-items → abandoned; stale-empty → untouched;
+recent → untouched; already-abandoned → untouched; converted → never touched) and a full live
+before/after on the actual (previously permanently-empty) `/admin/abandoned-carts` page.
+
+**6. Real email sending (Resend).** New `lib/server/email.ts`; `notify()` in
+`services/notifications.ts` now actually sends for the `EMAIL` channel instead of only writing the
+simulated `Notification` row, gated entirely on `RESEND_API_KEY` being set (no-ops silently
+otherwise, same behavior as before this existed). Dedup-before-send added so a retried event with
+the same `eventKey` can't double-email someone - checked via a real `[userId, channel, eventKey]`
+lookup before the send, mirroring the existing IN_APP dedup guarantee.
+- **Design**: went through two full rounds. First pass was rejected by the user as "feels like a
+  scam" with no way to get to the actual thing the email was about. Second pass was grounded in
+  real research - pulled Aesop's and Glossier's live sites' actual computed styles (not
+  assumptions): both use near-black/white CTA buttons, `border-radius: 0`, no shadows - the
+  opposite of the rounded/shadowed/saturated first draft. Presented 8 redesigned directions in a
+  side-by-side gallery; user picked "Structured Receipt" and asked for real itemized pricing.
+- **Order-receipt enrichment**: `notify()` now auto-builds a full `OrderReceipt` (line items,
+  subtotal, discount shown as "You saved X" in the accent color, store credit used, shipping,
+  total) whenever the category is `ORDER_UPDATES` with a `relatedOrderId` - no per-call-site
+  wiring needed, it's automatic. Real logo added (`public/brand/betolla-logo-clean.png` was
+  2172×724px/305KB, resized via `sharp` to a proper 320×107px/18KB email asset,
+  `public/brand/betolla-logo-email.png`).
+- **CTA buttons**: every customer-facing `notify()` call site now sets `ctaPath`/`ctaLabelKey`
+  pointing at the exact real thing (order detail, cart, wallet, the specific product for
+  wishlist emails, the specific support ticket) - verified by reading each destination page's
+  source, confirming `assertOwnership()` is enforced on the ID-scoped ones.
+- **Verification method**: rather than reimplementing the logic to test it, ran the actual
+  `notify()`/`sendNotificationEmail()` functions live against a real order in the DB via a
+  temporary route (deleted after), with a deliberately-fake Resend key so it reached Resend for
+  real and failed only on the fake key - confirming the whole pipeline end-to-end, not just that
+  it compiled. Caught two real bugs this way before calling it done: a wrong relative-import depth
+  in `notifications.ts` (copy-pasted from `email.ts`, which lives one directory shallower) and a
+  missing required field in the test fixture itself. **Still needs a real `RESEND_API_KEY`** -
+  fully wired but inert without one, same pattern as Google OAuth above.
+
+**7. BETO lens film on the Lenses category.** User wanted the existing scroll-scrubbed video
+story (originally a standalone page at `/beto-kit`) to run first, above the product grid, on
+`/products?category=beto-lenses`. Reused the existing `BetoKitExperience` component directly
+(imported, not duplicated) wrapped in a Tailwind full-bleed breakout (`relative left-1/2 w-screen
+-translate-x-1/2`) to escape the storefront layout's `max-w-7xl` content column, gated on
+`category === "beto-lenses" && !q`. User supplied a new 1080p export of the film
+(`BETO_product_film_sequence_1080p_...mp4`) - measured real seek performance before using it
+(same method against both files, 15 seeks each): the existing 720p file averages 11ms/seek, the
+new 1080p averaged **187ms/seek** (17× slower, worse than the 48fps-scrub budget of ~21ms) and
+would have visibly lagged. Flagged this before implementing; user chose to keep the proven 720p
+file. Also discovered mid-test that `requestAnimationFrame` doesn't fire in a backgrounded/hidden
+browser tab, which is what this session's remote browser tooling runs as - meaning true
+scroll-smoothness can't be fully verified through this tooling; said so plainly rather than
+claiming a verification that didn't happen. Confirmed live in a fresh tab: film renders first on
+the Lenses category, does not appear on other categories or the all-products view, and the
+product grid (17 lens products) renders correctly beneath it. Deleted the now-redundant standalone
+`(experience)/beto-kit/page.tsx` afterward at the user's request (the component and its CSS module
+stay, since the category-page embed still uses them) - confirmed `/beto-kit` now 404s and the
+category-page embed is unaffected.
+
+**Housekeeping this session:** restarted the dev server twice (with explicit user authorization)
+to pick up `instrumentation.ts`/env changes - both times hit the documented stale-`postmaster.pid`
+recovery path from an earlier session's memory notes (Postgres detects "was not properly shut
+down," runs normal WAL crash recovery, comes back clean; this is expected/safe, not corruption).
+`npx tsc --noEmit`, `eslint .`, and `npm test` (29/29) all clean as of the end of this session.
+**Not done:** nothing has been committed to git this session (explicitly not asked to); a full
+QA/security pass was explicitly deferred by the user to a later session.

@@ -8,6 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
 import { registerSchema } from "@/lib/validation/auth";
 import { Button, Input, Card, CardContent, Checkbox } from "@/components/ui";
+import { GoogleIcon } from "@/components/GoogleIcon";
 import type { z } from "zod";
 
 type RegisterValues = z.input<typeof registerSchema>;
@@ -204,6 +205,17 @@ export function RegisterForm() {
             {isSubmitting ? t("creatingAccount") : t("createAccount")}
           </Button>
         </form>
+        <div className="flex items-center gap-3 text-xs text-ink-muted">
+          <span className="h-px flex-1 bg-border" />
+          {t("orDivider")}
+          <span className="h-px flex-1 bg-border" />
+        </div>
+        <Button asChild variant="outline">
+          <a href="/api/auth/google">
+            <GoogleIcon />
+            {t("continueWithGoogle")}
+          </a>
+        </Button>
         <p className="text-center text-sm text-ink-muted">
           {t("alreadyHaveAccount")}{" "}
           <Link href="/login" className="font-medium text-ink underline">

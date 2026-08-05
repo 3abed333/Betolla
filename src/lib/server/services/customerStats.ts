@@ -86,6 +86,8 @@ export async function confirmCodPaymentOnDelivery(orderId: string) {
       bodyKey: "loyaltyPointsEarnedBody",
       templateParams: { points: result.earned, orderNumber: result.order.orderNumber },
       relatedOrderId: result.order.id,
+      ctaPath: "/account/wallet",
+      ctaLabelKey: "viewWallet",
     });
   }
 }

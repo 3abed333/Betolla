@@ -52,6 +52,10 @@ export async function POST(request: NextRequest) {
     subfolder = "reviews";
   } else if (requestedSubfolder === "popups" && session.role === "ADMIN") {
     subfolder = "popups";
+  } else if (requestedSubfolder === "blogs" && (session.role === "ADMIN" || session.role === "STAFF")) {
+    // Matches the roles allowed to manage blog posts at all (see requireApiRole in
+    // /api/content/blogs).
+    subfolder = "blogs";
   } else if (requestedSubfolder === "avatars") {
     subfolder = "avatars";
   }

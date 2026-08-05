@@ -147,16 +147,22 @@ export function ProductForm({
         <Input label={t("nameAr")} value={values.nameAr} onChange={(e) => set("nameAr", e.target.value)} dir="rtl" />
         <Textarea
           label={t("descriptionEn")}
+          hint={t("descriptionHint")}
+          rows={6}
           value={values.descriptionEn}
           onChange={(e) => set("descriptionEn", e.target.value)}
-          className="col-span-2"
+          placeholder="<p>...</p><details><summary>Ingredients</summary><p>...</p></details>"
+          className="col-span-2 font-mono"
         />
         <Textarea
           label={t("descriptionAr")}
+          hint={t("descriptionHint")}
+          rows={6}
           value={values.descriptionAr}
           onChange={(e) => set("descriptionAr", e.target.value)}
+          placeholder="<p>...</p><details><summary>المكونات</summary><p>...</p></details>"
           dir="rtl"
-          className="col-span-2"
+          className="col-span-2 font-mono"
         />
         <Input label={t("priceJD")} type="number" step="0.001" value={values.price} onChange={(e) => set("price", e.target.value)} />
         <Input

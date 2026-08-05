@@ -307,6 +307,8 @@ export async function placeOrder(userId: string, input: CheckoutInput) {
       bodyKey: "loyaltyPointsEarnedBody",
       templateParams: { points: result.loyaltyPointsEarned, orderNumber: result.order.orderNumber },
       relatedOrderId: result.order.id,
+      ctaPath: "/account/wallet",
+      ctaLabelKey: "viewWallet",
     });
   }
   for (const crossing of result.lowStockCrossings) {

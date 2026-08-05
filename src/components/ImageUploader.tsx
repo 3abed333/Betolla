@@ -5,7 +5,7 @@ import { useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "@/lib/toast";
 
-async function uploadFile(file: File, errorTitle: string, subfolder?: "avatars"): Promise<string | null> {
+async function uploadFile(file: File, errorTitle: string, subfolder?: "avatars" | "blogs"): Promise<string | null> {
   const formData = new FormData();
   formData.append("file", file);
   if (subfolder) formData.append("subfolder", subfolder);
@@ -18,14 +18,29 @@ async function uploadFile(file: File, errorTitle: string, subfolder?: "avatars")
   return data.url;
 }
 
-export function SingleImageUploader({ value, onChange }: { value: string; onChange: (url: string) => void }) {
+export function SingleImageUploader({
+  value,
+  onChange,
+  subfolder,
+  label,
+  alt,
+}: {
+  value: string;
+  onChange: (url: string) => void;
+  /** Omit for the default (product photos) - server-forced roles ignore this regardless. */
+  subfolder?: "avatars" | "blogs";
+  /** Button text override - defaults to the product-photo copy. */
+  label?: string;
+  /** Image alt text override - defaults to the product-photo copy. */
+  alt?: string;
+}) {
   const t = useTranslations("common.imageUploader");
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
 
   async function handleFile(file: File) {
     setUploading(true);
-    const url = await uploadFile(file, t("uploadFailedTitle"));
+    const url = await uploadFile(file, t("uploadFailedTitle"), subfolder);
     setUploading(false);
     if (url) onChange(url);
   }
@@ -33,7 +48,7 @@ export function SingleImageUploader({ value, onChange }: { value: string; onChan
   return (
     <div className="flex items-center gap-4">
       <div className="relative h-24 w-24 overflow-hidden rounded-xl border border-border bg-surface-secondary">
-        {value && <Image src={value} alt={t("mainProductImageAlt")} fill sizes="96px" className="object-cover" />}
+        {value && <Image src={value} alt={alt ?? t("mainProductImageAlt")} fill sizes="96px" className="object-cover" />}
       </div>
       <div>
         <input
@@ -49,7 +64,7 @@ export function SingleImageUploader({ value, onChange }: { value: string; onChan
           disabled={uploading}
           className="rounded-full border border-border px-4 py-2 text-sm text-ink hover:bg-surface-secondary"
         >
-          {uploading ? t("uploading") : t("uploadMainPhoto")}
+          {uploading ? t("uploading") : (label ?? t("uploadMainPhoto"))}
         </button>
       </div>
     </div>

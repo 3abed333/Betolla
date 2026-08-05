@@ -54,6 +54,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       titleKey: "newSupportReplyTitle",
       bodyKey: "newSupportReplyBody",
       templateParams: { subject: ticket.subject },
+      ctaPath: `/account/support/${ticket.id}`,
+      ctaLabelKey: "viewTicket",
     });
   }
 

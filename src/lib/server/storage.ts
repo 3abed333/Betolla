@@ -17,7 +17,7 @@ const UPLOAD_ROOT = path.join(process.cwd(), "public", "uploads");
 const PRIVATE_UPLOAD_ROOT = path.join(process.cwd(), "uploads-private");
 const MAX_DIMENSION = 1600;
 
-export type UploadSubfolder = "products" | "avatars" | "delivery-reports" | "reviews" | "banners" | "popups";
+export type UploadSubfolder = "products" | "avatars" | "delivery-reports" | "reviews" | "banners" | "popups" | "blogs";
 export type PublicUploadSubfolder = Exclude<UploadSubfolder, "delivery-reports">;
 
 const PUBLIC_UPLOAD_SUBFOLDERS = new Set<PublicUploadSubfolder>([
@@ -26,6 +26,7 @@ const PUBLIC_UPLOAD_SUBFOLDERS = new Set<PublicUploadSubfolder>([
   "reviews",
   "banners",
   "popups",
+  "blogs",
 ]);
 
 function rootFor(subfolder: UploadSubfolder): string {

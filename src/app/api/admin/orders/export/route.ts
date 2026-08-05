@@ -26,7 +26,10 @@ export async function GET(request: NextRequest) {
 
   const orders = await prisma.order.findMany({
     where,
-    include: { user: { select: { firstName: true, lastName: true, email: true } }, items: true },
+    include: {
+      user: { select: { firstName: true, lastName: true, email: true, phone: true } },
+      items: true,
+    },
     orderBy: { createdAt: "desc" },
   });
 
@@ -35,6 +38,10 @@ export async function GET(request: NextRequest) {
       orderNumber: o.orderNumber,
       customerName: `${o.user.firstName} ${o.user.lastName}`,
       email: o.user.email,
+      // The number captured for this specific delivery, not just the account's saved phone -
+      // matches what a driver would actually call and stays accurate even if the account's own
+      // phone later changes. Falls back to the account phone for the rare order predating it.
+      phone: o.shippingRecipientPhone || o.user.phone || "",
       status: o.status,
       paymentStatus: o.paymentStatus,
       itemCount: o.items.length,
@@ -44,12 +51,15 @@ export async function GET(request: NextRequest) {
       loyaltyRedemptionValue: o.loyaltyRedemptionValue.toString(),
       shippingFee: o.shippingFee.toString(),
       total: o.total.toString(),
+      shippingCity: o.shippingCity,
+      shippingAddress: o.shippingAddressSnapshot,
       createdAt: o.createdAt.toISOString(),
     })),
     [
       { key: "orderNumber", header: "Order Number" },
       { key: "customerName", header: "Customer" },
       { key: "email", header: "Email" },
+      { key: "phone", header: "Phone" },
       { key: "status", header: "Status" },
       { key: "paymentStatus", header: "Payment Status" },
       { key: "itemCount", header: "Items" },
@@ -59,6 +69,8 @@ export async function GET(request: NextRequest) {
       { key: "loyaltyRedemptionValue", header: "Loyalty Points Redeemed (JD)" },
       { key: "shippingFee", header: "Shipping (JD)" },
       { key: "total", header: "Total (JD)" },
+      { key: "shippingCity", header: "City" },
+      { key: "shippingAddress", header: "Shipping Address" },
       { key: "createdAt", header: "Placed At" },
     ],
   );

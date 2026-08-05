@@ -22,6 +22,8 @@ export async function POST(_request: NextRequest, { params }: { params: Promise<
     body: "Come back and finish checking out before it sells out!",
     titleKey: "abandonedCartTitle",
     bodyKey: "abandonedCartBody",
+    ctaPath: "/cart",
+    ctaLabelKey: "returnToCart",
   });
 
   await logActivity({

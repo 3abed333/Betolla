@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Card, CardContent, Checkbox, Input, Textarea } from "@/components/ui";
+import { SingleImageUploader } from "@/components/ImageUploader";
 import { toast } from "@/lib/toast";
 
 export type ManagedBlogPost = {
@@ -95,7 +96,18 @@ export function BlogManager({ posts }: { posts: ManagedBlogPost[] }) {
             <Textarea className="font-mono" rows={14} label="English article HTML" value={values.contentHtmlEn} onChange={(e) => setValues({ ...values, contentHtmlEn: e.target.value })} />
             <Textarea className="font-mono" rows={14} label="Arabic article HTML" dir="rtl" value={values.contentHtmlAr} onChange={(e) => setValues({ ...values, contentHtmlAr: e.target.value })} />
           </div>
-          <Input label="Cover image URL (optional)" value={values.coverImageUrl} onChange={(e) => setValues({ ...values, coverImageUrl: e.target.value })} />
+          <div>
+            <label className="text-sm font-medium text-ink">Featured image (optional)</label>
+            <div className="mt-1.5">
+              <SingleImageUploader
+                value={values.coverImageUrl}
+                onChange={(url) => setValues({ ...values, coverImageUrl: url })}
+                subfolder="blogs"
+                label="Upload featured image"
+                alt="Blog post featured image"
+              />
+            </div>
+          </div>
           <label className="flex items-center gap-2 text-sm text-ink">
             <Checkbox checked={values.isPublished} onCheckedChange={(checked) => setValues({ ...values, isPublished: checked === true })} />
             Publish this article

@@ -8,9 +8,17 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
 import { loginSchema } from "@/lib/validation/auth";
 import { Button, Input, Card, CardContent } from "@/components/ui";
+import { GoogleIcon } from "@/components/GoogleIcon";
 import type { z } from "zod";
 
 type LoginValues = z.infer<typeof loginSchema>;
+
+const GOOGLE_ERROR_KEYS: Record<string, string> = {
+  google: "googleErrorGeneric",
+  google_denied: "googleErrorDenied",
+  google_unverified: "googleErrorUnverified",
+  google_inactive: "googleErrorInactive",
+};
 
 export function LoginForm() {
   const t = useTranslations("auth.login");
@@ -18,6 +26,8 @@ export function LoginForm() {
   const tCommon = useTranslations("common");
   const router = useRouter();
   const searchParams = useSearchParams();
+  const googleErrorCode = searchParams.get("error");
+  const googleError = googleErrorCode ? t(GOOGLE_ERROR_KEYS[googleErrorCode] ?? "googleErrorGeneric") : null;
   const [serverError, setServerError] = useState<string | null>(null);
   const {
     register,
@@ -49,6 +59,7 @@ export function LoginForm() {
           <h1 className="font-heading text-2xl font-semibold text-ink">{t("heading")}</h1>
           <p className="mt-1 text-sm text-ink-muted">{t("welcomeBack", { brand: tCommon("brand") })}</p>
         </div>
+        {googleError && <p className="text-sm text-red-600">{googleError}</p>}
         <form
           action="/api/auth/login"
           method="post"
@@ -75,6 +86,17 @@ export function LoginForm() {
             {isSubmitting ? t("signingIn") : t("signIn")}
           </Button>
         </form>
+        <div className="flex items-center gap-3 text-xs text-ink-muted">
+          <span className="h-px flex-1 bg-border" />
+          {t("orDivider")}
+          <span className="h-px flex-1 bg-border" />
+        </div>
+        <Button asChild variant="outline">
+          <a href={`/api/auth/google${searchParams.get("next") ? `?next=${encodeURIComponent(searchParams.get("next")!)}` : ""}`}>
+            <GoogleIcon />
+            {t("continueWithGoogle")}
+          </a>
+        </Button>
         <p className="text-center text-sm text-ink-muted">
           {t("newToBetolla")}{" "}
           <Link href="/register" className="font-medium text-ink underline">

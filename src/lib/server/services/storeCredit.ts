@@ -39,6 +39,8 @@ export async function adjustStoreCredit({
       titleKey: amount >= 0 ? "storeCreditAddedTitle" : "storeCreditAdjustedTitle",
       bodyKey: "storeCreditBody",
       templateParams: { signedAmount: `${amount >= 0 ? "+" : ""}${amount.toFixed(3)}`, reason },
+      ctaPath: "/account/wallet",
+      ctaLabelKey: "viewWallet",
     });
     return updated;
   });
