@@ -214,7 +214,11 @@ export function BetoKitExperience() {
   }
 
   return (
-    <>
+    // The story's copy is hardcoded English (chapters above) and its layout (.chapter /
+    // .chapter:nth-child(even) in beto-kit.module.css) mixes logical flexbox alignment with
+    // physical text-align - the two disagree and clip text off-screen once the site's dir flips
+    // to rtl. Pinning this whole experience to ltr keeps it correct regardless of site locale.
+    <div dir="ltr" lang="en">
       <section
         ref={storyRef}
         className={styles.story}
@@ -323,6 +327,6 @@ export function BetoKitExperience() {
           Discover the complete collection
         </Link>
       </section>
-    </>
+    </div>
   );
 }
